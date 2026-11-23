@@ -11,6 +11,7 @@ export type EventInput = {
   title: string;
   description?: string | null;
   sport?: string | null;
+  level?: string | null;
   partnerId?: string | null;
   place?: string | null;
   startsAt: Date;
@@ -38,6 +39,7 @@ function data(i: EventInput) {
     title: i.title.trim(),
     description: i.description?.trim() || null,
     sport: i.sport?.trim() || null,
+    level: i.level || null,
     partnerId: i.partnerId || null,
     place: i.place?.trim() || null,
     startsAt: i.startsAt,

@@ -11,6 +11,7 @@ export function EventCardView({ e, locale, member }: { e: EventCard; locale: Loc
       <div className="between">
         <span>
           <span className={`tag ${e.kind === "FUSION" ? "p" : e.kind === "SPECIAL" ? "c" : ""}`}>{t.kinds[e.kind]}</span>
+          {e.sport && <span className="tag c">{e.sport}{e.level ? ` · ${t.levels[e.level] ?? e.level}` : ""}</span>}
           {e.status === "PENDING" && <span className="tag">{t.pendingApproval}</span>}
           {e.status === "CANCELLED" && <span className="tag">✕</span>}
         </span>

@@ -15,6 +15,8 @@ function fields(form: FormData) {
     email: str(form.get("email")) || null,
     phone: str(form.get("phone")) || null,
     notes: str(form.get("notes")) || null,
+    offer: str(form.get("offer")) || null,
+    code: str(form.get("code")) || null,
     active: form.get("active") !== "0",
   };
 }
@@ -86,9 +88,11 @@ function PartnerForm({ p }: { p?: Partner }) {
         <div><label>Address</label><input name="address" defaultValue={p?.address ?? ""} /></div>
         <div><label>Google Maps link</label><input name="mapsUrl" defaultValue={p?.mapsUrl ?? ""} /></div>
         <div><label>Instagram</label><input name="instagram" defaultValue={p?.instagram ?? ""} /></div>
+        <div><label>What members get (shown on the site)</label><input name="offer" defaultValue={p?.offer ?? ""} placeholder="15% off court rental" /></div>
+        <div><label>Discount code (members only)</label><input name="code" defaultValue={p?.code ?? ""} placeholder="SKOPJANKI15" /></div>
         <div><label>Shown on the site</label><select name="active" defaultValue={p?.active === false ? "0" : "1"}><option value="1">Yes</option><option value="0">No</option></select></div>
       </div>
-      <label>Notes (deal, prices, min/max)</label><textarea name="notes" rows={2} defaultValue={p?.notes ?? ""} />
+      <label>Internal notes, organiser only (deal, prices, min/max)</label><textarea name="notes" rows={2} defaultValue={p?.notes ?? ""} />
       <p style={{ marginTop: 12 }}><button className="btn sm" type="submit">{p ? "Save" : "Add partner"}</button></p>
     </form>
   );

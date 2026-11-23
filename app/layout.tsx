@@ -55,6 +55,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                       ? [
                           { href: "/app?kind=weekly", label: t.playTab },
                           { href: "/app?kind=fusion", label: t.fusionTab },
+                          { href: "/app/community", label: t.community },
+                          { href: "/app/partners", label: t.partners },
+                          { href: "/app/postcard", label: t.postcard },
                           { href: "/app/membership", label: t.membership },
                           { href: "/app/profile", label: t.profile },
                         ]
@@ -70,7 +73,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </div>
         </header>
         <main id="main" className="wrap">{children}</main>
-        <footer className="site">{t.footer} · <a href="https://instagram.com/skopjankii">@skopjankii</a> · <a href="/partneri">{locale === "mk" ? "Стани партнер" : "Become a partner"}</a></footer>
+        <footer className="site">{t.footer} · <a href="https://instagram.com/skopjankii">@skopjankii</a> · <a href="/partneri">{locale === "mk" ? "Стани партнер" : "Become a partner"}</a> · <a href="/privacy">{t.privacy}</a></footer>
       </body>
     </html>
   );

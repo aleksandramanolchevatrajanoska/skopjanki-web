@@ -4,16 +4,21 @@ import { getT } from "@/lib/i18n";
 import { isMember } from "@/lib/membership";
 import { formatDateTime } from "@/lib/time";
 import { Queens } from "@/components/Queens";
+import { askEnabled } from "@/lib/ask";
+import { AskBox, MomentCarousel, type Slide } from "@/components/Interactive";
+import { PartnerCard } from "@/components/PartnerCard";
+import { DAY, HOUR } from "@/lib/time";
 
 const SPORTS_TICKER = "Tennis · Padel · Aerial · Yoga · Pilates · Volleyball · Football · Running · Hiking · ";
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const sp = await searchParams;
   const user = await currentUser();
   const { t, locale } = await getT(user?.locale);
   const inside = user?.status === "APPROVED";
   const member = isMember(user);
   const now = new Date();
-  const [partners, nextFusion, nextPlans] = await Promise.all([
+  const [partners, nextFusion, nextPlans, moments, quotes] = await Promise.all([
     prisma.partner.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     prisma.event.findFirst({ where: { kind: "FUSION", status: "APPROVED", startsAt: { gt: now } }, orderBy: { startsAt: "asc" }, include: { partner: true } }),
     prisma.event.findMany({
@@ -22,7 +27,18 @@ export default async function Home() {
       take: 4,
       include: { partner: true },
     }),
+    // Moments: past events with photos. Visitors see only photos the organiser made public.
+    prisma.event.findMany({
+      where: { status: "APPROVED", startsAt: { lt: now }, photos: { some: inside ? {} : { public: true } } },
+      orderBy: { startsAt: "desc" },
+      take: 6,
+      include: { partner: true, photos: { where: inside ? {} : { public: true }, select: { id: true }, orderBy: { createdAt: "asc" }, take: 20 } },
+    }),
+    prisma.quote.findMany({ where: { hidden: false }, include: { user: { select: { name: true, memberUntil: true, isOwner: true } } }, orderBy: { updatedAt: "desc" }, take: 12 }),
   ]);
+  const shownQuotes = quotes.filter((q) => isMember(q.user, now)).slice(0, 6);
+  const untilFusion = nextFusion ? nextFusion.startsAt.getTime() - now.getTime() : 0;
+  const firstName = (n: string) => n.split(/\s+/)[0];
   const weeks = [t.week1, t.week2, t.week3, t.week4];
   const joinHref = inside ? "/app" : "/join";
   const eventsHref = (kind: string) => (inside ? `/app?kind=${kind}` : "/join");
@@ -55,6 +71,16 @@ export default async function Home() {
         </div>
       </section>
 
+      {sp.ok === "deleted" && <div className="notice ok" role="status">{t.deleted}</div>}
+      {nextFusion && (
+        <a className="countdown" href={inside ? `/app/events/${nextFusion.id}` : "/join"} style={{ marginTop: 20 }}>
+          <span className="label">{t.countdownTo}</span>
+          <strong>{nextFusion.title}</strong>
+          <span>{formatDateTime(nextFusion.startsAt, locale)}</span>
+          <span className="pill">{t.countdownIn} {Math.floor(untilFusion / DAY)}{t.days} {Math.floor((untilFusion % DAY) / HOUR)}{t.hoursShort}</span>
+        </a>
+      )}
+
       {/* Two big choices */}
       <section className="choices">
         <a className="choice" href={eventsHref("weekly")}>
@@ -81,6 +107,11 @@ export default async function Home() {
           <a className="mood-btn" href={eventsHref("weekly")}>{t.moodMove}</a>
           <a className="mood-btn" href={eventsHref("fusion")}>{t.moodMeet}</a>
         </p>
+        {askEnabled() && (
+          <div style={{ marginTop: 16 }}>
+            <AskBox labels={{ askTitle: t.askTitle, askPlaceholder: t.askPlaceholder, askButton: t.askButton, askThinking: t.askThinking, askError: t.askError, askNote: t.askNote }} />
+          </div>
+        )}
       </section>
 
       <div className="ticker" aria-label="Sports">
@@ -142,18 +173,56 @@ export default async function Home() {
         <div className="between"><span className="label">03 / 06</span><span className="label">Moments</span></div>
         <h2 className="display-md">{t.momentsTitle}</h2>
         <p className="meta">{t.momentsText}</p>
-        <div className="moments">
-          <figure className="polaroid">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/img/sip.jpg" alt="Sip & Serve: tennis and wine at Tennis Park Pointer" />
-            <figcaption className="label">Sip &amp; Serve · 23 October</figcaption>
-          </figure>
-          <figure className="polaroid tilt-r">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/img/asanas.jpg" alt="Asanas and Mimosas: yoga and brunch" />
-            <figcaption className="label">Asanas and Mimosas · 21 November</figcaption>
-          </figure>
-        </div>
+        {moments.length > 0 ? (
+          <div className="moments">
+            {moments.map((e) => {
+              const slides: Slide[] = [
+                ...e.photos.map((ph) => ({ src: `/photos/${ph.id}`, alt: e.title })),
+                // Only public fields go to the browser (never the code, email, phone or notes).
+                ...(e.partner
+                  ? [{ alt: e.partner.name, partner: { name: e.partner.name, activity: e.partner.activity, address: e.partner.address, mapsUrl: e.partner.mapsUrl, instagram: e.partner.instagram?.replace(/^@/, "") } }]
+                  : []),
+              ];
+              return (
+                <MomentCarousel
+                  key={e.id}
+                  cover={e.photos[0] ? `/photos/${e.photos[0].id}` : null}
+                  title={e.title}
+                  meta={formatDateTime(e.startsAt, locale)}
+                  slides={slides}
+                  eventHref={inside ? `/app/events/${e.id}#moments` : undefined}
+                  seeEvent={t.seeEvent}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <div className="moments-static">
+            <figure className="polaroid">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/img/sip.jpg" alt="Sip & Serve: tennis and wine at Tennis Park Pointer" />
+              <figcaption className="label">Sip &amp; Serve · 23 October</figcaption>
+            </figure>
+            <figure className="polaroid tilt-r">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/img/asanas.jpg" alt="Asanas and Mimosas: yoga and brunch" />
+              <figcaption className="label">Asanas and Mimosas · 21 November</figcaption>
+            </figure>
+          </div>
+        )}
+        {shownQuotes.length > 0 && (
+          <>
+            <h3 style={{ marginTop: 28 }}>{t.quotesTitle}</h3>
+            <div className="quotes">
+              {shownQuotes.map((q) => (
+                <blockquote key={q.userId} className="card">
+                  <p>“{q.text}”</p>
+                  <footer className="meta">— {firstName(q.user.name)}</footer>
+                </blockquote>
+              ))}
+            </div>
+          </>
+        )}
       </section>
 
       {/* 04 · Partners */}
@@ -164,18 +233,8 @@ export default async function Home() {
         {partners.length === 0 ? (
           <p className="meta" style={{ marginTop: 12 }}>{t.partnersEmpty}</p>
         ) : (
-          <div className="partner-grid">
-            {partners.map((p) => (
-              <div className="partner" key={p.id}>
-                <h3>{p.name}</h3>
-                <p className="meta">{p.activity}</p>
-                {p.address && <p className="meta">{p.address}</p>}
-                <p className="row" style={{ gap: 12 }}>
-                  {p.mapsUrl && <a href={p.mapsUrl}>Maps</a>}
-                  {p.instagram && <a href={`https://instagram.com/${p.instagram.replace(/^@/, "")}`}>@{p.instagram.replace(/^@/, "")}</a>}
-                </p>
-              </div>
-            ))}
+          <div className="grid">
+            {partners.map((p) => <PartnerCard key={p.id} p={p} locale={locale} member={member} />)}
           </div>
         )}
         <p style={{ marginTop: 14 }}><a className="btn ghost sm" href="/partneri">{t.becomePartner}</a></p>

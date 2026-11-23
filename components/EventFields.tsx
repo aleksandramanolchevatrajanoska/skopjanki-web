@@ -1,5 +1,5 @@
 import type { Event, Partner } from "@prisma/client";
-import { dicts, type Locale } from "@/lib/i18n";
+import { dicts, LEVELS, SPORTS, type Locale } from "@/lib/i18n";
 import { dateToSkopjeLocal } from "@/lib/time";
 import { int, str } from "@/lib/act";
 import { skopjeLocalToDate } from "@/lib/time";
@@ -34,7 +34,18 @@ export function EventFields({ locale, partners, e, owner }: { locale: Locale; pa
           </select>
         </div>
         <div><label htmlFor="place">{t.place}</label><input id="place" name="place" defaultValue={e?.place ?? ""} /></div>
-        <div><label htmlFor="sport">{t.sport}</label><input id="sport" name="sport" defaultValue={e?.sport ?? ""} /></div>
+        <div>
+          <label htmlFor="sport">{t.sport}</label>
+          <input id="sport" name="sport" list="sports" defaultValue={e?.sport ?? ""} />
+          <datalist id="sports">{SPORTS.map((s) => <option key={s} value={s} />)}</datalist>
+        </div>
+        <div>
+          <label htmlFor="level">{t.level}</label>
+          <select id="level" name="level" defaultValue={e?.level ?? ""}>
+            <option value="">{t.allLevels}</option>
+            {LEVELS.map((l) => <option key={l} value={l}>{t.levels[l]}</option>)}
+          </select>
+        </div>
         <div><label htmlFor="startsAt">{t.startsAt}</label><input id="startsAt" name="startsAt" type="datetime-local" required defaultValue={e ? dateToSkopjeLocal(e.startsAt) : ""} /></div>
         <div><label htmlFor="minSpots">{t.minSpots}</label><input id="minSpots" name="minSpots" type="number" min={1} required defaultValue={e?.minSpots ?? 4} /></div>
         <div><label htmlFor="maxSpots">{t.maxSpots}</label><input id="maxSpots" name="maxSpots" type="number" min={1} required defaultValue={e?.maxSpots ?? 12} /></div>
@@ -61,6 +72,7 @@ export function readEventForm(form: FormData): EventInput {
     title: str(form.get("title")),
     description: str(form.get("description")),
     sport: str(form.get("sport")),
+    level: LEVELS.includes(str(form.get("level"))) ? str(form.get("level")) : null,
     partnerId: str(form.get("partnerId")) || null,
     place: str(form.get("place")),
     startsAt: local ? skopjeLocalToDate(local) : new Date(NaN),

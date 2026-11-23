@@ -1,0 +1,214 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccessStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum EventKind {
+  WEEKLY // club weekly activity at a partner (weeks 1-3)
+  SPECIAL // week 4: surprise, workshop, talk
+  FUSION // monthly / bi-monthly fusion event, paid online
+  MEMBER_PLAN // extra plan proposed by a member, needs approval
+}
+
+enum EventStatus {
+  PENDING
+  APPROVED
+  CANCELLED
+}
+
+enum PricingMode {
+  SPLIT // total venue cost split among paying girls, members -discount
+  PER_PERSON // fixed price per girl, members -discount
+  ONLINE // fusion: fixed member / non-member price paid online via Stripe
+}
+
+enum ReservationStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  WAITLIST
+  OFFERED
+  CANCELLED
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id                   String       @id @default(cuid())
+  email                String       @unique
+  name                 String
+  phone                String?
+  instagram            String?
+  bio                  String?
+  howHeard             String?
+  levels               Json         @default("{}") // { "padel": "Advanced", ... }
+  status               AccessStatus @default(PENDING)
+  isOwner              Boolean      @default(false)
+  memberUntil          DateTime?
+  memberNumber         Int?         @unique
+  stripeCustomerId     String?      @unique
+  stripeSubscriptionId String?      @unique
+  creditBalance        Int          @default(0) // MKD, from fusion cancellations
+  locale               String       @default("en")
+  createdAt            DateTime     @default(now())
+  approvedAt           DateTime?
+
+  sessions            Session[]
+  reservations        Reservation[]
+  captainApplications CaptainApplication[]
+  debts               Debt[]               @relation("DebtUser")
+  collectedDebts      Debt[]               @relation("DebtCollector")
+  createdEvents       Event[]              @relation("EventCreator")
+  captainOf           Event[]              @relation("EventCaptain")
+}
+
+model LoginToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  email     String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model Session {
+  id        String   @id // sha256 of the cookie token
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Partner {
+  id        String   @id @default(cuid())
+  name      String
+  activity  String // e.g. "Tennis & padel"
+  address   String?
+  mapsUrl   String?
+  instagram String?
+  email     String? // receives the list of girls for each approved term
+  phone     String?
+  notes     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  events    Event[]
+}
+
+model Event {
+  id                String      @id @default(cuid())
+  kind              EventKind
+  status            EventStatus @default(APPROVED)
+  title             String
+  description       String?
+  sport             String?
+  partnerId         String?
+  partner           Partner?    @relation(fields: [partnerId], references: [id])
+  place             String?
+  startsAt          DateTime
+  weekKey           String // ISO week of startsAt in Europe/Skopje, e.g. 2026-W48
+  minSpots          Int         @default(1)
+  maxSpots          Int
+  pricingMode       PricingMode
+  totalCost         Int? // SPLIT: venue cost in MKD
+  priceNonMember    Int? // PER_PERSON / ONLINE
+  priceMember       Int? // ONLINE (fusion member price). PER_PERSON uses discount
+  memberDiscountPct Int         @default(20)
+  memberEarlyHours  Int         @default(48)
+  lockHours         Int         @default(48) // price locks & late-cancel window
+  publishedAt       DateTime?
+  lockedAt          DateTime?
+  lockedPriceNonMember Int?
+  lockedPriceMember    Int?
+  minimumAlertSentAt   DateTime?
+  captainAlertSentAt   DateTime?
+  reminderSentAt       DateTime?
+  attendanceClosedAt   DateTime?
+  cancelReason      String?
+  createdById       String
+  createdBy         User        @relation("EventCreator", fields: [createdById], references: [id])
+  captainId         String?
+  captain           User?       @relation("EventCaptain", fields: [captainId], references: [id])
+  createdAt         DateTime    @default(now())
+
+  reservations        Reservation[]
+  captainApplications CaptainApplication[]
+  debts               Debt[]
+
+  @@index([startsAt])
+}
+
+model Reservation {
+  id              String            @id @default(cuid())
+  eventId         String
+  event           Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          ReservationStatus
+  isMember        Boolean // member at the moment of booking (or lock)
+  offeredUntil    DateTime?
+  holdUntil       DateTime? // PENDING_PAYMENT expiry
+  stripeSessionId String?           @unique
+  stripePaymentIntentId String?
+  replacedAt      DateTime? // late canceller whose seat was taken from the waitlist
+  paidAmount      Int               @default(0) // online payment (fusion)
+  creditUsed      Int               @default(0)
+  attended        Boolean?
+  lateCancel      Boolean           @default(false)
+  cancelledAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@unique([eventId, userId])
+  @@index([eventId, status])
+}
+
+model CaptainApplication {
+  id        String            @id @default(cuid())
+  eventId   String
+  event     Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    ApplicationStatus @default(PENDING)
+  createdAt DateTime          @default(now())
+
+  @@unique([eventId, userId])
+}
+
+model Debt {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation("DebtUser", fields: [userId], references: [id], onDelete: Cascade)
+  eventId       String
+  event         Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  amount        Int
+  reason        String // LATE_CANCEL | NO_SHOW
+  waivedAt      DateTime?
+  paidAt        DateTime?
+  collectedById String?
+  collectedBy   User?     @relation("DebtCollector", fields: [collectedById], references: [id])
+  createdAt     DateTime  @default(now())
+
+  @@unique([userId, eventId])
+}
+
+model EmailLog {
+  id        String   @id @default(cuid())
+  to        String
+  subject   String
+  body      String
+  sent      Boolean
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,74 @@
+import type { Event, Partner } from "@prisma/client";
+import { dicts, type Locale } from "@/lib/i18n";
+import { dateToSkopjeLocal } from "@/lib/time";
+import { int, str } from "@/lib/act";
+import { skopjeLocalToDate } from "@/lib/time";
+import type { EventInput } from "@/lib/services/events";
+import type { EventKind, PricingMode } from "@prisma/client";
+
+export function EventFields({ locale, partners, e, owner }: { locale: Locale; partners: Partner[]; e?: Event; owner: boolean }) {
+  const t = dicts[locale];
+  return (
+    <>
+      {owner && (
+        <>
+          <label htmlFor="kind">Type</label>
+          <select id="kind" name="kind" defaultValue={e?.kind ?? "WEEKLY"} disabled={!!e && e.kind === "FUSION"}>
+            <option value="WEEKLY">{t.kinds.WEEKLY}</option>
+            <option value="SPECIAL">{t.kinds.SPECIAL}</option>
+            <option value="FUSION">{t.kinds.FUSION}</option>
+          </select>
+          {e?.kind === "FUSION" && <input type="hidden" name="kind" value="FUSION" />}
+        </>
+      )}
+      <label htmlFor="title">{t.title}</label>
+      <input id="title" name="title" required defaultValue={e?.title} />
+      <label htmlFor="description">{t.description}</label>
+      <textarea id="description" name="description" rows={3} defaultValue={e?.description ?? ""} />
+      <div className="two">
+        <div>
+          <label htmlFor="partnerId">{t.partner}</label>
+          <select id="partnerId" name="partnerId" defaultValue={e?.partnerId ?? ""}>
+            <option value="">{t.noPartner}</option>
+            {partners.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+        <div><label htmlFor="place">{t.place}</label><input id="place" name="place" defaultValue={e?.place ?? ""} /></div>
+        <div><label htmlFor="sport">{t.sport}</label><input id="sport" name="sport" defaultValue={e?.sport ?? ""} /></div>
+        <div><label htmlFor="startsAt">{t.startsAt}</label><input id="startsAt" name="startsAt" type="datetime-local" required defaultValue={e ? dateToSkopjeLocal(e.startsAt) : ""} /></div>
+        <div><label htmlFor="minSpots">{t.minSpots}</label><input id="minSpots" name="minSpots" type="number" min={1} required defaultValue={e?.minSpots ?? 4} /></div>
+        <div><label htmlFor="maxSpots">{t.maxSpots}</label><input id="maxSpots" name="maxSpots" type="number" min={1} required defaultValue={e?.maxSpots ?? 12} /></div>
+      </div>
+      <label htmlFor="pricingMode">{t.pricingMode}</label>
+      <select id="pricingMode" name="pricingMode" defaultValue={e?.pricingMode ?? "SPLIT"}>
+        <option value="SPLIT">{t.modeSplit}</option>
+        <option value="PER_PERSON">{t.modePerPerson}</option>
+        {owner && <option value="ONLINE">{t.modeOnline}</option>}
+      </select>
+      <div className="two">
+        <div><label htmlFor="totalCost">{t.totalCost}</label><input id="totalCost" name="totalCost" type="number" min={0} defaultValue={e?.totalCost ?? ""} /></div>
+        <div><label htmlFor="priceNonMember">{t.priceNonMemberLabel}</label><input id="priceNonMember" name="priceNonMember" type="number" min={0} defaultValue={e?.priceNonMember ?? ""} /></div>
+        {owner && <div><label htmlFor="priceMember">{t.priceMemberLabel} (fusion)</label><input id="priceMember" name="priceMember" type="number" min={0} defaultValue={e?.priceMember ?? ""} /></div>}
+      </div>
+    </>
+  );
+}
+
+export function readEventForm(form: FormData): EventInput {
+  const local = str(form.get("startsAt"));
+  return {
+    kind: (str(form.get("kind")) || "WEEKLY") as EventKind,
+    title: str(form.get("title")),
+    description: str(form.get("description")),
+    sport: str(form.get("sport")),
+    partnerId: str(form.get("partnerId")) || null,
+    place: str(form.get("place")),
+    startsAt: local ? skopjeLocalToDate(local) : new Date(NaN),
+    minSpots: int(form.get("minSpots")) ?? 1,
+    maxSpots: int(form.get("maxSpots")) ?? 0,
+    pricingMode: (str(form.get("pricingMode")) || "SPLIT") as PricingMode,
+    totalCost: int(form.get("totalCost")),
+    priceNonMember: int(form.get("priceNonMember")),
+    priceMember: int(form.get("priceMember")),
+  };
+}

@@ -26,6 +26,11 @@ export default async function Login({ searchParams }: { searchParams: Promise<Re
         <p style={{ marginTop: 14 }}><button className="btn" type="submit">{t.signIn}</button></p>
       </form>
       <p className="meta" style={{ marginTop: 16 }}><a href="/#join">{t.join}</a></p>
+      {process.env.DEMO_LOGIN === "1" && (
+        <div className="notice" style={{ marginTop: 16 }}>
+          Preview: <a href="/auth/demo?as=owner">sign in as the organiser</a> · <a href="/auth/demo?as=member">sign in as a member</a>
+        </div>
+      )}
     </div>
   );
 }

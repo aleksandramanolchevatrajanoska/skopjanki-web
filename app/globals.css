@@ -74,3 +74,11 @@ th{font-weight:600;color:var(--muted);font-size:.8rem;text-transform:uppercase;l
 .membercard .n{font:400 1.6rem Newsreader,serif}
 footer.site{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16px;border-top:1px solid var(--line)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}.card.tilt,.polaroid{transform:none}}
+.chipbox{position:relative;display:inline-block}
+.chipbox input{position:absolute;opacity:0;inset:0}
+.chipbox span{display:inline-block;padding:7px 14px;border:1px solid var(--line);border-radius:4px;font-size:.9rem;font-weight:600;cursor:pointer;background:var(--bg)}
+.chipbox input:checked+span{background:var(--plum);color:var(--bg);border-color:var(--plum)}
+.chipbox input:focus-visible+span{outline:3px solid var(--pink);outline-offset:2px}
+.optbox{display:flex;gap:12px;align-items:flex-start;font-weight:400;border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin:8px 0;cursor:pointer;flex-wrap:wrap}
+.optbox>input[type=checkbox]{width:18px;height:18px;margin-top:3px;accent-color:var(--pink);flex:none}
+.optbox:has(>input:checked){border-color:var(--pink);background:var(--soft)}

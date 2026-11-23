@@ -212,3 +212,37 @@ model EmailLog {
   sent      Boolean
   createdAt DateTime @default(now())
 }
+
+/** Public partner application form (/partneri). Reviewed in /admin/partners. */
+model PartnerApplication {
+  id           String   @id @default(cuid())
+  business     String
+  kind         String
+  address      String?
+  person       String
+  phone        String
+  email        String
+  instagram    String?
+  website      String?
+  sports       String[]
+  priceRegular Int?
+  priceGroup   Int?
+  durationMin  Int?
+  pricing      String? // "per court" | "per girl"
+  perUnit      Int?
+  units        Int?
+  captainFree  String?
+  offers       String[]
+  discountPct  Int?
+  gearPct      Int?
+  otherOffer   String?
+  hostWeekly   Boolean  @default(false)
+  hostFusion   Boolean  @default(false)
+  capacity     Int?
+  days         String[]
+  times        String?
+  message      String?
+  status       String   @default("NEW") // NEW | ACCEPTED | DECLINED
+  partnerId    String?
+  createdAt    DateTime @default(now())
+}

@@ -49,7 +49,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </div>
         </header>
         <main id="main" className="wrap">{children}</main>
-        <footer className="site">{t.footer} · <a href="https://instagram.com/skopjankii">@skopjankii</a></footer>
+        <footer className="site">{t.footer} · <a href="https://instagram.com/skopjankii">@skopjankii</a> · <a href="/partneri">{locale === "mk" ? "Стани партнер" : "Become a partner"}</a></footer>
       </body>
     </html>
   );

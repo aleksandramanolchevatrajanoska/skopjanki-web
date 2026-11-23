@@ -2,7 +2,8 @@ import { requireOwner } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { attempt, str } from "@/lib/act";
 import { Flash } from "@/components/Flash";
-import type { Partner } from "@prisma/client";
+import type { Partner, PartnerApplication } from "@prisma/client";
+import { decidePartnerApplication } from "@/lib/services/partners";
 
 function fields(form: FormData) {
   return {
@@ -30,6 +31,49 @@ async function save(form: FormData) {
   });
 }
 
+async function decideApp(form: FormData) {
+  "use server";
+  await requireOwner();
+  await attempt("/admin/partners", () => decidePartnerApplication(prisma, String(form.get("id")), form.get("accept") === "1"));
+}
+
+const OFFER_LABEL: Record<string, string> = { discount_session: "discount on terms", discount_gear: "discount on gear", free_trial: "free trial / vouchers", space: "space for activities", gifts: "gifts / products", other: "other" };
+
+function Application({ a }: { a: PartnerApplication }) {
+  return (
+    <div className="card stack">
+      <div className="between">
+        <div><h3>{a.business}</h3><p className="meta">{a.kind}{a.address ? ` · ${a.address}` : ""} · {a.createdAt.toLocaleDateString("en-GB")}</p></div>
+        {a.status === "NEW" ? (
+          <div className="row">
+            <form action={decideApp}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="accept" value="1" /><button className="btn sm pink">Accept as partner</button></form>
+            <form action={decideApp}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="accept" value="0" /><button className="btn sm ghost">Decline</button></form>
+          </div>
+        ) : <span className="tag">{a.status.toLowerCase()}</span>}
+      </div>
+      <p>{a.person} · {a.phone} · {a.email}{a.instagram ? ` · @${a.instagram}` : ""}{a.website ? <> · <a href={a.website}>link</a></> : null}</p>
+      {(a.sports.length > 0 || a.priceRegular != null) && (
+        <p className="meta">
+          {a.sports.join(", ")}
+          {a.priceRegular != null && ` · regular ${a.priceRegular} MKD ${a.pricing ?? ""}`}
+          {a.durationMin ? ` / ${a.durationMin} min` : ""}
+          {a.priceGroup != null && ` · Skopjanki ${a.priceGroup} MKD`}
+          {a.perUnit ? ` · up to ${a.perUnit} per court` : ""}
+          {a.units ? ` · ${a.units} courts at once` : ""}
+          {a.captainFree ? ` · captain free: ${a.captainFree}` : ""}
+        </p>
+      )}
+      <div className="row">
+        {a.offers.map((o) => <span key={o} className="tag p">{OFFER_LABEL[o] ?? o}{o === "discount_session" && a.discountPct ? ` ${a.discountPct}%` : ""}{o === "discount_gear" && a.gearPct ? ` ${a.gearPct}%` : ""}</span>)}
+        {a.hostWeekly && <span className="tag c">weekly terms</span>}
+        {a.hostFusion && <span className="tag c">fusion host</span>}
+      </div>
+      {(a.capacity || a.days.length > 0 || a.times) && <p className="meta">{a.capacity ? `${a.capacity} people · ` : ""}{a.days.join(", ")}{a.times ? ` · ${a.times}` : ""}</p>}
+      {a.message && <p style={{ whiteSpace: "pre-line" }}>{a.message}</p>}
+    </div>
+  );
+}
+
 function PartnerForm({ p }: { p?: Partner }) {
   return (
     <form action={save} className="card">
@@ -52,11 +96,21 @@ function PartnerForm({ p }: { p?: Partner }) {
 
 export default async function Partners({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
-  const partners = await prisma.partner.findMany({ orderBy: { name: "asc" } });
+  const [partners, apps] = await Promise.all([
+    prisma.partner.findMany({ orderBy: { name: "asc" } }),
+    prisma.partnerApplication.findMany({ orderBy: [{ status: "desc" }, { createdAt: "desc" }], take: 50 }),
+  ]);
   return (
     <>
       <h1>Partners</h1>
       <Flash sp={sp} locale="en" />
+      <p className="meta">Share this link with places you'd like to work with: <strong>/partneri</strong> (anyone can fill it in, no account needed).</p>
+      <section className="stack" style={{ marginTop: 16 }}>
+        <h2>Applications ({apps.filter((a) => a.status === "NEW").length} new)</h2>
+        {apps.length === 0 && <p className="meta">No applications yet.</p>}
+        {apps.map((a) => <Application key={a.id} a={a} />)}
+      </section>
+      <h2 style={{ marginTop: 28 }}>Partners</h2>
       <div className="stack" style={{ marginTop: 16 }}>
         {partners.map((p) => <PartnerForm key={p.id} p={p} />)}
         <h2>New partner</h2>

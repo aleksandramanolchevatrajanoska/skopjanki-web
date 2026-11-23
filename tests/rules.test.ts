@@ -220,3 +220,19 @@ describe("fusion (online, Stripe)", () => {
     expect(await cancelEvent(db, e.id, "rain", T0)).toEqual([{ paymentIntentId: "pi_3", amount: 1500 }]);
   });
 });
+
+describe("partner applications", () => {
+  it("anyone can apply; accepting creates a partner with the deal in the notes", async () => {
+    const { submitPartnerApplication, decidePartnerApplication } = await import("@/lib/services/partners");
+    await girl({ owner: true });
+    const base = { business: "Pointer", kind: "Спортски терен", person: "Marko", phone: "070", email: "p@x.mk", sports: ["Тенис", "Падел"], offers: [], hostWeekly: true, hostFusion: true, days: [], consent: true };
+    expect(await code(submitPartnerApplication(db, base))).toBe("OFFER_REQUIRED");
+    expect(await code(submitPartnerApplication(db, { ...base, offers: ["discount_session"], consent: false }))).toBe("CONSENT_REQUIRED");
+    const a = await submitPartnerApplication(db, { ...base, offers: ["discount_session", "hack"], discountPct: 20, priceRegular: 1600, priceGroup: 1300, perUnit: 4 });
+    expect(a.offers).toEqual(["discount_session"]);
+    await decidePartnerApplication(db, a.id, true);
+    const p = await db.partner.findFirstOrThrow({ where: { name: "Pointer" } });
+    expect(p.notes).toContain("Skopjanki 1300 MKD");
+    expect(await code(decidePartnerApplication(db, a.id, true))).toBe("NOT_PENDING");
+  });
+});

@@ -209,6 +209,20 @@ export function AskBox({ labels, examples = [] }: { labels: { askTitle: string; 
 /** The hero card from the prototype: front "See you at the next one.", back the core team photo. */
 export function FlipCard({ front, back, team, hint, soon }: { front: string; back: string; team: string | null; hint: string; soon: string }) {
   const [on, setOn] = useState(false);
+  if (!team) {
+    // No core team photo yet: a still card, nothing to flip to.
+    return (
+      <div className="flipper static" aria-hidden="true">
+        <span className="face front">
+          <span className="badge"><QueensMark /></span>
+          <span>
+            <span className="ft">{front}</span>
+            <small>@skopjankii</small>
+          </span>
+        </span>
+      </div>
+    );
+  }
   return (
     <button type="button" className={`flipper${on ? " on" : ""}`} onClick={() => setOn(!on)} aria-label={back}>
       <span className="face front">

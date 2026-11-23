@@ -226,3 +226,7 @@ code.blurred{filter:blur(5px);user-select:none}
 .stats b{display:block;font:400 2.4rem/1 Newsreader,Georgia,serif;color:var(--plum);font-variant-numeric:tabular-nums}
 .stats span{color:var(--muted);font-size:.85rem}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.flipper.static{cursor:default}
+/* Space between the header and the page (".wrap" used to zero main's own padding) */
+main.wrap{padding-top:40px;padding-bottom:64px}
+@media(max-width:700px){main.wrap{padding-top:28px}}

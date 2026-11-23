@@ -112,6 +112,7 @@ model Partner {
   offer     String? // what members get, e.g. "15% off court rental"
   code      String? // discount code, shown to members only
   active    Boolean  @default(true)
+  example   Boolean  @default(false)
   createdAt DateTime @default(now())
   events    Event[]
 }
@@ -128,6 +129,7 @@ model Event {
   tagline           String? // one line under the title, e.g. "Tennis & wine"
   agenda            Json? // [["11:00","Yoga"],["12:30","Brunch & mimosas"]]
   poster            EventPoster?
+  example           Boolean     @default(false) // created by "Add example events"; removed in one click
   partnerId         String?
   partner           Partner?    @relation(fields: [partnerId], references: [id])
   place             String?
@@ -317,6 +319,14 @@ model Address {
 model EventPoster {
   eventId   String   @id
   event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  mime      String
+  data      Bytes
+  updatedAt DateTime @updatedAt
+}
+
+/** Images the organiser sets for the site itself, e.g. "team" for the core team photo on the home card. */
+model SiteImage {
+  key       String   @id
   mime      String
   data      Bytes
   updatedAt DateTime @updatedAt

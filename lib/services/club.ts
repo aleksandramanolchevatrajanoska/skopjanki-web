@@ -252,3 +252,15 @@ export async function clubStats(db: Db) {
   ]);
   return { girls, plans, partners };
 }
+
+/* ---------- Site images (organiser) ---------- */
+
+export const SITE_IMAGE_KEYS = ["team"] as const;
+
+export async function setSiteImage(db: Db, key: string, mime: string, data: Buffer) {
+  if (!(SITE_IMAGE_KEYS as readonly string[]).includes(key)) throw new AppError("BAD_INPUT");
+  if (!PHOTO_TYPES.includes(mime) || !looksLikeImage(data, mime)) throw new AppError("PHOTO_TYPE");
+  if (data.length === 0 || data.length > POSTER_MAX_BYTES) throw new AppError("PHOTO_TOO_BIG");
+  const bytes = new Uint8Array(data);
+  await db.siteImage.upsert({ where: { key }, create: { key, mime, data: bytes }, update: { mime, data: bytes } });
+}

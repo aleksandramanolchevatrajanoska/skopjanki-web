@@ -7,8 +7,6 @@ import { Queens } from "@/components/Queens";
 import { askEnabled } from "@/lib/ask";
 import { AskBox, FlipCard, MomentCarousel, type Slide } from "@/components/Interactive";
 import { clubStats } from "@/lib/services/club";
-import { existsSync } from "fs";
-import path from "path";
 import { PartnerCard } from "@/components/PartnerCard";
 import { DAY, HOUR } from "@/lib/time";
 
@@ -40,8 +38,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
     prisma.quote.findMany({ where: { hidden: false }, include: { user: { select: { name: true, memberUntil: true, isOwner: true } } }, orderBy: { updatedAt: "desc" }, take: 12 }),
   ]);
   const stats = await clubStats(prisma);
-  // Put the core team photo at public/img/team.jpg and the card's back shows it.
-  const teamPhoto = existsSync(path.join(process.cwd(), "public/img/team.jpg")) ? "/img/team.jpg" : null;
+  // The organiser uploads the core team photo in Admin → Home page; without it the card does not flip.
+  const team = await prisma.siteImage.findUnique({ where: { key: "team" }, select: { updatedAt: true } });
+  const teamPhoto = team ? `/site-images/team?v=${team.updatedAt.getTime()}` : null;
   const shownQuotes = quotes.filter((q) => isMember(q.user, now)).slice(0, 6);
   const untilFusion = nextFusion ? nextFusion.startsAt.getTime() - now.getTime() : 0;
   const firstName = (n: string) => n.split(/\s+/)[0];

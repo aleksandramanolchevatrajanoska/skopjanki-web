@@ -17,6 +17,7 @@ export function EventCardView({ e, locale, member }: { e: EventCard; locale: Loc
           <span className={`tag ${e.kind === "FUSION" ? "p" : e.kind === "SPECIAL" ? "c" : ""}`}>{t.kinds[e.kind]}</span>
           {e.sport && <span className="tag c">{e.sport}{e.level ? ` · ${t.levels[e.level] ?? e.level}` : ""}</span>}
           {e.vibe && <span className="tag">{t.vibes[e.vibe]}</span>}
+          {e.example && <span className="tag">{t.exampleTag}</span>}
           {e.status === "PENDING" && <span className="tag">{t.pendingApproval}</span>}
           {e.status === "CANCELLED" && <span className="tag">✕</span>}
         </span>

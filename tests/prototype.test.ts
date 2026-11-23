@@ -38,3 +38,18 @@ describe("posters and club numbers", () => {
     expect(await clubStats(db)).toEqual({ girls: 1, plans: 1, partners: 0 });
   });
 });
+
+describe("example events", () => {
+  it("adds a month of examples and removes them, keeping real partners", async () => {
+    const { addExampleEvents, removeExampleEvents } = await import("@/lib/services/examples");
+    const owner = await girl({ owner: true });
+    const real = await db.partner.create({ data: { name: "Tennis Park Pointer", activity: "Tennis" } });
+    expect(await addExampleEvents(db, owner.id)).toBe(6);
+    expect(await db.event.count({ where: { example: true, partnerId: real.id } })).toBe(2);
+    await addExampleEvents(db, owner.id); // again: replaces, does not double
+    expect(await db.event.count()).toBe(6);
+    await removeExampleEvents(db);
+    expect(await db.event.count()).toBe(0);
+    expect(await db.partner.findMany({ select: { name: true } })).toEqual([{ name: "Tennis Park Pointer" }]);
+  });
+});

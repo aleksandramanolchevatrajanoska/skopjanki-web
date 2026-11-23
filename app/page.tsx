@@ -5,7 +5,10 @@ import { isMember } from "@/lib/membership";
 import { formatDateTime } from "@/lib/time";
 import { Queens } from "@/components/Queens";
 import { askEnabled } from "@/lib/ask";
-import { AskBox, MomentCarousel, type Slide } from "@/components/Interactive";
+import { AskBox, FlipCard, MomentCarousel, type Slide } from "@/components/Interactive";
+import { clubStats } from "@/lib/services/club";
+import { existsSync } from "fs";
+import path from "path";
 import { PartnerCard } from "@/components/PartnerCard";
 import { DAY, HOUR } from "@/lib/time";
 
@@ -36,6 +39,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
     }),
     prisma.quote.findMany({ where: { hidden: false }, include: { user: { select: { name: true, memberUntil: true, isOwner: true } } }, orderBy: { updatedAt: "desc" }, take: 12 }),
   ]);
+  const stats = await clubStats(prisma);
+  // Put the core team photo at public/img/team.jpg and the card's back shows it.
+  const teamPhoto = existsSync(path.join(process.cwd(), "public/img/team.jpg")) ? "/img/team.jpg" : null;
   const shownQuotes = quotes.filter((q) => isMember(q.user, now)).slice(0, 6);
   const untilFusion = nextFusion ? nextFusion.startsAt.getTime() - now.getTime() : 0;
   const firstName = (n: string) => n.split(/\s+/)[0];
@@ -62,13 +68,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
             {inside && !member && <a className="btn ghost" href="/app/membership">{t.becomeMember}</a>}
           </p>
         </div>
-        <div className="next-card" aria-hidden="true">
-          <span className="badge"><Queens /></span>
-          <span>
-            <span className="ft">{t.cardLine}</span>
-            <small>@skopjankii</small>
-          </span>
-        </div>
+        <FlipCard front={t.cardLine} back={t.coreTeam} team={teamPhoto} hint={t.flipHint} soon={t.coreTeamSoon} />
       </section>
 
       {sp.ok === "deleted" && <div className="notice ok" role="status">{t.deleted}</div>}
@@ -109,7 +109,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
         </p>
         {askEnabled() && (
           <div style={{ marginTop: 16 }}>
-            <AskBox labels={{ askTitle: t.askTitle, askPlaceholder: t.askPlaceholder, askButton: t.askButton, askThinking: t.askThinking, askError: t.askError, askNote: t.askNote }} />
+            <AskBox examples={t.askExamples} labels={{ askTitle: t.askOr, askPlaceholder: t.askPlaceholder, askButton: t.askButton, askThinking: t.askThinking, askError: t.askError, askNote: t.askNote }} />
           </div>
         )}
       </section>
@@ -117,6 +117,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       <div className="ticker" aria-label="Sports">
         <span>{SPORTS_TICKER.repeat(4)}</span>
       </div>
+
+      {(stats.girls > 0 || stats.plans > 0 || stats.partners > 0) && (
+        <div className="stats">
+          <div><b>{stats.girls}</b><span>{t.statGirls}</span></div>
+          <div><b>{stats.plans}</b><span>{t.statPlans}</span></div>
+          <div><b>{stats.partners}</b><span>{t.statPartners}</span></div>
+        </div>
+      )}
 
       <section className="steps">
         {t.steps.map(([title, text], i) => (
@@ -197,22 +205,31 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
             })}
           </div>
         ) : (
-          <div className="moments-static">
-            <figure className="polaroid">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/img/sip.jpg" alt="Sip & Serve: tennis and wine at Tennis Park Pointer" />
-              <figcaption className="label">Sip &amp; Serve · 23 October</figcaption>
-            </figure>
-            <figure className="polaroid tilt-r">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/img/asanas.jpg" alt="Asanas and Mimosas: yoga and brunch" />
-              <figcaption className="label">Asanas and Mimosas · 21 November</figcaption>
-            </figure>
+          <div className="moments">
+            {[
+              { title: "Sip & Serve", when: "23 October", imgs: [["sip", "Sip & Serve poster"], ["p1", "Dinner on the court"], ["p2", "Good game"], ["p3", "Golden hour, clay court"]] },
+              { title: "Asanas and Mimosas", when: "21 November", imgs: [["asanas", "Asanas and Mimosas poster"], ["story", "Asanas and Mimosas"]] },
+            ].map((m) => (
+              <MomentCarousel
+                key={m.title}
+                cover={`/img/${m.imgs[0][0]}.jpg`}
+                title={m.title}
+                meta={m.when}
+                slides={m.imgs.map(([k, alt]) => ({ src: `/img/${k}.jpg`, alt }))}
+                eventHref={eventsHref("fusion")}
+                seeEvent={t.seeFusion}
+              />
+            ))}
           </div>
+        )}
+        <h3 style={{ marginTop: 28 }}>{t.quotesTitle}</h3>
+        {shownQuotes.length === 0 && (
+          <p className="meta">
+            {t.quotesEmpty} {member ? <a href="/app/profile">{t.addQuote}</a> : <>{t.quotesMembersOnly} <a className="btn sm" href={inside ? "/app/membership" : "/join"}>{t.becomeMember}</a></>}
+          </p>
         )}
         {shownQuotes.length > 0 && (
           <>
-            <h3 style={{ marginTop: 28 }}>{t.quotesTitle}</h3>
             <div className="quotes">
               {shownQuotes.map((q) => (
                 <blockquote key={q.userId} className="card">

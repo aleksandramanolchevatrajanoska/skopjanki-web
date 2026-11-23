@@ -168,17 +168,17 @@ export function MomentCarousel({ cover, title, meta, slides, eventHref, seeEvent
   );
 }
 
-export function AskBox({ labels }: { labels: { askTitle: string; askPlaceholder: string; askButton: string; askThinking: string; askError: string; askNote: string } }) {
+export function AskBox({ labels, examples = [] }: { labels: { askTitle: string; askPlaceholder: string; askButton: string; askThinking: string; askError: string; askNote: string }; examples?: string[] }) {
   const [q, setQ] = useState("");
   const [a, setA] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!q.trim() || busy) return;
+  async function submit(e?: React.FormEvent, question = q) {
+    e?.preventDefault();
+    if (!question.trim() || busy) return;
     setBusy(true);
     setA(null);
     try {
-      const res = await fetch("/api/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: q }) });
+      const res = await fetch("/api/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question }) });
       const j = await res.json().catch(() => ({}));
       setA(res.ok && j.answer ? j.answer : j.message ?? labels.askError);
     } catch {
@@ -193,8 +193,51 @@ export function AskBox({ labels }: { labels: { askTitle: string; askPlaceholder:
         <input id="ask-q" value={q} onChange={(e) => setQ(e.target.value)} maxLength={300} placeholder={labels.askPlaceholder} />
         <button className="btn pink" type="submit" disabled={busy}>{busy ? labels.askThinking : labels.askButton}</button>
       </div>
+      {examples.length > 0 && (
+        <div className="row" style={{ marginTop: 8 }}>
+          {examples.map((x) => (
+            <button key={x} type="button" className="mood-btn" style={{ border: 0, cursor: "pointer" }} onClick={() => { setQ(x); submit(undefined, x); }}>{x}</button>
+          ))}
+        </div>
+      )}
       <div aria-live="polite">{a && <p className="ask-answer">{a}</p>}</div>
       <p className="meta" style={{ fontSize: ".78rem" }}>{labels.askNote}</p>
     </form>
   );
+}
+
+/** The hero card from the prototype: front "See you at the next one.", back the core team photo. */
+export function FlipCard({ front, back, team, hint, soon }: { front: string; back: string; team: string | null; hint: string; soon: string }) {
+  const [on, setOn] = useState(false);
+  return (
+    <button type="button" className={`flipper${on ? " on" : ""}`} onClick={() => setOn(!on)} aria-label={back}>
+      <span className="face front">
+        <span className="badge"><QueensMark /></span>
+        <span>
+          <span className="ft">{front}</span>
+          <small>@skopjankii · {hint}</small>
+        </span>
+      </span>
+      <span className="face back">
+        {team ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={team} alt={back} />
+        ) : (
+          <span className="ph"><span className="badge dark"><QueensMark /></span><span>{soon}</span></span>
+        )}
+        <small className="cap">{back}</small>
+      </span>
+    </button>
+  );
+}
+
+function QueensMark() {
+  const q = (
+    <g>
+      <polygon fill="#DE86BC" points="113,66 152,96 180,32 208,96 246,66 232,125 127,125" />
+      <circle cx="180" cy="185" r="45" fill="currentColor" />
+      <polygon fill="currentColor" points="158,232 202,232 205,255 250,262 212,345 268,548 98,548 150,345 112,262 155,255" />
+    </g>
+  );
+  return <svg viewBox="92 24 400 530" aria-hidden="true">{q}<g transform="translate(218 0)">{q}</g></svg>;
 }

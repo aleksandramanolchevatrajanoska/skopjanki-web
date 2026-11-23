@@ -8,16 +8,22 @@ export function EventCardView({ e, locale, member }: { e: EventCard; locale: Loc
   const pct = Math.min(100, Math.round((e.confirmed / e.maxSpots) * 100));
   return (
     <a href={`/app/events/${e.id}`} className="card" style={{ textDecoration: "none", display: "block" }}>
+      {e.hasPoster && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={`/posters/${e.id}`} alt={`${e.title} poster`} className="evimg" loading="lazy" />
+      )}
       <div className="between">
         <span>
           <span className={`tag ${e.kind === "FUSION" ? "p" : e.kind === "SPECIAL" ? "c" : ""}`}>{t.kinds[e.kind]}</span>
           {e.sport && <span className="tag c">{e.sport}{e.level ? ` · ${t.levels[e.level] ?? e.level}` : ""}</span>}
+          {e.vibe && <span className="tag">{t.vibes[e.vibe]}</span>}
           {e.status === "PENDING" && <span className="tag">{t.pendingApproval}</span>}
           {e.status === "CANCELLED" && <span className="tag">✕</span>}
         </span>
         {e.mine && <span className="tag p">{e.mine.status === "WAITLIST" ? t.waitlist : t.you}</span>}
       </div>
       <h3 style={{ marginTop: 8 }}>{e.title}</h3>
+      {e.tagline && <p style={{ margin: 0 }}>{e.tagline}</p>}
       <p className="meta">{formatDateTime(e.startsAt, locale)}{e.partner ? ` · ${e.partner.name}` : e.place ? ` · ${e.place}` : ""}</p>
       <div className="bar" aria-hidden="true"><i style={{ width: `${pct}%` }} /></div>
       <p className="meta">{e.confirmed} / {e.maxSpots} {t.going}{e.waiting ? ` · ${e.waiting} ${t.waitlist}` : ""}</p>

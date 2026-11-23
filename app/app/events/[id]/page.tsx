@@ -14,6 +14,7 @@ import { saveAttendance, markDebtPaid } from "@/lib/services/attendance";
 import { pricesFor } from "@/lib/pricing";
 import { fusionCheckout } from "@/lib/stripe";
 import { Flash } from "@/components/Flash";
+import { PartnerCard } from "@/components/PartnerCard";
 import { appUrl } from "@/lib/email";
 import { googleCalendarUrl } from "@/lib/calendar";
 import { canAddPhotos, removePhoto } from "@/lib/services/club";
@@ -158,7 +159,14 @@ export default async function EventPage({ params, searchParams }: Params) {
   ]);
   const placeText = [e.partner?.name ?? e.place, e.partner?.address].filter(Boolean).join(", ");
   const calUrl = googleCalendarUrl({ ...e, place: placeText }, appUrl(`/app/events/${e.id}`));
-  const img = e.kind === "FUSION" ? (/yoga|asana|brunch/i.test(e.title) ? "/img/asanas.jpg" : /tennis|sip|wine/i.test(e.title) ? "/img/sip.jpg" : null) : null;
+  const [hasPoster, host] = await Promise.all([
+    prisma.eventPoster.count({ where: { eventId: id } }).then((n) => n > 0),
+    e.kind === "MEMBER_PLAN" ? prisma.user.findUnique({ where: { id: e.createdById }, select: { name: true } }) : null,
+  ]);
+  const img = hasPoster
+    ? `/posters/${e.id}`
+    : e.kind === "FUSION" ? (/yoga|asana|brunch/i.test(e.title) ? "/img/asanas.jpg" : /tennis|sip|wine/i.test(e.title) ? "/img/sip.jpg" : null) : null;
+  const agenda = Array.isArray(e.agenda) ? (e.agenda as [string, string][]) : [];
 
   return (
     <article>
@@ -170,11 +178,14 @@ export default async function EventPage({ params, searchParams }: Params) {
           <div>
             <span className={`tag ${e.kind === "FUSION" ? "p" : ""}`}>{t.kinds[e.kind]}</span>
             {e.sport && <span className="tag c">{e.sport} · {e.level ? t.levels[e.level] ?? e.level : t.allLevels}</span>}
+            {e.vibe && <span className="tag">{t.vibes[e.vibe]}</span>}
             {e.status === "PENDING" && <span className="tag">{t.pendingApproval}</span>}
             {e.status === "CANCELLED" && <span className="tag">✕ {e.cancelReason}</span>}
           </div>
           <h1>{e.title}</h1>
+          {e.tagline && <p className="tagline">{e.tagline}</p>}
           <p className="meta">{formatDateTime(e.startsAt, locale)}</p>
+          <p className="meta">{host ? `${t.initiator}: ${host.name} (${t.captainFree})` : t.hostedBySkopjanki}</p>
           {(e.partner || e.place) && (
             <p>
               {e.partner?.name ?? e.place}
@@ -183,12 +194,20 @@ export default async function EventPage({ params, searchParams }: Params) {
             </p>
           )}
           {e.description && <p style={{ whiteSpace: "pre-line" }}>{e.description}</p>}
+          {agenda.length > 0 && (
+            <div>
+              <p className="label">{t.agendaTitle}</p>
+              <ul className="agenda">
+                {agenda.map(([time, label], i) => <li key={i}>{time && <strong>{time}</strong>} {label}</li>)}
+              </ul>
+            </div>
+          )}
           {e.captain && <p>{t.captain}: <strong>{e.captain.name}</strong> <span className="meta">({t.captainFree})</span></p>}
           <div className="bar" aria-hidden="true"><i style={{ width: `${Math.min(100, (e.confirmed / e.maxSpots) * 100)}%` }} /></div>
           <p className="meta">{e.confirmed} / {e.maxSpots} {t.going} · min {e.minSpots}{e.waiting ? ` · ${e.waiting} ${t.waitlist}` : ""}</p>
           {img && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={img} alt="" className="polaroid" style={{ maxWidth: 280 }} />
+            <img src={img} alt={`${e.title} poster`} className="polaroid" style={{ maxWidth: 280 }} />
           )}
         </div>
 
@@ -313,6 +332,13 @@ export default async function EventPage({ params, searchParams }: Params) {
         <h3>{t.whoIsGoing} ({confirmed.length})</h3>
         <p>{confirmed.map((p) => p.user.name + (p.userId === e.captainId ? " ♛" : "")).join(", ") || "–"}</p>
       </section>
+
+      {e.partner && (
+        <section style={{ marginTop: 28 }}>
+          <h3>{t.whereItHappens}</h3>
+          <div className="grid" style={{ maxWidth: 420 }}><PartnerCard p={e.partner} locale={locale} member={member} /></div>
+        </section>
+      )}
 
       {canManage && e.kind !== "FUSION" && e.status === "APPROVED" && (
         <section className="card" style={{ marginTop: 28 }}>

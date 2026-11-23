@@ -3,7 +3,7 @@ import { dicts, LEVELS, SPORTS, type Locale } from "@/lib/i18n";
 import { dateToSkopjeLocal } from "@/lib/time";
 import { int, str } from "@/lib/act";
 import { skopjeLocalToDate } from "@/lib/time";
-import type { EventInput } from "@/lib/services/events";
+import { parseAgenda, type EventInput } from "@/lib/services/events";
 import type { EventKind, PricingMode } from "@prisma/client";
 
 export function EventFields({ locale, partners, e, owner }: { locale: Locale; partners: Partner[]; e?: Event; owner: boolean }) {
@@ -46,10 +46,29 @@ export function EventFields({ locale, partners, e, owner }: { locale: Locale; pa
             {LEVELS.map((l) => <option key={l} value={l}>{t.levels[l]}</option>)}
           </select>
         </div>
+        <div>
+          <label htmlFor="vibe">{t.vibeLabel}</label>
+          <select id="vibe" name="vibe" defaultValue={e?.vibe ?? ""}>
+            <option value="">–</option>
+            <option value="ACTIVE">{t.vibes.ACTIVE}</option>
+            <option value="SOCIAL">{t.vibes.SOCIAL}</option>
+            <option value="BOTH">{t.vibes.BOTH}</option>
+          </select>
+        </div>
         <div><label htmlFor="startsAt">{t.startsAt}</label><input id="startsAt" name="startsAt" type="datetime-local" required defaultValue={e ? dateToSkopjeLocal(e.startsAt) : ""} /></div>
         <div><label htmlFor="minSpots">{t.minSpots}</label><input id="minSpots" name="minSpots" type="number" min={1} required defaultValue={e?.minSpots ?? 4} /></div>
         <div><label htmlFor="maxSpots">{t.maxSpots}</label><input id="maxSpots" name="maxSpots" type="number" min={1} required defaultValue={e?.maxSpots ?? 12} /></div>
       </div>
+      <label htmlFor="tagline">{t.taglineLabel}</label>
+      <input id="tagline" name="tagline" maxLength={120} defaultValue={e?.tagline ?? ""} placeholder="Tennis & wine with Miron winery" />
+      <label htmlFor="agenda">{t.agendaLabel}</label>
+      <textarea id="agenda" name="agenda" rows={3} placeholder={"11:00 Yoga\n12:30 Brunch & mimosas"} defaultValue={agendaText(e?.agenda)} />
+      {owner && (
+        <>
+          <label htmlFor="poster">{t.posterLabel}</label>
+          <input id="poster" name="poster" type="file" accept="image/jpeg,image/png,image/webp" />
+        </>
+      )}
       <label htmlFor="pricingMode">{t.pricingMode}</label>
       <select id="pricingMode" name="pricingMode" defaultValue={e?.pricingMode ?? "SPLIT"}>
         <option value="SPLIT">{t.modeSplit}</option>
@@ -73,6 +92,9 @@ export function readEventForm(form: FormData): EventInput {
     description: str(form.get("description")),
     sport: str(form.get("sport")),
     level: LEVELS.includes(str(form.get("level"))) ? str(form.get("level")) : null,
+    vibe: str(form.get("vibe")) || null,
+    tagline: str(form.get("tagline")),
+    agenda: parseAgenda(str(form.get("agenda"))),
     partnerId: str(form.get("partnerId")) || null,
     place: str(form.get("place")),
     startsAt: local ? skopjeLocalToDate(local) : new Date(NaN),
@@ -83,4 +105,15 @@ export function readEventForm(form: FormData): EventInput {
     priceNonMember: int(form.get("priceNonMember")),
     priceMember: int(form.get("priceMember")),
   };
+}
+
+export function agendaText(a: unknown) {
+  return Array.isArray(a) ? (a as [string, string][]).map(([t, l]) => (t ? `${t} ${l}` : l)).join("\n") : "";
+}
+
+/** Reads the optional poster file from an event form. */
+export async function readPoster(form: FormData) {
+  const f = form.get("poster");
+  if (!(f instanceof Blob) || f.size === 0) return null;
+  return { mime: f.type, data: Buffer.from(await f.arrayBuffer()) };
 }

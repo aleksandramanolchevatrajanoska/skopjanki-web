@@ -203,3 +203,26 @@ code.blurred{filter:blur(5px);user-select:none}
 .ask input{min-width:0}
 .ask-answer{background:var(--soft);color:var(--plum);border-radius:6px;padding:12px 14px;margin-top:10px;white-space:pre-line}
 .danger{border-color:#e7b9b9}
+.evimg{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;border-radius:2px;margin-bottom:12px}
+.agenda{list-style:none;padding:0;margin:6px 0;display:grid;gap:4px}
+.agenda strong{display:inline-block;min-width:54px;font-variant-numeric:tabular-nums}
+/* Flip card (hero) */
+.flipper{position:relative;display:block;width:100%;max-width:280px;aspect-ratio:4/5;border:0;background:none;padding:0;cursor:pointer;transform-style:preserve-3d;transition:transform .7s;justify-self:center;transform:rotate(3deg)}
+.flipper.on{transform:rotate(3deg) rotateY(180deg)}
+.flipper .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:4px;overflow:hidden;box-shadow:0 18px 40px rgba(67,35,68,.25);text-align:left}
+.flipper .face.front{background:#432344;color:#FFF9ED;padding:26px 24px;display:flex;flex-direction:column;justify-content:space-between}
+.flipper .face.front .ft{display:block;font:400 2rem/1.05 Newsreader,Georgia,serif;margin:16px 0}
+.flipper .face.front small{font:600 .68rem "Hanken Grotesk",sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#F2D3E2}
+.flipper .face.back{transform:rotateY(180deg);background:#FFF9ED;color:#432344;padding:10px 10px 38px}
+.flipper .face.back img{width:100%;height:100%;object-fit:cover;display:block}
+.flipper .face.back .ph{height:100%;background:#F2D3E2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:16px;font-size:.85rem}
+.flipper .cap{position:absolute;left:0;right:0;bottom:12px;text-align:center;font:600 .68rem "Hanken Grotesk",sans-serif;letter-spacing:.16em;text-transform:uppercase}
+.badge.dark{background:#432344;color:#FFF9ED}
+@media(max-width:700px){.flipper{max-width:200px}}
+@media (prefers-reduced-motion:reduce){.flipper{transition:none}}
+/* Club numbers */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+.stats div{border-top:1px solid var(--line);padding-top:10px}
+.stats b{display:block;font:400 2.4rem/1 Newsreader,Georgia,serif;color:var(--plum);font-variant-numeric:tabular-nums}
+.stats span{color:var(--muted);font-size:.85rem}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}

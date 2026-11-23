@@ -4,7 +4,8 @@ import { prisma } from "@/lib/db";
 import { formatDateTime } from "@/lib/time";
 import { createEvent } from "@/lib/services/events";
 import { AppError } from "@/lib/services/common";
-import { EventFields, readEventForm } from "@/components/EventFields";
+import { EventFields, readEventForm, readPoster } from "@/components/EventFields";
+import { setPoster } from "@/lib/services/club";
 import { Flash } from "@/components/Flash";
 
 async function create(form: FormData) {
@@ -15,6 +16,8 @@ async function create(form: FormData) {
   let id: string;
   try {
     id = (await createEvent(prisma, owner.id, input)).id;
+    const poster = await readPoster(form);
+    if (poster) await setPoster(prisma, id, poster.mime, poster.data);
   } catch (e) {
     if (e instanceof AppError) redirect(`/admin/events?err=${e.code}`);
     throw e;

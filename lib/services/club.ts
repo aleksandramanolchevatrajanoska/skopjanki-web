@@ -132,7 +132,7 @@ export function matchesCommunityFilter(levels: LevelMap, sport?: string, level?:
 
 /* ---------- Event filters ---------- */
 
-export type EventFilter = { q?: string; sport?: string; kind?: string; fits?: boolean };
+export type EventFilter = { q?: string; sport?: string; kind?: string; vibe?: string; fits?: boolean };
 
 /** "Fits my level": the event's sport is one of hers, and the level is hers (or the event is for all levels). */
 export function fitsLevel(e: { sport: string | null; level: string | null }, levels: LevelMap) {
@@ -143,11 +143,13 @@ export function fitsLevel(e: { sport: string | null; level: string | null }, lev
 }
 
 export function eventMatches(
-  e: { title: string; sport: string | null; level: string | null; kind: string; place: string | null; partner: { name: string } | null },
+  e: { title: string; sport: string | null; level: string | null; kind: string; vibe?: string | null; place: string | null; partner: { name: string } | null },
   f: EventFilter,
   levels: LevelMap,
 ) {
   if (f.kind && e.kind !== f.kind) return false;
+  // "Active" also matches Active + Social, and so does "Social".
+  if (f.vibe && !(e.vibe === f.vibe || e.vibe === "BOTH")) return false;
   if (f.sport && (e.sport ?? "").toLowerCase() !== f.sport.toLowerCase()) return false;
   if (f.fits && !fitsLevel(e, levels)) return false;
   if (f.q) {
@@ -223,4 +225,30 @@ export async function sendNewsletter(db: Db, month: string, appLink: (p: string)
   for (const u of to) await sendMail({ to: u.email, subject: `Skopjanki · ${nl.headline}`, text: body });
   await db.newsletter.update({ where: { month }, data: { sentAt: now } });
   return to.length;
+}
+
+/* ---------- Event posters (organiser) ---------- */
+
+export const POSTER_MAX_BYTES = 2_500_000;
+
+export async function setPoster(db: Db, eventId: string, mime: string, data: Buffer) {
+  if (!PHOTO_TYPES.includes(mime) || !looksLikeImage(data, mime)) throw new AppError("PHOTO_TYPE");
+  if (data.length === 0 || data.length > POSTER_MAX_BYTES) throw new AppError("PHOTO_TOO_BIG");
+  const bytes = new Uint8Array(data);
+  await db.eventPoster.upsert({ where: { eventId }, create: { eventId, mime, data: bytes }, update: { mime, data: bytes } });
+}
+
+export async function removePoster(db: Db, eventId: string) {
+  await db.eventPoster.deleteMany({ where: { eventId } });
+}
+
+/* ---------- Club numbers for the home page ---------- */
+
+export async function clubStats(db: Db) {
+  const [girls, plans, partners] = await Promise.all([
+    db.user.count({ where: { status: "APPROVED" } }),
+    db.event.count({ where: { status: "APPROVED" } }),
+    db.partner.count({ where: { active: true } }),
+  ]);
+  return { girls, plans, partners };
 }

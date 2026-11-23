@@ -7,7 +7,8 @@ import { cancelEvent, updateEvent } from "@/lib/services/events";
 import { removeCaptain } from "@/lib/services/captains";
 import { AppError } from "@/lib/services/common";
 import { refund } from "@/lib/stripe";
-import { EventFields, readEventForm } from "@/components/EventFields";
+import { EventFields, readEventForm, readPoster } from "@/components/EventFields";
+import { removePoster, setPoster } from "@/lib/services/club";
 import { Flash } from "@/components/Flash";
 
 async function save(form: FormData) {
@@ -16,7 +17,11 @@ async function save(form: FormData) {
   const id = String(form.get("id"));
   const input = readEventForm(form);
   if (isNaN(input.startsAt.getTime())) redirect(`/admin/events/${id}?err=BAD_INPUT`);
-  await attempt(`/admin/events/${id}`, () => updateEvent(prisma, id, input));
+  await attempt(`/admin/events/${id}`, async () => {
+    await updateEvent(prisma, id, input);
+    const poster = await readPoster(form);
+    if (poster) await setPoster(prisma, id, poster.mime, poster.data);
+  });
 }
 
 async function cancel(form: FormData) {
@@ -41,6 +46,13 @@ async function cancel(form: FormData) {
   redirect(`/admin/events/${id}?ok=${failed ? "refundsFailed" : "saved"}`);
 }
 
+async function dropPoster(form: FormData) {
+  "use server";
+  await requireOwner();
+  const id = String(form.get("id"));
+  await attempt(`/admin/events/${id}`, () => removePoster(prisma, id));
+}
+
 async function dropCaptain(form: FormData) {
   "use server";
   await requireOwner();
@@ -61,6 +73,7 @@ export default async function AdminEvent({ params, searchParams }: { params: Pro
   });
   if (!e) notFound();
   const partners = await prisma.partner.findMany({ orderBy: { name: "asc" } });
+  const hasPoster = (await prisma.eventPoster.count({ where: { eventId: id } })) > 0;
   const late = await prisma.reservation.findMany({ where: { eventId: id, lateCancel: true }, include: { user: true } });
   return (
     <>
@@ -113,6 +126,14 @@ export default async function AdminEvent({ params, searchParams }: { params: Pro
       {e.status !== "CANCELLED" && e.kind !== "MEMBER_PLAN" && (
         <section style={{ marginTop: 28 }}>
           <h2>Edit</h2>
+          {hasPoster && (
+            <form action={dropPoster} className="row" style={{ margin: "8px 0" }}>
+              <input type="hidden" name="id" value={e.id} />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`/posters/${e.id}`} alt="Poster" style={{ height: 120, borderRadius: 4 }} />
+              <button className="btn sm ghost" type="submit">Remove poster</button>
+            </form>
+          )}
           <form action={save} className="card" style={{ maxWidth: 720 }}>
             <input type="hidden" name="id" value={e.id} />
             <EventFields locale="en" partners={partners} e={e} owner />

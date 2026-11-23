@@ -6,12 +6,30 @@ import { formatDateTime, weekKey } from "../time";
 import { AppError, flush, lockEventRow, ownerEmailsFromDb, type Db, type Outbox, type Tx } from "./common";
 import { partnerListMail } from "./notifications";
 
+export const VIBES = ["ACTIVE", "SOCIAL", "BOTH"];
+
+/** "11:00 Yoga" per line -> [["11:00","Yoga"], ...]. A line without a time keeps an empty time. */
+export function parseAgenda(text: string): [string, string][] {
+  return text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .slice(0, 12)
+    .map((l) => {
+      const m = /^(\d{1,2}[:.]\d{2})\s*[-–·]?\s*(.*)$/.exec(l);
+      return m ? [m[1].replace(".", ":"), m[2].slice(0, 80)] : ["", l.slice(0, 80)];
+    });
+}
+
 export type EventInput = {
   kind: EventKind;
   title: string;
   description?: string | null;
   sport?: string | null;
   level?: string | null;
+  vibe?: string | null; // ACTIVE | SOCIAL | BOTH
+  tagline?: string | null;
+  agenda?: [string, string][] | null;
   partnerId?: string | null;
   place?: string | null;
   startsAt: Date;
@@ -40,6 +58,9 @@ function data(i: EventInput) {
     description: i.description?.trim() || null,
     sport: i.sport?.trim() || null,
     level: i.level || null,
+    vibe: i.vibe && VIBES.includes(i.vibe) ? i.vibe : null,
+    tagline: i.tagline?.trim().slice(0, 120) || null,
+    agenda: i.agenda && i.agenda.length ? i.agenda.slice(0, 12) : Prisma.DbNull,
     partnerId: i.partnerId || null,
     place: i.place?.trim() || null,
     startsAt: i.startsAt,

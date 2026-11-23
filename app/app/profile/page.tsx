@@ -8,7 +8,7 @@ import { openDebts } from "@/lib/services/attendance";
 import { EventCardView } from "@/components/EventCardView";
 import { Flash } from "@/components/Flash";
 import { LevelsFields, readLevels } from "@/components/LevelsFields";
-import { MemberCard } from "@/components/MemberCard";
+import { MemberCardWithHint as MemberCard } from "@/components/MemberCard";
 import { redirect } from "next/navigation";
 import { signOut } from "@/lib/auth";
 import { AppError } from "@/lib/services/common";

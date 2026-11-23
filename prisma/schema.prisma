@@ -124,6 +124,10 @@ model Event {
   description       String?
   sport             String?
   level             String? // Beginner | Intermediate | Advanced, null = all levels
+  vibe              String? // ACTIVE | SOCIAL | BOTH (Active, Social, Active + Social)
+  tagline           String? // one line under the title, e.g. "Tennis & wine"
+  agenda            Json? // [["11:00","Yoga"],["12:30","Brunch & mimosas"]]
+  poster            EventPoster?
   partnerId         String?
   partner           Partner?    @relation(fields: [partnerId], references: [id])
   place             String?
@@ -306,5 +310,14 @@ model Address {
   zip       String
   city      String
   consentAt DateTime
+  updatedAt DateTime @updatedAt
+}
+
+/** Poster image for an event (mostly fusion). Kept apart so event lists never load the bytes. */
+model EventPoster {
+  eventId   String   @id
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  mime      String
+  data      Bytes
   updatedAt DateTime @updatedAt
 }

@@ -1,3 +1,5 @@
+import { googleCalendarUrl } from "@/lib/calendar";
+import { appUrl } from "@/lib/email";
 import { maybeRunLifecycle } from "@/lib/services/lazy";
 import { requireApproved } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -28,8 +30,8 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
     tab === "past" ? "desc" : "asc",
   );
   const levels = (user.levels ?? {}) as Record<string, string>;
-  const filter: EventFilter = { q: sp.q?.trim() || undefined, sport: sp.sport || undefined, kind: sp.type || undefined, fits: sp.fits === "1" };
-  const filtering = Boolean(filter.q || filter.sport || filter.kind || filter.fits);
+  const filter: EventFilter = { q: sp.q?.trim() || undefined, sport: sp.sport || undefined, kind: sp.type || undefined, vibe: sp.vibe || undefined, fits: sp.fits === "1" };
+  const filtering = Boolean(filter.q || filter.sport || filter.kind || filter.vibe || filter.fits);
   const shown = cards.filter((c) => eventMatches(c, filter, levels));
   const [debts, soon] = await Promise.all([openDebts(prisma, user.id), upcomingSoon(prisma, user.id, now)]);
   const owed = debts.reduce((s, d) => s + d.amount, 0);
@@ -48,6 +50,7 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
           {!member && <a className="btn pink sm" href="/app/membership">{t.becomeMember}</a>}
         </div>
       </div>
+      {kind === "fusion" && <p className="meta" style={{ maxWidth: "60ch" }}>{t.fusionIntro}</p>}
       <Flash sp={sp} locale={locale} />
       {owed > 0 && <div className="notice">{t.yourDebt}: <strong>{owed} MKD</strong>. {t.bringCash}.</div>}
       {soon.length > 0 && (
@@ -55,7 +58,8 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
           <strong>{t.soonTitle}:</strong>{" "}
           {soon.map((e, i) => (
             <span key={e.id}>{i > 0 && " · "}<a href={`/app/events/${e.id}`}>{e.title}</a>, {formatDateTime(e.startsAt, locale)}</span>
-          ))}
+          ))}{" "}
+          <a className="btn sm ghost" target="_blank" rel="noopener noreferrer" href={googleCalendarUrl({ ...soon[0], place: soon[0].partner?.name ?? soon[0].place }, appUrl(`/app/events/${soon[0].id}`))}>{t.addToCalendar}</a>
         </div>
       )}
       <nav className="row" style={{ marginTop: 12 }} aria-label="Upcoming or past">
@@ -73,6 +77,11 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
         <select name="type" defaultValue={filter.kind ?? ""} aria-label={t.filter}>
           <option value="">{t.allTypes}</option>
           {(["WEEKLY", "SPECIAL", "FUSION", "MEMBER_PLAN"] as const).map((k) => <option key={k} value={k}>{t.kinds[k]}</option>)}
+        </select>
+        <select name="vibe" defaultValue={filter.vibe ?? ""} aria-label={t.vibeLabel}>
+          <option value="">{t.allVibes}</option>
+          <option value="ACTIVE">{t.vibes.ACTIVE}</option>
+          <option value="SOCIAL">{t.vibes.SOCIAL}</option>
         </select>
         <label className="row check"><input type="checkbox" name="fits" value="1" defaultChecked={filter.fits} /> {t.fitsMyLevel}</label>
         <button className="btn sm" type="submit">{t.filter}</button>

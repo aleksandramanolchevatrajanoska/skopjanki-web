@@ -53,7 +53,7 @@ export default async function SiteAdmin({ searchParams }: { searchParams: Promis
       </section>
       <section className="card" style={{ maxWidth: 640, marginTop: 16 }}>
         <h2>Core team photo</h2>
-        <p className="meta">Shown on the back of the &ldquo;See you at the next one.&rdquo; card on the home page. Until there is a photo, the card does not flip. JPG, PNG or WebP, max 2.5 MB; an upright (portrait) photo fits best.</p>
+        <p className="meta">Shown on the back of the &ldquo;See you at the next one.&rdquo; card on the home page. Until there is a photo, the back of the card says the photo is coming soon. JPG, PNG or WebP, max 2.5 MB; an upright (portrait) photo fits best.</p>
         {team && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={`/site-images/team?v=${team.updatedAt.getTime()}`} alt="Core team" style={{ maxWidth: 220, borderRadius: 4, margin: "12px 0", display: "block" }} />

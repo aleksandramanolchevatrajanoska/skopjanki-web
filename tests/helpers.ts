@@ -9,7 +9,7 @@ export const T0 = new Date("2026-12-01T10:00:00Z"); // a Tuesday
 export async function reset() {
   if (!(process.env.POSTGRES_PRISMA_URL ?? "").includes("test")) throw new Error("Refusing to truncate a non-test database");
   await db.$executeRawUnsafe(
-    `TRUNCATE "PartnerApplication","EmailLog","Debt","CaptainApplication","Reservation","Event","Partner","Session","LoginToken","User" CASCADE`,
+    `TRUNCATE "Newsletter","Photo","Quote","Address","PartnerApplication","EmailLog","Debt","CaptainApplication","Reservation","Event","Partner","Session","LoginToken","User" CASCADE`,
   );
 }
 

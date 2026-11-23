@@ -14,6 +14,10 @@ import { saveAttendance, markDebtPaid } from "@/lib/services/attendance";
 import { pricesFor } from "@/lib/pricing";
 import { fusionCheckout } from "@/lib/stripe";
 import { Flash } from "@/components/Flash";
+import { appUrl } from "@/lib/email";
+import { googleCalendarUrl } from "@/lib/calendar";
+import { canAddPhotos, removePhoto } from "@/lib/services/club";
+import { PhotoUploader, ShareButton } from "@/components/Interactive";
 
 type Params = { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | undefined>> };
 
@@ -99,6 +103,13 @@ async function doDebtPaid(form: FormData) {
   await attempt(`/app/events/${id}`, () => markDebtPaid(prisma, user.id, String(form.get("debtId"))));
 }
 
+async function doRemovePhoto(form: FormData) {
+  "use server";
+  const user = await requireApproved();
+  const id = String(form.get("eventId"));
+  await attempt(`/app/events/${id}#moments`, () => removePhoto(prisma, user.id, String(form.get("photoId"))));
+}
+
 export default async function EventPage({ params, searchParams }: Params) {
   const { id } = await params;
   const sp = await searchParams;
@@ -141,6 +152,12 @@ export default async function EventPage({ params, searchParams }: Params) {
   const myDebts = await prisma.debt.findMany({ where: { userId: user.id, paidAt: null, waivedAt: null } });
   const owed = myDebts.reduce((s, d) => s + d.amount, 0);
   const myPrice = e.range ? (mine?.isMember ?? member ? e.range.member : e.range.nonMember) : null;
+  const [photos, mayAddPhotos] = await Promise.all([
+    prisma.photo.findMany({ where: { eventId: id }, select: { id: true, userId: true, user: { select: { name: true } } }, orderBy: { createdAt: "asc" } }),
+    canAddPhotos(prisma, user.id, id, now),
+  ]);
+  const placeText = [e.partner?.name ?? e.place, e.partner?.address].filter(Boolean).join(", ");
+  const calUrl = googleCalendarUrl({ ...e, place: placeText }, appUrl(`/app/events/${e.id}`));
   const img = e.kind === "FUSION" ? (/yoga|asana|brunch/i.test(e.title) ? "/img/asanas.jpg" : /tennis|sip|wine/i.test(e.title) ? "/img/sip.jpg" : null) : null;
 
   return (
@@ -152,6 +169,7 @@ export default async function EventPage({ params, searchParams }: Params) {
         <div className="stack">
           <div>
             <span className={`tag ${e.kind === "FUSION" ? "p" : ""}`}>{t.kinds[e.kind]}</span>
+            {e.sport && <span className="tag c">{e.sport} · {e.level ? t.levels[e.level] ?? e.level : t.allLevels}</span>}
             {e.status === "PENDING" && <span className="tag">{t.pendingApproval}</span>}
             {e.status === "CANCELLED" && <span className="tag">✕ {e.cancelReason}</span>}
           </div>
@@ -209,7 +227,16 @@ export default async function EventPage({ params, searchParams }: Params) {
                   )}
                 </form>
               )}
-              {mine?.status === "CONFIRMED" && <p className="notice ok">{t.youreIn}</p>}
+              {mine?.status === "CONFIRMED" && (
+                <div>
+                  <p className="notice ok">{t.youreIn}</p>
+                  <p className="label">{t.addToCalendar}</p>
+                  <p className="row">
+                    <a className="btn sm ghost" href={calUrl} target="_blank" rel="noopener noreferrer">{t.googleCalendar}</a>
+                    <a className="btn sm ghost" href={`/app/events/${e.id}/ics`}>{t.appleCalendar}</a>
+                  </p>
+                </div>
+              )}
               {mine?.status === "WAITLIST" && <p className="notice">{t.onWaitlist}</p>}
               {mine?.status === "PENDING_PAYMENT" && (
                 <form action={doPay}>
@@ -246,8 +273,41 @@ export default async function EventPage({ params, searchParams }: Params) {
               )}
             </div>
           )}
+          {e.status === "APPROVED" && (
+            <ShareButton url={`/app/events/${e.id}`} title={`Skopjanki: ${e.title}`} labels={{ share: t.share, copyLink: t.copyLink, copied: t.copied }} />
+          )}
         </div>
       </div>
+
+      {(photos.length > 0 || mayAddPhotos) && (
+        <section id="moments" style={{ marginTop: 28 }}>
+          <div className="between">
+            <h2>{t.momentsTitle}</h2>
+            {mayAddPhotos && <PhotoUploader eventId={e.id} labels={{ addPhotos: t.addPhotos, uploading: t.uploading, uploadFailed: t.uploadFailed }} />}
+          </div>
+          {mayAddPhotos && photos.length === 0 && <p className="meta">{t.addPhotosHint}</p>}
+          <div className="photos">
+            {photos.map((p) => (
+              <figure key={p.id}>
+                <a href={`/photos/${p.id}`} target="_blank" rel="noopener noreferrer">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`/photos/${p.id}`} alt={`${e.title}, ${p.user.name}`} loading="lazy" />
+                </a>
+                <figcaption className="between">
+                  <span className="meta">{p.user.name}</span>
+                  {(p.userId === user.id || user.isOwner) && (
+                    <form action={doRemovePhoto}>
+                      <input type="hidden" name="eventId" value={e.id} />
+                      <input type="hidden" name="photoId" value={p.id} />
+                      <button className="btn sm ghost" type="submit">{t.removePhoto}</button>
+                    </form>
+                  )}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section style={{ marginTop: 28 }}>
         <h3>{t.whoIsGoing} ({confirmed.length})</h3>

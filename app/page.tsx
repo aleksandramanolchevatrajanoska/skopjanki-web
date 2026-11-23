@@ -10,6 +10,10 @@ import { Flash } from "@/components/Flash";
 import { LevelsFields, readLevels } from "@/components/LevelsFields";
 import { getLocale } from "@/lib/i18n";
 import { isMember } from "@/lib/membership";
+import { askEnabled } from "@/lib/ask";
+import { AskBox, MomentCarousel, type Slide } from "@/components/Interactive";
+import { PartnerCard } from "@/components/PartnerCard";
+import { DAY, HOUR } from "@/lib/time";
 
 async function join(form: FormData) {
   "use server";
@@ -39,10 +43,23 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   const inside = user?.status === "APPROVED";
   const member = isMember(user);
   const { t, locale } = await getT(user?.locale);
-  const [partners, nextFusion] = await Promise.all([
+  const now = new Date();
+  const [partners, nextFusion, nextPlans, moments, quotes] = await Promise.all([
     prisma.partner.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
-    prisma.event.findFirst({ where: { kind: "FUSION", status: "APPROVED", startsAt: { gt: new Date() } }, orderBy: { startsAt: "asc" } }),
+    prisma.event.findFirst({ where: { kind: "FUSION", status: "APPROVED", startsAt: { gt: now } }, orderBy: { startsAt: "asc" } }),
+    prisma.event.findMany({ where: { kind: { not: "FUSION" }, status: "APPROVED", startsAt: { gt: now } }, orderBy: { startsAt: "asc" }, take: 3, include: { partner: true } }),
+    // Moments: past events with photos. Visitors see only photos the organiser made public.
+    prisma.event.findMany({
+      where: { status: "APPROVED", startsAt: { lt: now }, photos: { some: inside ? {} : { public: true } } },
+      orderBy: { startsAt: "desc" },
+      take: 6,
+      include: { partner: true, photos: { where: inside ? {} : { public: true }, select: { id: true }, orderBy: { createdAt: "asc" }, take: 20 } },
+    }),
+    prisma.quote.findMany({ where: { hidden: false }, include: { user: { select: { name: true, memberUntil: true, isOwner: true } } }, orderBy: { updatedAt: "desc" }, take: 12 }),
   ]);
+  const shownQuotes = quotes.filter((q) => isMember(q.user, now)).slice(0, 6);
+  const untilFusion = nextFusion ? nextFusion.startsAt.getTime() - now.getTime() : 0;
+  const firstName = (n: string) => n.split(/\s+/)[0];
   const weeks = [t.week1, t.week2, t.week3, t.week4];
 
   return (
@@ -74,10 +91,53 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
         </div>
       </section>
 
+      {sp.ok === "deleted" && <div className="notice ok" role="status">{t.deleted}</div>}
       {nextFusion && (
-        <div className="notice">
-          <strong>{t.fusionTitle}:</strong> {nextFusion.title} · {formatDateTime(nextFusion.startsAt, locale)}
+        <a className="countdown" href={inside ? `/app/events/${nextFusion.id}` : "#join"}>
+          <span className="label">{t.countdownTo}</span>
+          <strong>{nextFusion.title}</strong>
+          <span>{formatDateTime(nextFusion.startsAt, locale)}</span>
+          <span className="pill">{t.countdownIn} {Math.floor(untilFusion / DAY)}{t.days} {Math.floor((untilFusion % DAY) / HOUR)}{t.hoursShort}</span>
+        </a>
+      )}
+
+      <section className="section two" style={{ alignItems: "center" }}>
+        <div className="row">
+          <a className="btn" href={inside ? "/app?kind=WEEKLY" : "#join"}>{t.moodMove} →</a>
+          <a className="btn pink" href={inside ? "/app?kind=FUSION" : "#join"}>{t.moodMeet} →</a>
         </div>
+        {askEnabled() && (
+          <AskBox labels={{ askTitle: t.askTitle, askPlaceholder: t.askPlaceholder, askButton: t.askButton, askThinking: t.askThinking, askError: t.askError, askNote: t.askNote }} />
+        )}
+      </section>
+
+      {(nextPlans.length > 0 || nextFusion) && (
+        <section className="section two" style={{ alignItems: "stretch" }}>
+          <div className="card">
+            <p className="label">{t.monthTitle}</p>
+            <h2>{t.upcoming}</h2>
+            <ul className="plans">
+              {nextPlans.map((e) => (
+                <li key={e.id}>
+                  <a href={inside ? `/app/events/${e.id}` : "#join"}><strong>{e.title}</strong></a>
+                  <span className="meta">{formatDateTime(e.startsAt, locale)}{e.partner ? ` · ${e.partner.name}` : ""}</span>
+                </li>
+              ))}
+              {nextPlans.length === 0 && <li className="meta">{t.noEvents}</li>}
+            </ul>
+          </div>
+          <div className="plum">
+            <p className="label" style={{ color: "#F2D3E2" }}>{t.fusionTitle}</p>
+            {nextFusion ? (
+              <>
+                <h2>{nextFusion.title}</h2>
+                <p>{formatDateTime(nextFusion.startsAt, locale)}</p>
+                {nextFusion.description && <p style={{ whiteSpace: "pre-line" }}>{nextFusion.description}</p>}
+                <p style={{ marginTop: 10 }}><a className="btn pink sm" href={inside ? `/app/events/${nextFusion.id}` : "#join"}>{inside ? t.seeEvent : t.join}</a></p>
+              </>
+            ) : <p>{t.fusionText}</p>}
+          </div>
+        </section>
       )}
 
       <section className="section">
@@ -114,18 +174,54 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
         </div>
       </section>
 
+      {moments.length > 0 && (
+        <section className="section">
+          <h2>{t.momentsTitle}</h2>
+          <p className="meta">{t.momentsIntro}</p>
+          <div className="moments">
+            {moments.map((e) => {
+              const slides: Slide[] = [
+                ...e.photos.map((ph) => ({ src: `/photos/${ph.id}`, alt: e.title })),
+                // Only public fields go to the browser (never the code, email, phone or notes).
+                ...(e.partner
+                  ? [{ alt: e.partner.name, partner: { name: e.partner.name, activity: e.partner.activity, address: e.partner.address, mapsUrl: e.partner.mapsUrl, instagram: e.partner.instagram?.replace(/^@/, "") } }]
+                  : []),
+              ];
+              return (
+                <MomentCarousel
+                  key={e.id}
+                  cover={e.photos[0] ? `/photos/${e.photos[0].id}` : null}
+                  title={e.title}
+                  meta={formatDateTime(e.startsAt, locale)}
+                  slides={slides}
+                  eventHref={inside ? `/app/events/${e.id}#moments` : undefined}
+                  seeEvent={t.seeEvent}
+                />
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {shownQuotes.length > 0 && (
+        <section className="section">
+          <h2>{t.quotesTitle}</h2>
+          <div className="quotes">
+            {shownQuotes.map((q) => (
+              <blockquote key={q.userId} className="card">
+                <p>“{q.text}”</p>
+                <footer className="meta">— {firstName(q.user.name)}</footer>
+              </blockquote>
+            ))}
+          </div>
+        </section>
+      )}
+
       {partners.length > 0 && (
         <section className="section">
           <h2>{t.partnersTitle}</h2>
           <div className="grid">
-            {partners.map((p) => (
-              <div className="card" key={p.id}>
-                <h3>{p.name}</h3>
-                <p className="meta">{p.activity}</p>
-                {p.address && <p className="meta">{p.address}</p>}
-                {p.instagram && <a href={`https://instagram.com/${p.instagram.replace(/^@/, "")}`}>@{p.instagram.replace(/^@/, "")}</a>}
-              </div>
-            ))}
+            {partners.map((p) => <PartnerCard key={p.id} p={p} locale={locale} member={member} />)}
           </div>
         </section>
       )}

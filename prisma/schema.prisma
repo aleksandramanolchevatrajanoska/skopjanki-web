@@ -4,7 +4,9 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // Names set by the Vercel <-> Supabase integration.
+  url       = env("POSTGRES_PRISMA_URL") // pooled (pgbouncer), used by the site
+  directUrl = env("POSTGRES_URL_NON_POOLING") // direct, used for migrations
 }
 
 enum AccessStatus {

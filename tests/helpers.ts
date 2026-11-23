@@ -5,9 +5,9 @@ import { DAY, HOUR } from "@/lib/time";
 export const db = prisma;
 export const T0 = new Date("2026-12-01T10:00:00Z"); // a Tuesday
 
-/** Empties the TEST database (DATABASE_URL points at skopjanki_test in vitest.config.ts). */
+/** Empties the TEST database (POSTGRES_PRISMA_URL points at skopjanki_test in vitest.config.ts). */
 export async function reset() {
-  if (!(process.env.DATABASE_URL ?? "").includes("test")) throw new Error("Refusing to truncate a non-test database");
+  if (!(process.env.POSTGRES_PRISMA_URL ?? "").includes("test")) throw new Error("Refusing to truncate a non-test database");
   await db.$executeRawUnsafe(
     `TRUNCATE "PartnerApplication","EmailLog","Debt","CaptainApplication","Reservation","Event","Partner","Session","LoginToken","User" CASCADE`,
   );

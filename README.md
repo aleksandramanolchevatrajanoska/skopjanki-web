@@ -29,7 +29,7 @@ Next.js 15, Prisma 6, Postgres, Stripe, Resend (email). Хостинг: Vercel +
 ## Локално
 
 ```bash
-cp .env.example .env      # пополни DATABASE_URL и OWNER_EMAILS
+cp .env.example .env      # пополни ги врските со базата и OWNER_EMAILS
 npm install
 npx prisma migrate deploy
 npm run db:seed           # партнери и примерен месец (по избор)
@@ -46,14 +46,13 @@ npm test
 
 ## Хостирање, чекор по чекор
 
-1. **База:** направи проект на [supabase.com](https://supabase.com) → Project Settings → Database → connection string (URI). Тоа е `DATABASE_URL`.
+1. **База:** во Vercel → Storage (или Integrations) поврзи **Supabase**. Тоа автоматски ги додава `POSTGRES_PRISMA_URL` и `POSTGRES_URL_NON_POOLING`.
 2. **Vercel:** на [vercel.com](https://vercel.com) → Add New Project → избери го ова GitHub repo.
    Во Environment Variables внеси ги сите од `.env.example`:
-   - `DATABASE_URL` – од Supabase
    - `APP_URL` – адресата на сајтот, на пример `https://skopjanki.vercel.app`
    - `OWNER_EMAILS` – твојот email (може повеќе, одделени со запирка)
    - `CRON_SECRET` – било каков долг случаен текст
-   - Build command: `npx prisma migrate deploy && npm run build`
+   - Build command не треба да се менува: во `vercel.json` е `prisma migrate deploy`, па табелите се прават сами.
 3. **Email:** профил на [resend.com](https://resend.com), потврди го доменот, внеси `RESEND_API_KEY` и `EMAIL_FROM`.
 4. **Stripe:**
    - Products → нов производ „Членарина“, 350 MKD, месечно → ID на цената во `STRIPE_MEMBERSHIP_PRICE_ID`.

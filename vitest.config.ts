@@ -8,7 +8,8 @@ export default defineConfig({
     globalSetup: ["./tests/global-setup.ts"],
     fileParallelism: false,
     env: {
-      DATABASE_URL: process.env.TEST_DATABASE_URL ?? "postgresql://postgres@localhost:5432/skopjanki_test",
+      POSTGRES_PRISMA_URL: process.env.TEST_DATABASE_URL ?? "postgresql://postgres@localhost:5432/skopjanki_test",
+      POSTGRES_URL_NON_POOLING: process.env.TEST_DATABASE_URL ?? "postgresql://postgres@localhost:5432/skopjanki_test",
       NODE_ENV: "test",
       OWNER_EMAILS: "owner@test.mk",
       APP_URL: "http://localhost:3000",

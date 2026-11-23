@@ -230,3 +230,68 @@ code.blurred{filter:blur(5px);user-select:none}
 /* Space between the header and the page (".wrap" used to zero main's own padding) */
 main.wrap{padding-top:40px;padding-bottom:64px}
 @media(max-width:700px){main.wrap{padding-top:28px}}
+
+/* ---------- Breathing room everywhere ---------- */
+body{line-height:1.6}
+p{margin:.6rem 0}
+h1{margin:.2rem 0 .7rem}
+h2{margin:.25rem 0 .75rem}
+h3{margin:.2rem 0 .55rem;line-height:1.2}
+h1+p,h2+p,h3+p{margin-top:.35rem}
+.label{line-height:1.5}
+.label+h1,.label+h2,.label+h3,.between+h1,.between+h2,.between+h3{margin-top:.6rem}
+.meta{line-height:1.55}
+li{margin:.3rem 0}
+ul.ticks li{padding-top:6px;padding-bottom:6px}
+.card{padding:24px}
+.stack>*+*{margin-top:16px}
+.row{gap:10px}
+.grid{gap:20px;margin-top:20px}
+.section{margin:64px 0}
+.notice{padding:14px 18px;margin:16px 0;line-height:1.55}
+label{margin:16px 0 6px}
+.two{gap:16px}
+.tag{margin:0 6px 6px 0;padding:3px 9px}
+/* cards: space between tags, title, dates, bar and price */
+a.card h3{margin-top:12px}
+a.card .meta{margin:.35rem 0}
+.bar{margin:12px 0 8px}
+/* home */
+.home-hero{padding:8px 0 40px;gap:48px}
+.home-hero .tagline{margin:.6rem 0 1rem}
+.home-hero .lead{margin:.8rem 0}
+.choices{gap:20px;margin-top:28px}
+.choice{gap:12px;padding:26px}
+.choice h2{margin:.2rem 0 .2rem}
+.choice p{margin:0}
+.weeks-mini{gap:8px;margin:8px 0}
+.mood{padding:26px;margin-top:20px}
+.ticker{margin:24px 0}
+.stats{margin:24px 0;gap:20px}
+.steps{gap:16px}
+.step{padding:22px}
+.step h3{margin:12px 0 8px}
+.plan-list{gap:12px;margin:8px 0 14px}
+.plan-list a{gap:2px}
+.moments{gap:24px;margin-top:20px}
+.quotes{gap:18px}
+.band{padding:40px 32px}
+.band h2{margin:.6rem 0 .8rem}
+.band-inner.center{gap:12px}
+.countdown{padding:14px 18px;gap:8px 16px}
+/* event page */
+.agenda{gap:8px;margin:8px 0 4px}
+.price{margin:.3rem 0}
+/* forms and filters */
+.filters{gap:10px;margin-top:18px}
+fieldset legend{margin-bottom:8px}
+/* footer */
+footer.site{padding:32px 16px;line-height:1.8}
+@media(max-width:700px){
+  .section{margin:48px 0}
+  .band{padding:28px 18px}
+  .card{padding:20px}
+  .choice{padding:22px}
+}
+.filters input:not([type=checkbox]){flex:2 1 240px}
+.filters select{flex:1 1 190px}

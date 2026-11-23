@@ -28,8 +28,11 @@ export async function sendMail(mail: Mail): Promise<void> {
     } catch (e) {
       console.error("Email failed", e);
     }
-  } else if (process.env.NODE_ENV !== "test") {
-    console.log(`\n[email] to=${to.join(",")}\nsubject: ${mail.subject}\n${mail.text}\n`);
+  }
+  // Without a key, or when sending failed, print the message to the server logs (Vercel → Logs)
+  // so the organiser can still find a sign-in link.
+  if (!sent && process.env.NODE_ENV !== "test") {
+    console.log(`\n[email${key ? " NOT SENT" : ""}] to=${to.join(",")}\nsubject: ${mail.subject}\n${mail.text}\n`);
   }
   await prisma.emailLog.create({ data: { to: to.join(","), subject: mail.subject, body: mail.text, sent } });
 }

@@ -27,11 +27,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <a className="skip" href="#main">Skip to content</a>
         <header className="site">
           <div className="wrap top">
-            <a href={inside ? "/app" : "/"} className="logo" aria-label="Skopjanki">
+            <a href="/" className="logo" aria-label="Skopjanki">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/logo.png" alt="Skopjanki – Active Girls Club" />
             </a>
             <nav className="main" aria-label="Main">
+              {inside && <a href="/">{t.home}</a>}
               {inside && <a href="/app">{t.events}</a>}
               {inside && <a href="/app/membership">{t.membership}</a>}
               {inside && <a href="/app/profile">{t.profile}</a>}

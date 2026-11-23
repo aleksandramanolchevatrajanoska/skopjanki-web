@@ -9,6 +9,7 @@ import { requestJoin } from "@/lib/services/users";
 import { Flash } from "@/components/Flash";
 import { LevelsFields, readLevels } from "@/components/LevelsFields";
 import { getLocale } from "@/lib/i18n";
+import { isMember } from "@/lib/membership";
 
 async function join(form: FormData) {
   "use server";
@@ -35,7 +36,8 @@ async function join(form: FormData) {
 export default async function Home({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
   const user = await currentUser();
-  if (user?.status === "APPROVED" && !sp.ok && !sp.err) redirect("/app");
+  const inside = user?.status === "APPROVED";
+  const member = isMember(user);
   const { t, locale } = await getT(user?.locale);
   const [partners, nextFusion] = await Promise.all([
     prisma.partner.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
@@ -53,8 +55,17 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
           <p>{t.heroIntro}</p>
           {locale === "en" && <p lang="mk" style={{ fontStyle: "italic" }}>{t.mkIntro}</p>}
           <p style={{ marginTop: 18 }} className="row">
-            <a className="btn pink" href="#join">{t.join}</a>
-            <a className="btn ghost" style={{ color: "#FFF9ED", borderColor: "#FFF9ED" }} href="/login">{t.signIn}</a>
+            {inside ? (
+              <>
+                <a className="btn pink" href="/app">{t.events}</a>
+                {!member && <a className="btn ghost" style={{ color: "#FFF9ED", borderColor: "#FFF9ED" }} href="/app/membership">{t.becomeMember}</a>}
+              </>
+            ) : (
+              <>
+                <a className="btn pink" href="#join">{t.join}</a>
+                <a className="btn ghost" style={{ color: "#FFF9ED", borderColor: "#FFF9ED" }} href="/login">{t.signIn}</a>
+              </>
+            )}
           </p>
         </div>
         <div className="polaroid">
@@ -119,6 +130,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
         </section>
       )}
 
+      {inside ? (
+        <section className="section plum" style={{ textAlign: "center" }}>
+          <h2>{member ? t.youreIn : t.memberTitle}</h2>
+          <p className="row" style={{ justifyContent: "center", marginTop: 14 }}>
+            <a className="btn pink" href="/app">{t.events}</a>
+            {!member && <a className="btn ghost" style={{ color: "#FFF9ED", borderColor: "#FFF9ED" }} href="/app/membership">{t.becomeMember}</a>}
+          </p>
+        </section>
+      ) : (
       <section className="section" id="join">
         <p className="label">05 / 05</p>
         <h2>{t.joinTitle}</h2>
@@ -141,6 +161,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
           </form>
         )}
       </section>
+      )}
     </>
   );
 }

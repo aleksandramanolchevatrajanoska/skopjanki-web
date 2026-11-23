@@ -45,7 +45,11 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
         <a className={`btn sm ${tab === "upcoming" ? "" : "ghost"}`} href="/app">{t.upcoming}</a>
         <a className={`btn sm ${tab === "past" ? "" : "ghost"}`} href="/app?tab=past">{t.past}</a>
       </nav>
-      {cards.length === 0 && <p className="meta" style={{ marginTop: 16 }}>{t.noEvents}</p>}
+      {cards.length === 0 && (
+        <p className="meta" style={{ marginTop: 16 }}>
+          {t.noEvents} {user.isOwner && <a href="/admin/events">{t.noEventsOwner}</a>}
+        </p>
+      )}
       {fusion.length > 0 && (
         <section style={{ marginTop: 20 }}>
           <h2>{t.fusionTitle}</h2>

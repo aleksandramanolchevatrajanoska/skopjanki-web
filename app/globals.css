@@ -82,3 +82,75 @@ footer.site{text-align:center;color:var(--muted);font-size:.8rem;padding:24px 16
 .optbox{display:flex;gap:12px;align-items:flex-start;font-weight:400;border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin:8px 0;cursor:pointer;flex-wrap:wrap}
 .optbox>input[type=checkbox]{width:18px;height:18px;margin-top:3px;accent-color:var(--pink);flex:none}
 .optbox:has(>input:checked){border-color:var(--pink);background:var(--soft)}
+
+/* ---------- Header like the prototype: logo row, then tabs ---------- */
+header.site .top{flex-direction:column;align-items:stretch;gap:6px;padding-bottom:0}
+header.site .toprow{display:flex;justify-content:space-between;align-items:center;gap:12px}
+header.site .tools{display:flex;gap:4px;align-items:center}
+header.site .tools a,header.site .tools button{font:500 .85rem "Hanken Grotesk",sans-serif;border:0;background:transparent;color:var(--ink);padding:6px 10px;cursor:pointer;text-decoration:none}
+nav.tabs{display:flex;gap:18px;overflow-x:auto;scrollbar-width:none}
+nav.tabs a{font:500 .9rem "Hanken Grotesk",sans-serif;color:var(--ink);text-decoration:none;padding:8px 0 10px;border-bottom:2px solid transparent;white-space:nowrap}
+nav.tabs a[aria-current="page"]{border-bottom-color:var(--plum);font-weight:600}
+
+/* ---------- Home ---------- */
+.display{font:400 clamp(2.8rem,8vw,5.2rem)/.95 Newsreader,Georgia,serif;letter-spacing:-.035em;margin:8px 0 6px;color:var(--plum)}
+.display-md{font:400 clamp(2rem,5vw,3rem)/1 Newsreader,Georgia,serif;letter-spacing:-.025em;margin:6px 0}
+.display-sm{font:400 clamp(1.8rem,4.5vw,2.6rem)/1 Newsreader,Georgia,serif;letter-spacing:-.02em;margin:4px 0}
+.tagline{font:400 italic 1.25rem Newsreader,Georgia,serif;color:var(--plum);margin:4px 0 8px}
+.lead{max-width:46ch}
+.home-hero{display:grid;grid-template-columns:1.6fr 1fr;gap:40px;align-items:center;padding:8px 0 32px;border-bottom:1px solid var(--line)}
+.home-hero-text{min-width:0}
+.next-card{background:#432344;color:#FFF9ED;aspect-ratio:4/5;max-width:280px;width:100%;justify-self:center;border-radius:4px;padding:26px 24px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 18px 40px rgba(67,35,68,.25);transform:rotate(3deg)}
+.next-card .ft{display:block;font:400 2rem/1.05 Newsreader,Georgia,serif;margin:16px 0}
+.next-card small{font:600 .68rem "Hanken Grotesk",sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#F2D3E2}
+.badge{width:58px;height:58px;border-radius:50%;background:#FFF9ED;display:flex;align-items:center;justify-content:center;color:#432344;flex:none}
+.badge svg{height:70%;width:auto}
+.badge.big{width:76px;height:76px;margin:12px auto}
+@media(max-width:700px){.home-hero{grid-template-columns:1fr}.next-card{max-width:200px;transform:rotate(2deg)}}
+
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px}
+@media(max-width:700px){.choices{grid-template-columns:1fr}}
+.choice{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:22px;text-decoration:none;color:var(--ink);min-width:0}
+.choice h2{font:400 1.8rem/1.1 Newsreader,Georgia,serif}
+.choice.plum{background:#432344;border-color:#432344;color:#FFF9ED}
+.choice.plum h2,.choice.plum .label{color:#FFF9ED}
+.choice.plum .label{opacity:.8}
+.choice:not(.static):hover{transform:translateY(-2px)}
+.weeks-mini{list-style:none;padding:0;margin:6px 0;display:grid;gap:4px}
+.weeks-mini li{display:flex;gap:10px;align-items:baseline;font-size:.95rem}
+.weeks-mini .label{min-width:64px}
+.mood{background:var(--soft);border-radius:4px;padding:22px;margin-top:16px}
+.mood-btn{background:var(--bg);color:var(--ink);border-radius:4px;padding:8px 14px;text-decoration:none;font:500 .9rem "Hanken Grotesk",sans-serif}
+.ticker{background:var(--court);color:#432344;overflow:hidden;white-space:nowrap;font:400 1.2rem Newsreader,Georgia,serif;margin:16px 0;padding:12px 0}
+.ticker span{display:inline-block;animation:tick 40s linear infinite}
+@keyframes tick{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.ticker span{animation:none;padding-left:16px}}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:700px){.steps{grid-template-columns:1fr}}
+.step{background:var(--soft);border-radius:4px;padding:18px}
+.step h3{margin:8px 0 4px}
+.step p{color:var(--muted);font-size:.9rem}
+.plan-list{list-style:none;padding:0;margin:4px 0 8px;display:grid;gap:8px}
+.plan-list a{display:flex;flex-direction:column;text-decoration:none;color:var(--ink);border-left:3px solid var(--pink);padding:2px 0 2px 10px}
+.plan-fusion{display:flex;flex-direction:column;gap:2px;color:#FFF9ED;text-decoration:none;border-left:3px solid var(--pink);padding-left:10px;margin:4px 0 8px}
+.plan-fusion span{color:#F2D3E2;font-size:.9rem}
+.btn.light{background:#FFF9ED;color:#432344;border-color:#FFF9ED}
+.moments{display:flex;gap:24px;flex-wrap:wrap;margin-top:16px}
+.moments .polaroid{margin:0;max-width:240px;transform:rotate(-2deg)}
+.moments .polaroid.tilt-r{transform:rotate(2deg)}
+.moments figcaption{color:#7B627C;margin-top:8px;font-size:.62rem}
+.partner-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:14px}
+.partner{border-top:1px solid var(--line);padding-top:12px}
+.band{margin:44px 0 0;padding:32px 24px}
+.band.court{background:var(--court);color:#432344}
+.band.court .label,.band.court .meta,.band.court h2,.band.court .price,.band.court .price small{color:#432344}
+.band.plum{background:#432344;color:#FFF9ED;margin-top:0}
+.band.plum .label,.band.plum h2,.band.plum .tagline{color:#FFF9ED}
+.band.plum .tagline{color:#F49BBC}
+.band-inner{display:grid;grid-template-columns:1.6fr 1fr;gap:24px;align-items:center}
+.band-inner.center{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px}
+@media(max-width:700px){.band-inner{grid-template-columns:1fr}.band{padding:24px 16px}}
+.band-price .price{font-size:3rem}
+header.site{overflow:hidden}
+header.site .top>*{min-width:0}
+nav.tabs{min-width:0;max-width:100%}

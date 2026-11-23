@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { currentUser } from "@/lib/auth";
 import { getT } from "@/lib/i18n";
+import { Suspense } from "react";
 import { setLanguage } from "./actions";
+import { NavLinks } from "@/components/NavLinks";
 
 export const metadata: Metadata = {
   title: "Skopjanki – Active Girls Club",
@@ -27,25 +29,43 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <a className="skip" href="#main">Skip to content</a>
         <header className="site">
           <div className="wrap top">
-            <a href="/" className="logo" aria-label="Skopjanki">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="Skopjanki – Active Girls Club" />
-            </a>
-            <nav className="main" aria-label="Main">
-              {inside && <a href="/">{t.home}</a>}
-              {inside && <a href="/app">{t.events}</a>}
-              {inside && <a href="/app/membership">{t.membership}</a>}
-              {inside && <a href="/app/profile">{t.profile}</a>}
-              {user?.isOwner && <a href="/admin">{t.admin}</a>}
-              <form action={setLanguage}>
-                <input type="hidden" name="lang" value={locale === "mk" ? "en" : "mk"} />
-                <button type="submit" aria-label={t.language}>{locale === "mk" ? "EN" : "МК"}</button>
-              </form>
-              {user ? (
-                <form action="/auth/logout" method="post"><button type="submit">{t.signOut}</button></form>
-              ) : (
-                <a href="/login">{t.signIn}</a>
-              )}
+            <div className="toprow">
+              <a href="/" className="logo" aria-label="Skopjanki">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo.png" alt="Skopjanki – Active Girls Club" />
+              </a>
+              <div className="tools">
+                <form action={setLanguage}>
+                  <input type="hidden" name="lang" value={locale === "mk" ? "en" : "mk"} />
+                  <button type="submit" aria-label={t.language}>{locale === "mk" ? "EN" : "МК"}</button>
+                </form>
+                {user ? (
+                  <form action="/auth/logout" method="post"><button type="submit">{t.signOut}</button></form>
+                ) : (
+                  <a href="/login">{t.signIn}</a>
+                )}
+              </div>
+            </div>
+            <nav className="tabs" aria-label="Main">
+              <Suspense>
+                <NavLinks
+                  items={[
+                    { href: "/", label: t.home },
+                    ...(inside
+                      ? [
+                          { href: "/app?kind=weekly", label: t.playTab },
+                          { href: "/app?kind=fusion", label: t.fusionTab },
+                          { href: "/app/membership", label: t.membership },
+                          { href: "/app/profile", label: t.profile },
+                        ]
+                      : [
+                          { href: "/partneri", label: t.partnersNav },
+                          { href: "/join", label: t.join },
+                        ]),
+                    ...(user?.isOwner ? [{ href: "/admin", label: t.admin }] : []),
+                  ]}
+                />
+              </Suspense>
             </nav>
           </div>
         </header>

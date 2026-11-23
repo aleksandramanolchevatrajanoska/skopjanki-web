@@ -16,9 +16,11 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
   const member = isMember(user);
   const now = new Date();
   const tab = sp.tab === "past" ? "past" : "upcoming";
+  const kind = sp.kind === "fusion" ? "fusion" : sp.kind === "weekly" ? "weekly" : "all";
+  const kindWhere = kind === "fusion" ? { kind: "FUSION" as const } : kind === "weekly" ? { kind: { not: "FUSION" as const } } : {};
   const visible = { OR: [{ status: { in: ["APPROVED", "CANCELLED"] as ("APPROVED" | "CANCELLED")[] } }, { createdById: user.id }] };
   const cards = await loadEventCards(
-    tab === "past" ? { AND: [visible, { startsAt: { lt: now } }] } : { AND: [visible, { startsAt: { gte: now } }] },
+    tab === "past" ? { AND: [visible, kindWhere, { startsAt: { lt: now } }] } : { AND: [visible, kindWhere, { startsAt: { gte: now } }] },
     user.id,
     tab === "past" ? "desc" : "asc",
   );
@@ -32,7 +34,7 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
       <div className="between">
         <div>
           <p className="label">{member ? `${t.member} ♛` : t.nonMember}</p>
-          <h1>{t.events}</h1>
+          <h1>{kind === "fusion" ? t.fusionTab : kind === "weekly" ? t.playTab : t.events}</h1>
         </div>
         <div className="row">
           {member && <a className="btn ghost sm" href="/app/propose">{t.propose}</a>}
@@ -42,8 +44,8 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
       <Flash sp={sp} locale={locale} />
       {owed > 0 && <div className="notice">{t.yourDebt}: <strong>{owed} MKD</strong>. {t.bringCash}.</div>}
       <nav className="row" style={{ marginTop: 12 }} aria-label="Upcoming or past">
-        <a className={`btn sm ${tab === "upcoming" ? "" : "ghost"}`} href="/app">{t.upcoming}</a>
-        <a className={`btn sm ${tab === "past" ? "" : "ghost"}`} href="/app?tab=past">{t.past}</a>
+        <a className={`btn sm ${tab === "upcoming" ? "" : "ghost"}`} href={`/app?kind=${kind}`}>{t.upcoming}</a>
+        <a className={`btn sm ${tab === "past" ? "" : "ghost"}`} href={`/app?kind=${kind}&tab=past`}>{t.past}</a>
       </nav>
       {cards.length === 0 && (
         <p className="meta" style={{ marginTop: 16 }}>

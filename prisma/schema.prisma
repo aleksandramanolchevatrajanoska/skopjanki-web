@@ -271,6 +271,8 @@ model PartnerApplication {
   capacity     Int?
   days         String[]
   times        String?
+  sportDetails Json? // [{sport, priceRegular, priceGroup, durationMin, pricing, minGirls, maxGirls, units}]
+  slots        Json? // [{day, from, to}] times offered to Skopjanki at a discount
   message      String?
   status       String   @default("NEW") // NEW | ACCEPTED | DECLINED
   partnerId    String?

@@ -4,7 +4,7 @@ import { attempt, str } from "@/lib/act";
 import { Flash } from "@/components/Flash";
 import type { Partner, PartnerApplication } from "@prisma/client";
 import { ImageUploader } from "@/components/Interactive";
-import { decidePartnerApplication } from "@/lib/services/partners";
+import { decidePartnerApplication, partnerDealLines } from "@/lib/services/partners";
 
 function fields(form: FormData) {
   return {
@@ -57,23 +57,18 @@ function Application({ a }: { a: PartnerApplication }) {
         ) : <span className="tag">{a.status.toLowerCase()}</span>}
       </div>
       <p>{a.person} · {a.phone} · {a.email}{a.instagram ? ` · @${a.instagram}` : ""}{a.website ? <> · <a href={a.website}>link</a></> : null}</p>
-      {(a.sports.length > 0 || a.priceRegular != null) && (
-        <p className="meta">
-          {a.sports.join(", ")}
-          {a.priceRegular != null && ` · regular ${a.priceRegular} MKD ${a.pricing ?? ""}`}
-          {a.durationMin ? ` / ${a.durationMin} min` : ""}
-          {a.priceGroup != null && ` · Skopjanki ${a.priceGroup} MKD`}
-          {a.perUnit ? ` · up to ${a.perUnit} per court` : ""}
-          {a.units ? ` · ${a.units} courts at once` : ""}
-          {a.captainFree ? ` · captain free: ${a.captainFree}` : ""}
-        </p>
+      {partnerDealLines(a).length > 0 && (
+        <ul className="meta" style={{ margin: 0, paddingLeft: 18 }}>
+          {partnerDealLines(a).map((l) => <li key={l}>{l}</li>)}
+          {a.captainFree && <li>Captain free: {a.captainFree}</li>}
+        </ul>
       )}
       <div className="row">
         {a.offers.map((o) => <span key={o} className="tag p">{OFFER_LABEL[o] ?? o}{o === "discount_session" && a.discountPct ? ` ${a.discountPct}%` : ""}{o === "discount_gear" && a.gearPct ? ` ${a.gearPct}%` : ""}</span>)}
-        {a.hostWeekly && <span className="tag c">weekly terms</span>}
+        {a.hostWeekly && <span className="tag c">regular terms</span>}
         {a.hostFusion && <span className="tag c">fusion host</span>}
       </div>
-      {(a.capacity || a.days.length > 0 || a.times) && <p className="meta">{a.capacity ? `${a.capacity} people · ` : ""}{a.days.join(", ")}{a.times ? ` · ${a.times}` : ""}</p>}
+      {a.capacity ? <p className="meta">Capacity for an event: {a.capacity} people</p> : null}
       {a.message && <p style={{ whiteSpace: "pre-line" }}>{a.message}</p>}
     </div>
   );

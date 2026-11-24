@@ -275,3 +275,26 @@ describe("points and club movement", () => {
     expect((await clubMovement(db, T0)).visits).toBe(1);
   });
 });
+
+describe("partner form", () => {
+  it("keeps prices per sport and any number of days and hours", async () => {
+    const { submitPartnerApplication, partnerDealLines } = await import("@/lib/services/partners");
+    await girl({ owner: true });
+    const app = await submitPartnerApplication(db, {
+      business: "Pointer", kind: "Спортски терен", person: "Marko", phone: "070", email: "p@example.com", sports: [],
+      offers: ["discount_session"], discountPct: 20, hostWeekly: false, hostFusion: false, days: [], consent: true,
+      sportRows: JSON.stringify([
+        { sport: "Тенис", priceRegular: "1600", priceGroup: "1300", durationMin: "90", pricing: "по терен", minGirls: "2", maxGirls: "4", units: "2" },
+        { sport: "Падел", priceRegular: "2000", priceGroup: "", minGirls: "4", maxGirls: "8" },
+        { sport: "" }, "junk",
+      ]),
+      slots: JSON.stringify([{ day: "Вторник", from: "19:00", to: "21:00" }, { day: "Вторник", from: "08:00", to: "" }, { day: "Funday" }]),
+    });
+    expect(app.sports).toEqual(["Тенис", "Падел"]);
+    expect(app.days).toEqual(["Вторник"]);
+    const lines = partnerDealLines(app);
+    expect(lines[0]).toContain("Тенис: redovno 1600 MKD za Skopjanki 1300 MKD");
+    expect(lines[1]).toContain("4–8 devojki");
+    expect(lines.at(-1)).toBe("Termini za Skopjanki: Вторник 19:00–21:00, Вторник 08:00");
+  });
+});

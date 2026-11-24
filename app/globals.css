@@ -369,3 +369,16 @@ footer.site{padding:32px 16px;line-height:1.8}
 .plan-thumb.blank{display:grid;place-items:center;background:linear-gradient(160deg,#DCE5B3,#F2D3E2);color:#432344;font:400 1.8rem/1 Newsreader,Georgia,serif}
 .plan-fusion{border-left:0!important;padding-left:0!important}
 .fusion-cover{width:100%;max-height:340px;aspect-ratio:4/5;object-fit:cover;border-radius:16px;margin-bottom:12px;display:block}
+
+/* ---------- /partneri: a page on its own, without the site menu ---------- */
+body:has(.standalone) header.site,body:has(.standalone) footer{display:none}
+.standalone-head{display:flex;justify-content:center;padding:28px 0 8px}
+.standalone-head img{height:56px;width:auto}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.sport-row{position:relative;border:1px solid var(--line);border-radius:14px;padding:14px 18px 18px;margin:0;background:var(--bg)}
+.sport-row legend{font:400 1.25rem Newsreader,Georgia,serif;color:var(--plum);padding:0 6px}
+.sport-remove{position:absolute;top:10px;right:12px}
+.slot-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.slot-row select{flex:1 1 160px;max-width:220px}
+.slot-row input[type=time]{width:130px}
+@media (max-width:620px){.three{grid-template-columns:1fr 1fr}}

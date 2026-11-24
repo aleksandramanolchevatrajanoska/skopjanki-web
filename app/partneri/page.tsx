@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { int, str } from "@/lib/act";
 import { AppError } from "@/lib/services/common";
 import { submitPartnerApplication } from "@/lib/services/partners";
+import { SlotPicker, SportsPricing } from "@/components/PartnerFormParts";
 
 export const metadata: Metadata = {
   title: "Станете партнер на Скопјанки",
@@ -11,7 +12,6 @@ export const metadata: Metadata = {
 };
 
 const SPORTS = ["Тенис", "Падел", "Фудбал", "Одбојка", "Јога", "Пилатес", "Аеријал", "Друго"];
-const DAYS = ["Пон", "Вто", "Сре", "Чет", "Пет", "Саб", "Нед"];
 const KINDS = ["Спортски терен", "Спортско студио / фитнес", "Јога / пилатес / танц", "Салон за убавина / спа", "Кафуле / ресторан / бар", "Винарија", "Продавница / спортска опрема", "Креативна работилница", "Простор за настани", "Фирма / компанија", "Друго"];
 const OFFERS: [string, string, string][] = [
   ["discount_session", "Попуст на термини / услуги", "Колку што максимално можете."],
@@ -36,13 +36,11 @@ async function apply(form: FormData) {
       business: str(form.get("business")), kind: str(form.get("kind")), address: str(form.get("address")),
       person: str(form.get("person")), phone: str(form.get("phone")), email: str(form.get("email")),
       instagram: str(form.get("instagram")), website: str(form.get("website")),
-      sports: form.getAll("sports").map(String),
-      priceRegular: int(form.get("priceRegular")), priceGroup: int(form.get("priceGroup")), durationMin: int(form.get("durationMin")),
-      pricing: str(form.get("pricing")), perUnit: int(form.get("perUnit")), units: int(form.get("units")),
+      sports: [], sportRows: str(form.get("sportRows")), slots: str(form.get("slots")),
       captainFree: str(form.get("captainFree")),
       offers: form.getAll("offers").map(String), discountPct: int(form.get("discountPct")), gearPct: int(form.get("gearPct")),
       hostWeekly: form.get("hostWeekly") === "on", hostFusion: form.get("hostFusion") === "on",
-      capacity: int(form.get("capacity")), days: form.getAll("days").map(String), times: str(form.get("times")),
+      capacity: int(form.get("capacity")), days: [], times: str(form.get("times")),
       message: str(form.get("message")), consent: form.get("consent") === "on",
     });
   } catch (e) {
@@ -50,6 +48,15 @@ async function apply(form: FormData) {
     else throw e;
   }
   redirect(dest);
+}
+
+function StandaloneHead() {
+  return (
+    <header className="standalone-head">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/logo.png" alt="Скопјанки – Active Girls Club" />
+    </header>
+  );
 }
 
 function Chip({ name, value, type = "checkbox" }: { name: string; value: string; type?: "checkbox" | "radio" }) {
@@ -65,22 +72,26 @@ export default async function Partneri({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   if (sp.ok) {
     return (
+      <div className="standalone">
+      <StandaloneHead />
       <div className="card tilt" style={{ maxWidth: 560, margin: "40px auto" }}>
         <h1>Ви благодариме!</h1>
         <p>Пријавата е примена. Ќе ве контактираме во наредните денови.</p>
         <p className="meta">Скопјанки · <a href="https://instagram.com/skopjankii">@skopjankii</a></p>
       </div>
+      </div>
     );
   }
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto" }} className="stack">
+    <div style={{ maxWidth: 760, margin: "0 auto" }} className="stack standalone">
+      <StandaloneHead />
       <section className="hero" style={{ display: "block" }}>
         <p className="label" style={{ color: "#F49BBC" }}>Партнерска програма</p>
         <h1>Станете партнер на <em style={{ color: "#F49BBC" }}>Скопјанки</em></h1>
-        <p style={{ marginTop: 10 }}>Секоја недела организираме спортска активност, а еднаш месечно fusion настан. Бараме места каде што ќе доаѓаме редовно. За членките понудете попуст колку што максимално можете, а ние ве носиме пред заедницата на Скопјанки.</p>
+        <p style={{ marginTop: 10 }}>Скопјанки е клуб за девојки во Скопје: спорт секоја недела и fusion настани (спорт + дружење) на секој месец или два. Бараме места каде што ќе доаѓаме со групи девојки. Вие ни кажувате кои термини сакате да ни ги дадете со попуст, а ние ве носиме пред нашата заедница.</p>
       </section>
       <div className="grid" style={{ marginTop: 0 }}>
-        <div className="card" style={{ borderTop: "4px solid var(--pink)" }}><h3>Редовни термини</h3><p className="meta">Минимум еднаш неделно доаѓаме кај вас, со група девојки.</p></div>
+        <div className="card" style={{ borderTop: "4px solid var(--pink)" }}><h3>Термини со попуст</h3><p className="meta">Вие ги избирате деновите и часовите што ви одговараат. Доаѓаме со група девојки кога ќе се пополни терминот.</p></div>
         <div className="card" style={{ borderTop: "4px solid var(--pink)" }}><h3>Видливост</h3><p className="meta">Ве ставаме како партнер на нашата страна и објавуваме на Instagram со таг и локација.</p></div>
         <div className="card" style={{ borderTop: "4px solid var(--court)" }}><h3>Fusion настани</h3><p className="meta">Можете да бидете домаќин на некој од нашите месечни fusion настани.</p></div>
       </div>
@@ -105,17 +116,8 @@ export default async function Partneri({ searchParams }: { searchParams: Promise
 
         <section className="card">
           <p className="label">02 / 05</p><h2>Термини и цени</h2>
-          <p className="meta">За спортски терени и студија. Ако не нудите термини, прескокнете.</p>
-          <label>Кои спортови / часови нудите?</label>
-          <div className="row">{SPORTS.map((s) => <Chip key={s} name="sports" value={s} />)}</div>
-          <div className="two">
-            <div><label htmlFor="priceRegular">Редовна цена (ден.)</label><input id="priceRegular" name="priceRegular" type="number" min={0} step={50} placeholder="пр. 1600" /></div>
-            <div><label htmlFor="durationMin">Траење (мин.)</label><input id="durationMin" name="durationMin" type="number" min={15} step={15} placeholder="пр. 90" /></div>
-            <div><label htmlFor="priceGroup">Цена за група од Скопјанки (ден.)</label><input id="priceGroup" name="priceGroup" type="number" min={0} step={50} placeholder="пр. 1300" /></div>
-            <div><label htmlFor="pricing">Цената е</label><select id="pricing" name="pricing" defaultValue=""><option value="">Изберете…</option><option>по терен</option><option>по девојка</option></select></div>
-            <div><label htmlFor="perUnit">Најмногу девојки на еден терен / час</label><input id="perUnit" name="perUnit" type="number" min={1} placeholder="пр. 4" /></div>
-            <div><label htmlFor="units">Колку терени одеднаш</label><input id="units" name="units" type="number" min={1} placeholder="пр. 2" /></div>
-          </div>
+          <p className="meta">За спортски терени и студија. Ако нудите повеќе спортови, за секој спорт внесете посебна цена и број на девојки. Ако не нудите термини, прескокнете.</p>
+          <SportsPricing sports={SPORTS.filter((x) => x !== "Друго")} />
           <label>Капитенката на групата (наша членка што ги пречекува девојките) може да игра бесплатно?</label>
           <div className="row">{["Да", "Не", "Да разговараме"].map((v) => <Chip key={v} name="captainFree" value={v} type="radio" />)}</div>
         </section>
@@ -134,15 +136,14 @@ export default async function Partneri({ searchParams }: { searchParams: Promise
         </section>
 
         <section className="card">
-          <p className="label">04 / 05</p><h2>Кога можеме да доаѓаме?</h2>
-          <label className="optbox"><input type="checkbox" name="hostWeekly" /><span><strong>Отворени сме за неделни термини</strong><span className="meta" style={{ display: "block" }}>Редовен термин минимум еднаш неделно.</span></span></label>
+          <p className="label">04 / 05</p><h2>Термини што ги давате на Скопјанки со попуст</h2>
+          <p className="meta">Внесете ги деновите и часовите кога сакате да ни давате термини со попуст. Може повеќе денови и повеќе термини во ист ден. Ова не е обврска: не мора да доаѓаме секоја недела, туку ќе ги користиме овие термини кога ќе собереме група.</p>
+          <SlotPicker />
+          <label className="optbox" style={{ marginTop: 8 }}><input type="checkbox" name="hostWeekly" /><span><strong>Отворени сме за редовни термини</strong><span className="meta" style={{ display: "block" }}>Ако ви одговара, истиот термин може да го повторуваме, но не е задолжително.</span></span></label>
           <label className="optbox"><input type="checkbox" name="hostFusion" /><span><strong>Сакаме да бидеме домаќин на fusion настан</strong><span className="meta" style={{ display: "block" }}>Спорт и дружење заедно, како Sip &amp; Serve или Asanas &amp; Mimosas.</span></span></label>
           <div className="two">
             <div><label htmlFor="capacity">Вкупен капацитет за настан (луѓе)</label><input id="capacity" name="capacity" type="number" min={1} placeholder="пр. 20" /></div>
-            <div><label htmlFor="times">Најдобро време</label><select id="times" name="times" defaultValue=""><option value="">Изберете…</option><option>Наутро (до 12 ч.)</option><option>Попладне (12–17 ч.)</option><option>Вечер (по 17 ч.)</option><option>Флексибилно</option></select></div>
           </div>
-          <label>Достапни денови</label>
-          <div className="row">{DAYS.map((d) => <Chip key={d} name="days" value={d} />)}</div>
         </section>
 
         <section className="card">

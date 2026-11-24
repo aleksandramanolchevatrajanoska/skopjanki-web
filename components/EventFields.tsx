@@ -63,12 +63,6 @@ export function EventFields({ locale, partners, e, owner }: { locale: Locale; pa
       <input id="tagline" name="tagline" maxLength={120} defaultValue={e?.tagline ?? ""} placeholder="Tennis & wine with Miron winery" />
       <label htmlFor="agenda">{t.agendaLabel}</label>
       <textarea id="agenda" name="agenda" rows={3} placeholder={"11:00 Yoga\n12:30 Brunch & mimosas"} defaultValue={agendaText(e?.agenda)} />
-      {owner && (
-        <>
-          <label htmlFor="poster">{t.posterLabel}</label>
-          <input id="poster" name="poster" type="file" accept="image/jpeg,image/png,image/webp" />
-        </>
-      )}
       <label htmlFor="pricingMode">{t.pricingMode}</label>
       <select id="pricingMode" name="pricingMode" defaultValue={e?.pricingMode ?? "SPLIT"}>
         <option value="SPLIT">{t.modeSplit}</option>
@@ -109,11 +103,4 @@ export function readEventForm(form: FormData): EventInput {
 
 export function agendaText(a: unknown) {
   return Array.isArray(a) ? (a as [string, string][]).map(([t, l]) => (t ? `${t} ${l}` : l)).join("\n") : "";
-}
-
-/** Reads the optional poster file from an event form. */
-export async function readPoster(form: FormData) {
-  const f = form.get("poster");
-  if (!(f instanceof Blob) || f.size === 0) return null;
-  return { mime: f.type, data: Buffer.from(await f.arrayBuffer()) };
 }

@@ -7,8 +7,9 @@ import { cancelEvent, updateEvent } from "@/lib/services/events";
 import { removeCaptain } from "@/lib/services/captains";
 import { AppError } from "@/lib/services/common";
 import { refund } from "@/lib/stripe";
-import { EventFields, readEventForm, readPoster } from "@/components/EventFields";
-import { removePoster, setPoster } from "@/lib/services/club";
+import { EventFields, readEventForm } from "@/components/EventFields";
+import { removePoster } from "@/lib/services/club";
+import { ImageUploader } from "@/components/Interactive";
 import { Flash } from "@/components/Flash";
 
 async function save(form: FormData) {
@@ -17,11 +18,7 @@ async function save(form: FormData) {
   const id = String(form.get("id"));
   const input = readEventForm(form);
   if (isNaN(input.startsAt.getTime())) redirect(`/admin/events/${id}?err=BAD_INPUT`);
-  await attempt(`/admin/events/${id}`, async () => {
-    await updateEvent(prisma, id, input);
-    const poster = await readPoster(form);
-    if (poster) await setPoster(prisma, id, poster.mime, poster.data);
-  });
+  await attempt(`/admin/events/${id}`, () => updateEvent(prisma, id, input));
 }
 
 async function cancel(form: FormData) {
@@ -126,6 +123,11 @@ export default async function AdminEvent({ params, searchParams }: { params: Pro
       {e.status !== "CANCELLED" && e.kind !== "MEMBER_PLAN" && (
         <section style={{ marginTop: 28 }}>
           <h2>Edit</h2>
+          <div className="card" style={{ maxWidth: 720, marginBottom: 16 }}>
+            <h3>Poster</h3>
+            <p className="meta">Any photo or Instagram poster works; it is made smaller before upload.</p>
+            <ImageUploader endpoint="/api/admin/poster" fields={{ eventId: e.id }} label={hasPoster ? "Replace poster" : "Upload poster"} uploading="Uploading…" failed="Upload failed. Try a JPG or PNG image." />
+          </div>
           {hasPoster && (
             <form action={dropPoster} className="row" style={{ margin: "8px 0" }}>
               <input type="hidden" name="id" value={e.id} />

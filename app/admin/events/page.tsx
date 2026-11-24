@@ -4,8 +4,7 @@ import { prisma } from "@/lib/db";
 import { formatDateTime } from "@/lib/time";
 import { createEvent } from "@/lib/services/events";
 import { AppError } from "@/lib/services/common";
-import { EventFields, readEventForm, readPoster } from "@/components/EventFields";
-import { setPoster } from "@/lib/services/club";
+import { EventFields, readEventForm } from "@/components/EventFields";
 import { Flash } from "@/components/Flash";
 
 async function create(form: FormData) {
@@ -16,8 +15,6 @@ async function create(form: FormData) {
   let id: string;
   try {
     id = (await createEvent(prisma, owner.id, input)).id;
-    const poster = await readPoster(form);
-    if (poster) await setPoster(prisma, id, poster.mime, poster.data);
   } catch (e) {
     if (e instanceof AppError) redirect(`/admin/events?err=${e.code}`);
     throw e;
@@ -57,6 +54,7 @@ export default async function AdminEvents({ searchParams }: { searchParams: Prom
         </table>
       </div>
       <h2 style={{ marginTop: 32 }}>New event</h2>
+      <p className="meta">After you publish, the event page opens and you can upload its poster there.</p>
       <p className="meta">Weekly terms: venue cost shared (members pay 20% less, captain free) or a fixed price per girl. Fusion: fixed member / non-member price, paid online.</p>
       <form action={create} className="card" style={{ marginTop: 12, maxWidth: 720 }}>
         <EventFields locale="en" partners={partners} owner />

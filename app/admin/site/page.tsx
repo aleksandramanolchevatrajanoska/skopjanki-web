@@ -1,20 +1,9 @@
 import { requireOwner } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { attempt } from "@/lib/act";
-import { setSiteImage } from "@/lib/services/club";
-import { AppError } from "@/lib/services/common";
 import { Flash } from "@/components/Flash";
+import { ImageUploader } from "@/components/Interactive";
 import { addExampleEvents, removeExampleEvents } from "@/lib/services/examples";
-
-async function upload(form: FormData) {
-  "use server";
-  await requireOwner();
-  await attempt("/admin/site", async () => {
-    const f = form.get("photo");
-    if (!(f instanceof Blob) || f.size === 0) throw new AppError("BAD_INPUT");
-    await setSiteImage(prisma, "team", f.type, Buffer.from(await f.arrayBuffer()));
-  });
-}
 
 async function remove() {
   "use server";
@@ -53,15 +42,14 @@ export default async function SiteAdmin({ searchParams }: { searchParams: Promis
       </section>
       <section className="card" style={{ maxWidth: 640, marginTop: 16 }}>
         <h2>Core team photo</h2>
-        <p className="meta">Shown on the back of the &ldquo;See you at the next one.&rdquo; card on the home page. Until there is a photo, the back of the card says the photo is coming soon. JPG, PNG or WebP, max 2.5 MB; an upright (portrait) photo fits best.</p>
+        <p className="meta">Shown on the back of the &ldquo;See you at the next one.&rdquo; card on the home page. Until there is a photo, the back of the card says the photo is coming soon. Any photo from your phone works; it is made smaller before upload. An upright (portrait) photo fits best.</p>
         {team && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={`/site-images/team?v=${team.updatedAt.getTime()}`} alt="Core team" style={{ maxWidth: 220, borderRadius: 4, margin: "12px 0", display: "block" }} />
         )}
-        <form action={upload} className="row" style={{ marginTop: 12 }}>
-          <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required style={{ width: "auto" }} />
-          <button className="btn sm pink" type="submit">{team ? "Replace photo" : "Upload photo"}</button>
-        </form>
+        <div style={{ marginTop: 12 }}>
+          <ImageUploader endpoint="/api/admin/site-image" fields={{ key: "team" }} label={team ? "Replace photo" : "Upload photo"} uploading="Uploading…" failed="Upload failed. Try a JPG or PNG photo." />
+        </div>
         {team && <form action={remove} style={{ marginTop: 10 }}><button className="btn sm ghost" type="submit">Remove photo</button></form>}
       </section>
     </>

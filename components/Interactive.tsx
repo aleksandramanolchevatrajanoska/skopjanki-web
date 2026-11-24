@@ -241,3 +241,40 @@ function QueensMark() {
   );
   return <svg viewBox="92 24 400 530" aria-hidden="true">{q}<g transform="translate(218 0)">{q}</g></svg>;
 }
+
+/** Organiser image upload (core team photo, posters): shrinks in the browser, then posts to an admin route. */
+export function ImageUploader({ endpoint, fields = {}, label, uploading, failed }: { endpoint: string; fields?: Record<string, string>; label: string; uploading: string; failed: string }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  async function onChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const blob = await shrink(f);
+      const fd = new FormData();
+      for (const [k, v] of Object.entries(fields)) fd.append(k, v);
+      fd.append("photo", blob, "photo.jpg");
+      const res = await fetch(endpoint, { method: "POST", body: fd });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.message ?? failed);
+      }
+      window.location.reload();
+    } catch (x) {
+      setErr(x instanceof Error && x.message !== "encode" ? x.message : failed);
+      setBusy(false);
+      e.target.value = "";
+    }
+  }
+  return (
+    <div>
+      <label className="btn pink sm" style={{ display: "inline-block", margin: 0 }}>
+        {busy ? uploading : label}
+        <input type="file" accept="image/*" hidden disabled={busy} onChange={onChange} />
+      </label>
+      {err && <p className="notice err" role="alert">{err}</p>}
+    </div>
+  );
+}

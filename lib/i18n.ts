@@ -234,7 +234,7 @@ const en = {
   footer: "Skopjanki · Active Girls Club · Skopje",
   // --- Handoff features ---
   community: "Community",
-  communityIntro: "Girls from the club, by sport and level. Find someone at your level for a game.",
+  communityIntro: "Girls from the club: sports, level and the topics they care about. Find someone to play with or to talk to.",
   partners: "Partners",
   partnersIntro: "Our partners and what members get there. Show your member card.",
   postcard: "Postcard",

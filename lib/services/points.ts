@@ -40,31 +40,57 @@ export async function myPoints(db: Db, userId: string, now = new Date()) {
 export const MINUTES_PER_FUSION = 180;
 
 /**
- * Club totals for sponsors: hours of play, hours of friendship (fusion events and the social part),
- * roughly how many km that is, and how many events took place.
+ * The events the club ran before the site existed (Sip & Serve with about 10 girls on tennis,
+ * Asanas & Mimosas with about 16 on yoga). Used only while the site has no past events of its own,
+ * so the home page never shows zeros.
+ */
+const BEFORE_THE_SITE = [
+  { kind: "FUSION", sport: "Tennis", title: "Sip & Serve", girls: 10 },
+  { kind: "FUSION", sport: "Yoga", title: "Asanas & Mimosas", girls: 16 },
+] as const;
+
+/**
+ * Club totals for sponsors: hours of play, hours of friendship (fusion events), roughly how many km
+ * that is, and how many events took place. Where the site knows who came, it counts them; for a past
+ * event nobody signed up to on the site, it estimates with the event's minimum number of girls.
  */
 export async function clubMovement(db: Db, now = new Date()) {
-  const ev = { startsAt: { lt: now }, status: "APPROVED" as const };
-  const pick = { event: { select: { sport: true, title: true, kind: true } } };
-  const [rs, guests, eventsHeld] = await Promise.all([
-    db.reservation.findMany({ where: { status: "CONFIRMED", attended: { not: false }, event: ev }, select: pick }),
-    db.eventGuest.findMany({ where: { attended: { not: false }, event: ev }, select: pick }),
-    db.event.count({ where: { ...ev, example: false } }),
+  const [events, base] = await Promise.all([
+    db.event.findMany({
+      where: { startsAt: { lt: now }, status: "APPROVED", example: false },
+      select: {
+        kind: true, sport: true, title: true, minSpots: true,
+        _count: {
+          select: {
+            reservations: { where: { status: "CONFIRMED", attended: { not: false } } },
+            guests: { where: { attended: { not: false } } },
+          },
+        },
+      },
+    }),
+    statsBase(db),
   ]);
-  const all = [...rs, ...guests];
-  const base = await statsBase(db);
-  const sport = all.filter((r) => r.event.kind !== "FUSION");
-  const fusion = all.filter((r) => r.event.kind === "FUSION");
-  const playHours = Math.round((sport.length * MINUTES_PER_EVENT) / 60);
-  const socialHours = Math.round((fusion.length * MINUTES_PER_FUSION) / 60);
-  const km = Math.round(all.reduce((s, r) => s + (kmPerHour(r.event.sport, r.event.title) * MINUTES_PER_EVENT) / 60, 0));
+  const list = events.length
+    ? events.map((e) => ({ ...e, girls: e._count.reservations + e._count.guests || Math.max(1, e.minSpots) }))
+    : BEFORE_THE_SITE.map((e) => ({ ...e }));
+  let play = 0;
+  let social = 0;
+  let km = 0;
+  for (const e of list) {
+    const hoursEach = MINUTES_PER_EVENT / 60;
+    play += e.girls * hoursEach;
+    if (e.kind === "FUSION") social += e.girls * (MINUTES_PER_FUSION / 60);
+    km += e.girls * kmPerHour(e.sport, e.title) * hoursEach;
+  }
+  const playHours = Math.round(play) + base.playHours;
+  const socialHours = Math.round(social) + base.socialHours;
   return {
-    visits: all.length,
-    hours: playHours + socialHours + base.playHours + base.socialHours,
-    playHours: playHours + base.playHours,
-    socialHours: socialHours + base.socialHours,
-    km: km + base.km,
-    eventsHeld: eventsHeld + base.eventsHeld,
+    visits: list.reduce((s, e) => s + e.girls, 0),
+    hours: playHours + socialHours,
+    playHours,
+    socialHours,
+    km: Math.round(km) + base.km,
+    eventsHeld: list.length + base.eventsHeld,
   };
 }
 

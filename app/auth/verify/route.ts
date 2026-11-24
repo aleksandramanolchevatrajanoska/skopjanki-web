@@ -7,5 +7,5 @@ export async function GET(req: NextRequest) {
   const session = token ? await consumeLoginToken(token) : null;
   if (!session) return NextResponse.redirect(appUrl("/login?bad=1"));
   await setSessionCookie(session);
-  return NextResponse.redirect(appUrl("/app"));
+  return NextResponse.redirect(appUrl("/"));
 }

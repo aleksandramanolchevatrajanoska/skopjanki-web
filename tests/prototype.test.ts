@@ -298,3 +298,19 @@ describe("partner form", () => {
     expect(lines.at(-1)).toBe("Termini za Skopjanki: Вторник 19:00–21:00, Вторник 08:00");
   });
 });
+
+describe("club numbers never show zero", () => {
+  it("uses the events from before the site, then estimates past events nobody signed up to", async () => {
+    const { clubMovement } = await import("@/lib/services/points");
+    const empty = await clubMovement(db, T0);
+    expect(empty.eventsHeld).toBe(2);
+    expect(empty.playHours).toBeGreaterThan(0);
+    expect(empty.socialHours).toBeGreaterThan(0);
+    expect(empty.km).toBeGreaterThan(0);
+    const owner = await girl({ owner: true });
+    const ev = await weekly(owner.id, { sport: "Football", startsAt: new Date(T0.getTime() - 3 * 86400_000) });
+    await db.event.update({ where: { id: ev.id }, data: { minSpots: 10 } });
+    const one = await clubMovement(db, T0);
+    expect(one).toMatchObject({ eventsHeld: 1, visits: 10, playHours: 15, socialHours: 0 });
+  });
+});

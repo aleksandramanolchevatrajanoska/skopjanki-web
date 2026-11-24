@@ -58,7 +58,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       <section className="home-hero">
         <div className="home-hero-text">
           <div className="between">
-            <span className="label">01 / 06</span>
+            <span className="label">01 / 09</span>
             <span className="label">{t.kicker}</span>
           </div>
           <h1 className="display">{t.heroTitle}</h1>
@@ -70,7 +70,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
             {inside && !member && <a className="btn ghost" href="/app/membership">{t.becomeMember}</a>}
           </p>
         </div>
-        <FlipCard front={t.cardLine} back={t.coreTeam} team={teamPhoto} hint={t.flipHint} soon={t.coreTeamSoon} />
+        <FlipCard front={t.cardLine} back={t.coreTeam} team={teamPhoto} hint={t.flipHint} soon={t.whoWeAre} />
       </section>
 
       {sp.ok === "deleted" && <div className="notice ok" role="status">{t.deleted}</div>}
@@ -85,7 +85,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
 
       {/* Pick a mood: the two ways to join in */}
       <section className="mood-pick">
-        <span className="label">{t.moodKicker}</span>
+        <div className="between"><span className="label">02 / 09</span><span className="label">{t.moodKicker}</span></div>
         <h2>{t.moodTitle}</h2>
         <div className="mood-cards">
           <a className="mood-card" href={eventsHref("weekly")}>
@@ -113,14 +113,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       </div>
 
       <section className="bignums" aria-label={t.numbersTitle}>
-        <span className="label">{t.numbersKicker}</span>
+        <div className="between"><span className="label">03 / 09</span><span className="label">{t.numbersKicker}</span></div>
         <h2>{t.numbersTitle}</h2>
         <div className="bignums-grid">
           <div><b>{move.playHours}</b><span>{t.statHours}</span></div>
           <div><b>{move.socialHours}</b><span>{t.statSocialHours}</span></div>
           <div><b>{move.km}</b><span>{t.statKm}</span></div>
-          <div><b>{stats.girls}</b><span>{t.statGirls}</span></div>
-          <div><b>{stats.partners}</b><span>{t.statPartners}</span></div>
+          {stats.girls > 0 && <div><b>{stats.girls}</b><span>{t.statGirls}</span></div>}
+          {stats.partners > 0 && <div><b>{stats.partners}</b><span>{t.statPartners}</span></div>}
           <div><b>{move.eventsHeld}</b><span>{t.statEventsHeld}</span></div>
         </div>
       </section>
@@ -128,7 +128,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       <section className="steps">
         {t.steps.map(([title, text], i) => (
           <div className="step" key={title}>
-            <span className="label">0{i + 1} / 03</span>
+            <span className="label">{t.stepN} {i + 1}</span>
             <h3>{title}</h3>
             <p>{text}</p>
           </div>
@@ -137,7 +137,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
 
       {/* 02 · Next plans */}
       <section className="section">
-        <div className="between"><span className="label">02 / 06</span><span className="label">{t.nextPlans}</span></div>
+        <div className="between"><span className="label">04 / 09</span><span className="label">{t.nextPlans}</span></div>
         <div className="choices" style={{ marginTop: 12 }}>
           <div className="choice static">
             <span className="between"><span className="label">{t.weeklyLabel}</span><span className="label">{t.playTitle}</span></span>
@@ -194,7 +194,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
 
       {/* Captains: who can, how to sign up, what she does */}
       <section className="section captain-home">
-        <span className="label">{t.capHomeKicker}</span>
+        <div className="between"><span className="label">05 / 09</span><span className="label">{t.capHomeKicker}</span></div>
         <h2 className="display-md">{t.capHomeTitle}</h2>
         <p style={{ maxWidth: "62ch" }}>{t.capHomeIntro}</p>
         <p className="meta">{t.capHomeWho}</p>
@@ -221,7 +221,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
 
       {/* 03 · Moments */}
       <section className="section">
-        <div className="between"><span className="label">03 / 06</span><span className="label">Moments</span></div>
+        <div className="between"><span className="label">06 / 09</span><span className="label">Moments</span></div>
         <h2 className="display-md">{t.momentsTitle}</h2>
         <p className="meta">{t.momentsText}</p>
         {moments.length > 0 ? (
@@ -287,7 +287,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
 
       {/* 04 · Partners */}
       <section className="section">
-        <div className="between"><span className="label">04 / 06</span><span className="label">{t.partnersKicker}</span></div>
+        <div className="between"><span className="label">07 / 09</span><span className="label">{t.partnersKicker}</span></div>
         <h2 className="display-md">{t.partnersTitle}</h2>
         <p className="meta">{t.partnersText}</p>
         {partners.length === 0 ? (
@@ -304,7 +304,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       <section className="band court">
         <div className="band-inner">
           <div>
-            <div className="between"><span className="label">05 / 06</span><span className="label">{t.membership}</span></div>
+            <div className="between"><span className="label">08 / 09</span><span className="label">{t.membership}</span></div>
             <h2 className="display-md">{t.bandTitle}</h2>
             <p>{t.bandText}</p>
             <ul className="ticks">{t.memberPerks.map((p) => <li key={p}>{p}</li>)}</ul>
@@ -322,7 +322,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       {/* 06 · Finale */}
       <section className="band plum finale">
         <div className="band-inner center">
-          <div className="between" style={{ width: "100%" }}><span className="label">06 / 06</span><span className="label">{t.finaleTitle}</span></div>
+          <div className="between" style={{ width: "100%" }}><span className="label">09 / 09</span><span className="label">{t.finaleTitle}</span></div>
           <span className="badge big"><Queens /></span>
           <h2 className="display">{t.finaleTitle}</h2>
           <p className="tagline">{t.tagline}</p>

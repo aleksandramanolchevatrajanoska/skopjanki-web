@@ -55,6 +55,8 @@ model User {
   phone                String?
   instagram            String?
   bio                  String?
+  about                String? // "About me": longer, in her own words
+  topics               String[] @default([]) // topics she cares about, from TOPICS + her own
   howHeard             String?
   levels               Json         @default("{}") // { "padel": "Advanced", ... }
   status               AccessStatus @default(PENDING)
@@ -330,4 +332,14 @@ model SiteImage {
   mime      String
   data      Bytes
   updatedAt DateTime @updatedAt
+}
+
+/** Weekly letter to the girls: the week's events plus a thought the organiser writes. */
+model WeeklyLetter {
+  weekKey   String    @id // ISO week, e.g. 2026-W49
+  title     String
+  body      String
+  sentAt    DateTime?
+  sentCount Int       @default(0)
+  updatedAt DateTime  @updatedAt
 }

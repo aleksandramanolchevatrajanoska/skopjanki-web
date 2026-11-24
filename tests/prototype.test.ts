@@ -53,3 +53,45 @@ describe("example events", () => {
     expect(await db.partner.findMany({ select: { name: true } })).toEqual([{ name: "Tennis Park Pointer" }]);
   });
 });
+
+describe("weekly letter", () => {
+  it("goes on Monday to every approved girl who did not opt out, with the week's events and the thought, once", async () => {
+    const { sendWeekly, isWeeklySendTime, composeWeekly } = await import("@/lib/services/weekly");
+    const { weekKey } = await import("@/lib/time");
+    const monday = new Date("2026-11-30T08:30:00Z"); // 09:30 in Skopje
+    expect(isWeeklySendTime(monday)).toBe(true);
+    expect(isWeeklySendTime(new Date("2026-11-30T05:00:00Z"))).toBe(false); // 06:00 Skopje
+    expect(isWeeklySendTime(new Date("2026-12-01T09:00:00Z"))).toBe(false); // Tuesday
+    const owner = await girl({ owner: true });
+    await girl();
+    const out = await girl();
+    await db.user.update({ where: { id: out.id }, data: { newsletterOptOut: true } });
+    await girl({ status: "PENDING" });
+    await weekly(owner.id, { title: "Padel night", startsAt: new Date("2026-12-02T18:00:00Z") });
+    await db.weeklyLetter.create({ data: { weekKey: weekKey(monday), title: "Кажи не", body: "Една мисла." } });
+    const mail = await composeWeekly(db, "mk", monday);
+    expect(mail.text).toContain("Padel night");
+    expect(mail.text).toContain("Една мисла.");
+    expect(mail.subject).toBe("Skopjanki · Кажи не");
+    expect(await sendWeekly(db, monday)).toEqual({ sent: 2, skipped: false });
+    expect(await sendWeekly(db, monday)).toEqual({ sent: 0, skipped: true });
+    const to = (await db.emailLog.findMany({ where: { subject: { startsWith: "Skopjanki ·" } } })).map((m) => m.to);
+    expect(to).not.toContain(out.email);
+  });
+});
+
+describe("join as captain", () => {
+  it("a member gets a seat and a captain request in one go; a non-member cannot", async () => {
+    const { reserve } = await import("@/lib/services/reservations");
+    const { applyCaptain } = await import("@/lib/services/captains");
+    const owner = await girl({ owner: true });
+    const e = await weekly(owner.id);
+    const m = await girl({ member: true });
+    await reserve(db, m.id, e.id);
+    await applyCaptain(db, m.id, e.id);
+    expect((await db.reservation.findFirstOrThrow({ where: { userId: m.id } })).status).toBe("CONFIRMED");
+    expect((await db.captainApplication.findFirstOrThrow({ where: { userId: m.id } })).status).toBe("PENDING");
+    const free = await girl();
+    expect(await code(applyCaptain(db, free.id, e.id))).toBe("MEMBERS_ONLY");
+  });
+});

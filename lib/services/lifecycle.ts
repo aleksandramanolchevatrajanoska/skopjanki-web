@@ -4,10 +4,14 @@ import { DAY, HOUR, formatDateTime } from "../time";
 import { flush, lockPrices, lockTime, ownerEmailsFromDb, type Db, type Outbox } from "./common";
 import { partnerListMail } from "./notifications";
 import { expireStale } from "./reservations";
+import { isWeeklySendTime, sendWeekly } from "./weekly";
 
 /** Runs every ~15 minutes (Vercel Cron → /api/cron). Safe to run any number of times. */
 export async function runLifecycle(db: Db, now = new Date()) {
   await expireStale(db, now);
+
+  // 0. Weekly letter, Monday morning (once per week).
+  if (isWeeklySendTime(now)) await sendWeekly(db, now);
 
   // 1. Lock cash prices 48h before weekly-type terms; tell girls, partner, and the organiser if the minimum is not reached.
   const toLock = await db.event.findMany({

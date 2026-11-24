@@ -295,3 +295,5 @@ footer.site{padding:32px 16px;line-height:1.8}
 }
 .filters input:not([type=checkbox]){flex:2 1 240px}
 .filters select{flex:1 1 190px}
+.captain-box{border:1px dashed var(--pink);border-radius:6px;padding:16px;margin-top:4px}
+.captain-box .meta{margin:.4rem 0 .8rem}

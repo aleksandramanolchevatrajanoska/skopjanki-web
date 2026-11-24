@@ -82,11 +82,16 @@ async function doAccept(form: FormData) {
   redirect(`/app/events/${id}?ok=youreIn`);
 }
 
-async function doCaptain(form: FormData) {
+/** One click: take a seat (if she has none yet) and ask to be the captain. */
+async function doJoinAsCaptain(form: FormData) {
   "use server";
   const user = await requireApproved();
   const id = String(form.get("eventId"));
-  await attempt(`/app/events/${id}`, () => applyCaptain(prisma, user.id, id), "captainApplied");
+  await attempt(`/app/events/${id}`, async () => {
+    const mine = await prisma.reservation.findUnique({ where: { eventId_userId: { eventId: id, userId: user.id } } });
+    if (!mine || mine.status === "CANCELLED") await reserve(prisma, user.id, id);
+    await applyCaptain(prisma, user.id, id);
+  }, "youreIn");
 }
 
 async function doAttendance(form: FormData) {
@@ -280,15 +285,21 @@ export default async function EventPage({ params, searchParams }: Params) {
                   <button className="btn ghost sm" type="submit">{t.cancel}</button>
                 </form>
               )}
-              {(e.kind === "WEEKLY" || e.kind === "SPECIAL") && !e.captainId && member && (
-                myApp?.status === "PENDING" ? (
-                  <p className="meta">{t.captainApplied}</p>
-                ) : (
-                  <form action={doCaptain}>
-                    <input type="hidden" name="eventId" value={e.id} />
-                    <button className="btn ghost sm" type="submit">♛ {t.applyCaptain}</button>
-                  </form>
-                )
+              {(e.kind === "WEEKLY" || e.kind === "SPECIAL") && !e.captainId && (
+                <div className="captain-box">
+                  <p className="label">♛ {t.captainTitle}</p>
+                  <p className="meta">{t.captainPitch}</p>
+                  {!member ? (
+                    <p className="meta">{t.captainMembersOnly} <a href="/app/membership">{t.becomeMember}</a></p>
+                  ) : myApp?.status === "PENDING" ? (
+                    <p className="notice">{t.captainApplied}</p>
+                  ) : (
+                    <form action={doJoinAsCaptain}>
+                      <input type="hidden" name="eventId" value={e.id} />
+                      <button className="btn" type="submit">♛ {mine ? t.applyCaptain : t.joinAsCaptain}</button>
+                    </form>
+                  )}
+                </div>
               )}
             </div>
           )}

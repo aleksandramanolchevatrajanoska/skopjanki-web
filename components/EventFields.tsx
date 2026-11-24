@@ -64,6 +64,10 @@ export function EventFields({ locale, partners, e, owner }: { locale: Locale; pa
       <input id="tagline" name="tagline" maxLength={120} defaultValue={e?.tagline ?? ""} placeholder="Tennis & wine with Miron winery" />
       <label htmlFor="agenda">{t.agendaLabel}</label>
       <textarea id="agenda" name="agenda" rows={3} placeholder={"11:00 Yoga\n12:30 Brunch & mimosas"} defaultValue={agendaText(e?.agenda)} />
+      <label htmlFor="instagramUrl">{t.instagramLink}</label>
+      <input id="instagramUrl" name="instagramUrl" type="url" defaultValue={e?.instagramUrl ?? ""} placeholder="https://www.instagram.com/p/..." />
+      <label htmlFor="videoUrls">{t.videoLinks}</label>
+      <textarea id="videoUrls" name="videoUrls" rows={2} defaultValue={(e?.videoUrls ?? []).join("\n")} placeholder={"https://www.instagram.com/reel/...\nhttps://youtube.com/shorts/..."} />
       <label htmlFor="pricingMode">{t.pricingMode}</label>
       <select id="pricingMode" name="pricingMode" defaultValue={e?.pricingMode ?? "SPLIT"}>
         <option value="SPLIT">{t.modeSplit}</option>
@@ -90,6 +94,8 @@ export function readEventForm(form: FormData): EventInput {
     vibe: str(form.get("vibe")) || null,
     tagline: str(form.get("tagline")),
     agenda: parseAgenda(str(form.get("agenda"))),
+    instagramUrl: str(form.get("instagramUrl")) || null,
+    videoUrls: str(form.get("videoUrls")).split(/\s+/).filter(Boolean),
     partnerId: str(form.get("partnerId")) || null,
     place: str(form.get("place")),
     startsAt: local ? skopjeLocalToDate(local) : new Date(NaN),

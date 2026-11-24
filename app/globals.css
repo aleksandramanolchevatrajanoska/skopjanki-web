@@ -297,3 +297,14 @@ footer.site{padding:32px 16px;line-height:1.8}
 .filters select{flex:1 1 190px}
 .captain-box{border:1px dashed var(--pink);border-radius:6px;padding:16px;margin-top:4px}
 .captain-box .meta{margin:.4rem 0 .8rem}
+/* Event media carousel */
+.mcar{margin:8px 0 4px}
+.mcar-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;border-radius:6px;background:var(--soft)}
+.mcar-track::-webkit-scrollbar{display:none}
+.mcar-track:focus-visible{outline:3px solid var(--pink);outline-offset:2px}
+.mcar-slide{flex:0 0 100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;aspect-ratio:4/5;max-height:620px}
+.mcar-slide img{width:100%;height:100%;object-fit:contain;display:block}
+.mcar-slide iframe{border:0;width:100%;background:#fff}
+.mcar-slide iframe.portrait{height:100%;max-width:420px}
+.mcar-slide iframe.wide{aspect-ratio:16/9;height:auto}
+.mcar-bar{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:8px}

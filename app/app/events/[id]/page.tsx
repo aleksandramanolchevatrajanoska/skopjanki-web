@@ -19,7 +19,8 @@ import { canEditEvent } from "@/lib/services/events";
 import { appUrl } from "@/lib/email";
 import { googleCalendarUrl } from "@/lib/calendar";
 import { canAddPhotos, removePhoto } from "@/lib/services/club";
-import { PhotoUploader, ShareButton } from "@/components/Interactive";
+import { MediaCarousel, PhotoUploader, ShareButton, type MediaSlide } from "@/components/Interactive";
+import { toEmbed } from "@/lib/embeds";
 
 type Params = { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | undefined>> };
 
@@ -175,12 +176,21 @@ export default async function EventPage({ params, searchParams }: Params) {
     ? e.imageUrl
     : e.kind === "FUSION" ? (/yoga|asana|brunch/i.test(e.title) ? "/img/asanas.jpg" : /tennis|sip|wine/i.test(e.title) ? "/img/sip.jpg" : null) : null;
   const agenda = Array.isArray(e.agenda) ? (e.agenda as [string, string][]) : [];
+  const embeds = [...e.videoUrls, ...(e.instagramUrl && !e.videoUrls.includes(e.instagramUrl) ? [e.instagramUrl] : [])]
+    .map((u) => toEmbed(u))
+    .filter((x): x is NonNullable<ReturnType<typeof toEmbed>> => Boolean(x));
+  const slides: MediaSlide[] = [
+    ...(img ? [{ type: "image" as const, src: img, alt: `${e.title} poster` }] : []),
+    ...photos.map((ph) => ({ type: "image" as const, src: `/photos/${ph.id}`, alt: `${e.title}, ${ph.user.name}` })),
+    ...embeds.map((v) => ({ type: "embed" as const, src: v.embedUrl, title: `${e.title} · ${v.kind}`, portrait: v.portrait })),
+  ];
 
   return (
     <article>
       <p><a href="/app" className="meta">← {t.events}</a></p>
       <Flash sp={sp} locale={locale} />
       {sp.ok === "paid" && <div className="notice ok">{t.payPending}</div>}
+      {/* poster, photos, videos and the Instagram post in one carousel */}
       <div className="two" style={{ alignItems: "start", marginTop: 12 }}>
         <div className="stack">
           <div>
@@ -216,9 +226,9 @@ export default async function EventPage({ params, searchParams }: Params) {
           {e.captain && <p>{t.captain}: <strong>{e.captain.name}</strong> <span className="meta">({t.captainFree})</span></p>}
           <div className="bar" aria-hidden="true"><i style={{ width: `${Math.min(100, (e.confirmed / e.maxSpots) * 100)}%` }} /></div>
           <p className="meta">{e.confirmed} / {e.maxSpots} {t.going} · min {e.minSpots}{e.waiting ? ` · ${e.waiting} ${t.waitlist}` : ""}</p>
-          {img && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={img} alt={`${e.title} poster`} className="polaroid" style={{ maxWidth: 280 }} />
+          {slides.length > 0 && <MediaCarousel slides={slides} labels={{ prev: t.prevSlide, next: t.nextSlide }} />}
+          {e.instagramUrl && (
+            <p><a className="btn sm ghost" href={e.instagramUrl} target="_blank" rel="noopener noreferrer">↗ {t.seeOnInstagram}</a></p>
           )}
         </div>
 
@@ -318,7 +328,7 @@ export default async function EventPage({ params, searchParams }: Params) {
       {(photos.length > 0 || mayAddPhotos) && (
         <section id="moments" style={{ marginTop: 28 }}>
           <div className="between">
-            <h2>{t.momentsTitle}</h2>
+            <h2>{e.startsAt < now ? t.momentsTitle : t.photosAndVideos}</h2>
             {mayAddPhotos && <PhotoUploader eventId={e.id} labels={{ addPhotos: t.addPhotos, uploading: t.uploading, uploadFailed: t.uploadFailed }} />}
           </div>
           {mayAddPhotos && photos.length === 0 && <p className="meta">{t.addPhotosHint}</p>}

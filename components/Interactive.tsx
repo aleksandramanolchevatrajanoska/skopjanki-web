@@ -320,3 +320,45 @@ export function ShrinkingImageInput({ name, required, label, hint, failed }: { n
     </div>
   );
 }
+
+export type MediaSlide = { type: "image"; src: string; alt: string } | { type: "embed"; src: string; title: string; portrait: boolean };
+
+/** Swipe or click through the event's poster, photos and videos. */
+export function MediaCarousel({ slides, labels }: { slides: MediaSlide[]; labels: { prev: string; next: string } }) {
+  const track = useRef<HTMLDivElement>(null);
+  const [i, setI] = useState(0);
+  const go = (n: number) => {
+    const el = track.current;
+    if (!el) return;
+    const k = Math.max(0, Math.min(slides.length - 1, n));
+    el.scrollTo({ left: k * el.clientWidth, behavior: "smooth" });
+  };
+  const onScroll = () => {
+    const el = track.current;
+    if (el) setI(Math.round(el.scrollLeft / Math.max(1, el.clientWidth)));
+  };
+  if (slides.length === 0) return null;
+  return (
+    <div className="mcar" aria-roledescription="carousel">
+      <div className="mcar-track" ref={track} onScroll={onScroll} tabIndex={0} onKeyDown={(e) => { if (e.key === "ArrowRight") go(i + 1); if (e.key === "ArrowLeft") go(i - 1); }}>
+        {slides.map((s, k) => (
+          <div className="mcar-slide" key={k} aria-roledescription="slide" aria-label={`${k + 1} / ${slides.length}`}>
+            {s.type === "image" ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={s.src} alt={s.alt} loading={k === 0 ? "eager" : "lazy"} />
+            ) : (
+              <iframe src={s.src} title={s.title} loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen className={s.portrait ? "portrait" : "wide"} />
+            )}
+          </div>
+        ))}
+      </div>
+      {slides.length > 1 && (
+        <div className="mcar-bar">
+          <button type="button" className="btn sm ghost" onClick={() => go(i - 1)} disabled={i === 0} aria-label={labels.prev}>←</button>
+          <span className="meta">{i + 1} / {slides.length}</span>
+          <button type="button" className="btn sm ghost" onClick={() => go(i + 1)} disabled={i >= slides.length - 1} aria-label={labels.next}>→</button>
+        </div>
+      )}
+    </div>
+  );
+}

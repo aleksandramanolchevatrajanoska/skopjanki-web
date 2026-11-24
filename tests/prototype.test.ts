@@ -199,3 +199,29 @@ describe("editing events", () => {
     expect((await db.event.findUniqueOrThrow({ where: { id: p.id } })).title).toBe("Sunrise run");
   });
 });
+
+describe("event photos and videos", () => {
+  it("reads Instagram, YouTube and TikTok links and ignores the rest", async () => {
+    const { toEmbed, cleanVideoLinks } = await import("@/lib/embeds");
+    expect(toEmbed("https://www.instagram.com/reel/DAbc_12-x/?igsh=1")?.embedUrl).toBe("https://www.instagram.com/reel/DAbc_12-x/embed");
+    expect(toEmbed("https://instagram.com/p/XyZ123/")?.url).toBe("https://www.instagram.com/p/XyZ123/");
+    expect(toEmbed("https://youtu.be/dQw4w9WgXcQ")?.embedUrl).toBe("https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ");
+    expect(toEmbed("https://www.youtube.com/shorts/abcDEF12345")?.portrait).toBe(true);
+    expect(toEmbed("https://www.tiktok.com/@skopjankii/video/7300000000000000000")?.kind).toBe("tiktok");
+    expect(toEmbed("https://example.com/video.mp4")).toBeNull();
+    expect(toEmbed("javascript:alert(1)")).toBeNull();
+    expect(cleanVideoLinks(["https://youtu.be/dQw4w9WgXcQ", "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "nope"])).toEqual(["https://www.youtube.com/watch?v=dQw4w9WgXcQ"]);
+  });
+
+  it("the organiser and captain add photos before the event; a girl only after she came", async () => {
+    const { canAddPhotos } = await import("@/lib/services/club");
+    const owner = await girl({ owner: true });
+    const e = await weekly(owner.id);
+    const cap = await girl({ member: true });
+    const g = await girl();
+    await db.event.update({ where: { id: e.id }, data: { captainId: cap.id } });
+    expect(await canAddPhotos(db, owner.id, e.id, T0)).toBe(true);
+    expect(await canAddPhotos(db, cap.id, e.id, T0)).toBe(true);
+    expect(await canAddPhotos(db, g.id, e.id, T0)).toBe(false);
+  });
+});

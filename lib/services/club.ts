@@ -15,9 +15,10 @@ export const PHOTOS_PER_GIRL_PER_EVENT = 12;
 export async function canAddPhotos(db: Db, userId: string, eventId: string, now = new Date()) {
   const user = await db.user.findUnique({ where: { id: userId } });
   const event = await db.event.findUnique({ where: { id: eventId } });
-  if (!user || user.status !== "APPROVED" || !event || event.status !== "APPROVED") return false;
-  if (event.startsAt > now) return false;
-  if (user.isOwner) return true;
+  if (!user || user.status !== "APPROVED" || !event || event.status === "CANCELLED") return false;
+  // The organiser, the captain and the member who proposed it can add pictures any time.
+  if (user.isOwner || event.captainId === userId || (event.kind === "MEMBER_PLAN" && event.createdById === userId)) return true;
+  if (event.status !== "APPROVED" || event.startsAt > now) return false;
   const r = await db.reservation.findUnique({ where: { eventId_userId: { eventId, userId } } });
   return r?.status === "CONFIRMED" && r.attended !== false;
 }
@@ -26,8 +27,13 @@ export async function addPhoto(db: Db, userId: string, eventId: string, mime: st
   if (!PHOTO_TYPES.includes(mime) || !looksLikeImage(data, mime)) throw new AppError("PHOTO_BAD_TYPE");
   if (data.length === 0 || data.length > PHOTO_MAX_BYTES) throw new AppError("PHOTO_TOO_BIG");
   if (!(await canAddPhotos(db, userId, eventId, now))) throw new AppError("PHOTO_NOT_ALLOWED");
-  const mine = await db.photo.count({ where: { eventId, userId } });
-  if (mine >= PHOTOS_PER_GIRL_PER_EVENT) throw new AppError("PHOTO_LIMIT");
+  const [mine, ev, user] = await Promise.all([
+    db.photo.count({ where: { eventId, userId } }),
+    db.event.findUniqueOrThrow({ where: { id: eventId } }),
+    db.user.findUniqueOrThrow({ where: { id: userId } }),
+  ]);
+  const editor = user.isOwner || ev.captainId === userId || (ev.kind === "MEMBER_PLAN" && ev.createdById === userId);
+  if (mine >= (editor ? 60 : PHOTOS_PER_GIRL_PER_EVENT)) throw new AppError("PHOTO_LIMIT");
   return db.photo.create({ data: { eventId, userId, mime, data: new Uint8Array(data) }, select: { id: true } });
 }
 

@@ -134,6 +134,8 @@ model Event {
   example           Boolean     @default(false) // created by "Add example events"; removed in one click
   sourceUrl         String?     @unique // imported from Luma: the event's page, so it is never imported twice
   imageUrl          String? // cover image on the source site, when it could not be copied
+  instagramUrl      String? // the event's Instagram post or reel ("See it on Instagram")
+  videoUrls         String[]    @default([]) // Instagram reels, YouTube or TikTok links, shown in the carousel
   partnerId         String?
   partner           Partner?    @relation(fields: [partnerId], references: [id])
   place             String?

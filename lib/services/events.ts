@@ -1,6 +1,7 @@
 import type { Event, EventKind, PricingMode } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { appUrl } from "../email";
+import { cleanVideoLinks, toEmbed } from "../embeds";
 import { isMember } from "../membership";
 import { formatDateTime, weekKey } from "../time";
 import { AppError, flush, lockEventRow, ownerEmailsFromDb, type Db, type Outbox, type Tx } from "./common";
@@ -30,6 +31,8 @@ export type EventInput = {
   vibe?: string | null; // ACTIVE | SOCIAL | BOTH
   tagline?: string | null;
   agenda?: [string, string][] | null;
+  instagramUrl?: string | null;
+  videoUrls?: string[];
   partnerId?: string | null;
   place?: string | null;
   startsAt: Date;
@@ -60,6 +63,8 @@ function data(i: EventInput) {
     level: i.level || null,
     vibe: i.vibe && VIBES.includes(i.vibe) ? i.vibe : null,
     tagline: i.tagline?.trim().slice(0, 120) || null,
+    instagramUrl: i.instagramUrl ? toEmbed(i.instagramUrl)?.url ?? null : null,
+    videoUrls: cleanVideoLinks(i.videoUrls ?? []),
     agenda: i.agenda && i.agenda.length ? i.agenda.slice(0, 12) : Prisma.DbNull,
     partnerId: i.partnerId || null,
     place: i.place?.trim() || null,

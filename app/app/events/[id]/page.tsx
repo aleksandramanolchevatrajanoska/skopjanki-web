@@ -353,9 +353,11 @@ export default async function EventPage({ params, searchParams }: Params) {
         </section>
       )}
 
-      {canManage && e.kind !== "FUSION" && e.status === "APPROVED" && (
+      {canManage && e.kind !== "FUSION" && e.status === "APPROVED" && confirmed.length > 0 &&
+        now.getTime() >= e.startsAt.getTime() - 3 * 3600_000 && now.getTime() <= e.startsAt.getTime() + 7 * 86400_000 && (
         <section className="card" style={{ marginTop: 28 }}>
           <h2>♛ {t.captainBox}</h2>
+          <p className="meta">{t.captainBoxHint}</p>
           <form action={doAttendance}>
             <input type="hidden" name="eventId" value={e.id} />
             <p className="label" style={{ marginTop: 12 }}>{t.markAttendance}</p>

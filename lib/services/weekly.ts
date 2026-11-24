@@ -32,6 +32,8 @@ export async function composeWeekly(db: Db, locale: Locale, now = new Date(), me
   const tips = (letter?.tips ?? "").split("\n").map((x) => x.trim()).filter(Boolean);
   const showThought = member && Boolean(letter?.body);
   const showTips = member && tips.length > 0;
+  const fact = (letter?.fact ?? "").trim();
+  const showFact = member && fact.length > 0;
   const lines = events.map((e) => {
     const where = e.partner?.name ?? e.place ?? "";
     const price = e.range ? ` · ${t.member} ${fmtRange(e.range.member)} / ${t.nonMember} ${fmtRange(e.range.nonMember)} MKD` : "";
@@ -44,8 +46,9 @@ export async function composeWeekly(db: Db, locale: Locale, now = new Date(), me
     t.weeklyThisWeek,
     lines.length ? lines.join("\n\n") : t.weeklyNoEvents,
     ...(showTips ? ["", `— ${t.weeklyTips} —`, ...tips.map((x) => `• ${x}`)] : []),
+    ...(showFact ? ["", `— ${t.weeklyFact} —`, fact] : []),
     ...(showThought ? ["", `— ${t.weeklyThought}: ${letter!.title} —`, letter!.body] : []),
-    ...(!member && (letter?.body || tips.length) ? ["", `${t.weeklyMembersOnly} ${t.weeklyBecomeMember}: ${appUrl("/app/membership")}`] : []),
+    ...(!member && (letter?.body || tips.length || fact) ? ["", `${t.weeklyMembersOnly} ${t.weeklyBecomeMember}: ${appUrl("/app/membership")}`] : []),
     "",
     `${t.weeklyAll}: ${appUrl("/app")}`,
     "",
@@ -78,6 +81,11 @@ ${btn(appUrl(`/app/events/${e.id}`), t.weeklySeePlan)}
 ${tips.map((x) => `<p style="margin:0 0 8px">✦ ${esc(x)}</p>`).join("")}
 </td></tr></table></td></tr>`
     : "";
+  const factHtml = showFact
+    ? `<tr><td style="padding:22px 0 0">${label(t.weeklyFact)}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.card};border:1px solid ${C.line};border-left:4px solid ${C.pink};border-radius:16px"><tr><td style="padding:18px 22px;font:400 16px/1.6 ${SANS};color:${C.plum}">
+${paras(fact)}</td></tr></table></td></tr>`
+    : "";
   const thoughtHtml = showThought
     ? `<tr><td style="padding:22px 0 0">${label(t.weeklyThought)}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.soft};border-radius:16px"><tr><td style="padding:22px 24px;color:${C.plum}">
@@ -86,7 +94,7 @@ ${tips.map((x) => `<p style="margin:0 0 8px">✦ ${esc(x)}</p>`).join("")}
 </td></tr></table></td></tr>`
     : "";
   const upsell =
-    !member && (letter?.body || tips.length)
+    !member && (letter?.body || tips.length || fact)
       ? `<tr><td style="padding:22px 0 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px dashed ${C.pink};border-radius:16px"><tr><td style="padding:18px 22px;font:400 15px/1.6 ${SANS};color:${C.plum}">
 <p style="margin:0 0 12px">${esc(t.weeklyMembersOnly)}</p>${btn(appUrl("/app/membership"), t.weeklyBecomeMember)}</td></tr></table></td></tr>`
       : "";
@@ -101,7 +109,7 @@ ${tips.map((x) => `<p style="margin:0 0 8px">✦ ${esc(x)}</p>`).join("")}
 </td></tr>
 <tr><td style="padding:24px 0 18px;font:400 17px/1.55 ${SANS};color:${C.plum}">${esc(t.weeklyHello)}</td></tr>
 <tr><td>${label(t.weeklyThisWeek)}<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${eventCards}</table></td></tr>
-${tipsHtml}${thoughtHtml}${upsell}
+${tipsHtml}${factHtml}${thoughtHtml}${upsell}
 <tr><td align="center" style="padding:30px 0 10px">${btn(appUrl("/app"), t.weeklyAll, C.plum).replace(`color:${C.plum};text-decoration`, `color:${C.bg};text-decoration`)}</td></tr>
 <tr><td style="padding:22px 0 0;border-top:1px solid ${C.line};font:400 12px/1.6 ${SANS};color:${C.muted};text-align:center">
 ${esc(t.weeklyOptOut)} <a href="${esc(appUrl("/app/profile"))}" style="color:${C.muted}">${esc(appUrl("/app/profile").replace(/^https?:\/\//, ""))}</a><br>Skopjanki · Skopje

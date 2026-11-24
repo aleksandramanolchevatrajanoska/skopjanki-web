@@ -58,8 +58,9 @@ export async function decidePartnerApplication(db: Db, id: string, accept: boole
   ].filter(Boolean).join(" · ");
   const partner = await db.partner.create({
     data: {
-      name: a.business, activity: a.sports.join(", ") || a.kind, address: a.address, mapsUrl: a.website,
-      instagram: a.instagram, phone: a.phone, notes: deal || null,
+      name: a.business, activity: a.sports.join(", ") || a.kind, address: a.address, website: a.website,
+      mapsUrl: a.website && /maps|goo\.gl/i.test(a.website) ? a.website : null,
+      instagram: a.instagram, phone: a.phone, contact: a.phone, notes: deal || null,
     },
   });
   return db.partnerApplication.update({ where: { id }, data: { status: "ACCEPTED", partnerId: partner.id } });

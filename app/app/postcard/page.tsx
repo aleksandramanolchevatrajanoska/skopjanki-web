@@ -37,7 +37,7 @@ export default async function Postcard({ searchParams }: { searchParams: Promise
   const [nl, stamps, partners] = await Promise.all([
     prisma.newsletter.findUnique({ where: { month } }),
     stampsThisMonth(prisma, user.id),
-    prisma.partner.findMany({ where: { active: true, OR: [{ code: { not: null } }, { offer: { not: null } }] }, orderBy: { name: "asc" } }),
+    prisma.partner.findMany({ where: { active: true, OR: [{ code: { not: null } }, { offer: { not: null } }] }, orderBy: { name: "asc" }, include: { logo: { select: { updatedAt: true } } } }),
   ]);
   const unlocked = stamps >= STAMPS_FOR_SURPRISE;
 

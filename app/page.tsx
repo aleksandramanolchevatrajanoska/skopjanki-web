@@ -8,6 +8,7 @@ import { askEnabled } from "@/lib/ask";
 import { AskBox, FlipCard, MomentCarousel, type Slide } from "@/components/Interactive";
 import { clubStats } from "@/lib/services/club";
 import { clubMovement } from "@/lib/services/points";
+import { coverOf } from "@/lib/views";
 import { PartnerCard } from "@/components/PartnerCard";
 import { DAY, HOUR } from "@/lib/time";
 
@@ -21,13 +22,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   const member = isMember(user);
   const now = new Date();
   const [partners, nextFusion, nextPlans, moments, quotes] = await Promise.all([
-    prisma.partner.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
-    prisma.event.findFirst({ where: { kind: "FUSION", status: "APPROVED", startsAt: { gt: now } }, orderBy: { startsAt: "asc" }, include: { partner: true } }),
+    prisma.partner.findMany({ where: { active: true }, orderBy: { name: "asc" }, include: { logo: { select: { updatedAt: true } } } }),
+    prisma.event.findFirst({ where: { kind: "FUSION", status: "APPROVED", startsAt: { gt: now } }, orderBy: { startsAt: "asc" }, include: { partner: true, poster: { select: { eventId: true } }, photos: { select: { id: true }, orderBy: { createdAt: "asc" }, take: 1 } } }),
     prisma.event.findMany({
       where: { kind: { not: "FUSION" }, status: "APPROVED", startsAt: { gt: now } },
       orderBy: { startsAt: "asc" },
       take: 4,
-      include: { partner: true },
+      include: { partner: true, poster: { select: { eventId: true } }, photos: { select: { id: true }, orderBy: { createdAt: "asc" }, take: 1 } },
     }),
     // Moments: past events with photos. Visitors see only photos the organiser made public.
     prisma.event.findMany({
@@ -45,6 +46,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   const shownQuotes = quotes.filter((q) => isMember(q.user, now)).slice(0, 6);
   const untilFusion = nextFusion ? nextFusion.startsAt.getTime() - now.getTime() : 0;
   const firstName = (n: string) => n.split(/\s+/)[0];
+  const cover = (e: { id: string; imageUrl: string | null; poster: { eventId: string } | null; photos: { id: string }[] }) =>
+    coverOf({ id: e.id, imageUrl: e.imageUrl, hasPoster: e.poster != null, firstPhotoId: e.photos[0]?.id });
+  const fusionCover = nextFusion ? cover(nextFusion) : null;
   const weeks = [t.week1, t.week2, t.week3, t.week4];
   const joinHref = inside ? "/app" : "/join";
   const eventsHref = (kind: string) => (inside ? `/app?kind=${kind}` : "/join");
@@ -151,8 +155,16 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
                 {nextPlans.map((e) => (
                   <li key={e.id}>
                     <a href={inside ? `/app/events/${e.id}` : "/join"}>
-                      <strong>{e.title}</strong>
-                      <span className="meta">{formatDateTime(e.startsAt, locale)}{e.partner ? ` · ${e.partner.name}` : e.place ? ` · ${e.place}` : ""}</span>
+                      {cover(e) ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img className="plan-thumb" src={cover(e)!} alt="" loading="lazy" />
+                      ) : (
+                        <span className="plan-thumb blank" aria-hidden="true">{(e.sport ?? e.title).slice(0, 1)}</span>
+                      )}
+                      <span className="plan-text">
+                        <strong>{e.title}</strong>
+                        <span className="meta">{formatDateTime(e.startsAt, locale)}{e.partner ? ` · ${e.partner.name}` : e.place ? ` · ${e.place}` : ""}</span>
+                      </span>
                     </a>
                   </li>
                 ))}
@@ -165,6 +177,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
             <h2>{t.nextFusionTitle}</h2>
             {nextFusion ? (
               <a href={inside ? `/app/events/${nextFusion.id}` : "/join"} className="plan-fusion">
+                {fusionCover && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img className="fusion-cover" src={fusionCover} alt={`${nextFusion.title} poster`} loading="lazy" />
+                )}
                 <strong>{nextFusion.title}</strong>
                 <span>{formatDateTime(nextFusion.startsAt, locale)}{nextFusion.partner ? ` · ${nextFusion.partner.name}` : nextFusion.place ? ` · ${nextFusion.place}` : ""}</span>
                 <span>{t.member} {nextFusion.priceMember} MKD · {t.nonMember} {nextFusion.priceNonMember} MKD</span>

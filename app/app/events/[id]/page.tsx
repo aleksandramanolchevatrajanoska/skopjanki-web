@@ -203,6 +203,7 @@ export default async function EventPage({ params, searchParams }: Params) {
   ]);
   const placeText = [e.partner?.name ?? e.place, e.partner?.address].filter(Boolean).join(", ");
   const calUrl = googleCalendarUrl({ ...e, place: placeText }, appUrl(`/app/events/${e.id}`));
+  const partnerLogo = e.partner ? await prisma.partnerLogo.findUnique({ where: { partnerId: e.partner.id }, select: { updatedAt: true } }) : null;
   const [hasPoster, host] = await Promise.all([
     prisma.eventPoster.count({ where: { eventId: id } }).then((n) => n > 0),
     e.kind === "MEMBER_PLAN" ? prisma.user.findUnique({ where: { id: e.createdById }, select: { name: true } }) : null,
@@ -227,7 +228,7 @@ export default async function EventPage({ params, searchParams }: Params) {
 
   return (
     <article className="event-page">
-      <p><a href="/app" className="meta">← {t.events}</a></p>
+      <p><a href={e.kind === "FUSION" ? "/app?kind=fusion" : "/app?kind=weekly"} className="meta">← {e.kind === "FUSION" ? t.fusionTab : t.playTab}</a></p>
       <Flash sp={sp} locale={locale} />
       {sp.ok === "paid" && <div className="notice ok">{t.payPending}</div>}
 
@@ -552,7 +553,7 @@ export default async function EventPage({ params, searchParams }: Params) {
       {e.partner && (
         <section className="ev-section">
           <h2>{t.whereItHappens}</h2>
-          <div className="grid" style={{ maxWidth: 420 }}><PartnerCard p={e.partner} locale={locale} member={member} /></div>
+          <div className="grid" style={{ maxWidth: 420 }}><PartnerCard p={{ ...e.partner, logo: partnerLogo }} locale={locale} member={member} /></div>
         </section>
       )}
     </article>

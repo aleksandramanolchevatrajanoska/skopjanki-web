@@ -12,8 +12,8 @@ async function save(form: FormData) {
   await attempt(`/admin/weekly?week=${wk}`, () =>
     prisma.weeklyLetter.upsert({
       where: { weekKey: wk },
-      create: { weekKey: wk, title: str(form.get("title")).slice(0, 120), body: str(form.get("body")).slice(0, 4000), tips: str(form.get("tips")).slice(0, 2000) },
-      update: { title: str(form.get("title")).slice(0, 120), body: str(form.get("body")).slice(0, 4000), tips: str(form.get("tips")).slice(0, 2000) },
+      create: { weekKey: wk, title: str(form.get("title")).slice(0, 120), body: str(form.get("body")).slice(0, 4000), tips: str(form.get("tips")).slice(0, 2000), fact: str(form.get("fact")).slice(0, 1500) },
+      update: { title: str(form.get("title")).slice(0, 120), body: str(form.get("body")).slice(0, 4000), tips: str(form.get("tips")).slice(0, 2000), fact: str(form.get("fact")).slice(0, 1500) },
     }),
   );
 }
@@ -41,7 +41,7 @@ export default async function Weekly({ searchParams }: { searchParams: Promise<R
     <>
       <h1>Weekly letter</h1>
       <p className="meta" style={{ maxWidth: "62ch" }}>
-        Every Monday from 8:00 the site emails every approved girl who did not switch it off ({recipients} now). Everyone gets the plans of the next 7 days (added by themselves). Members also get your tips and the thought of the week; the others get a line inviting them to become members.
+        Every Monday from 8:00 the site emails every approved girl who did not switch it off ({recipients} now). Everyone gets the plans of the next 7 days (added by themselves). Members also get the tip of the week, the interesting fact and the thought of the week; the others get a line inviting them to become members.
       </p>
       <Flash sp={sp} locale="en" />
       {sp.ok === "weeklySent" && <p className="notice ok">Sent.</p>}
@@ -58,8 +58,10 @@ export default async function Weekly({ searchParams }: { searchParams: Promise<R
           {letter?.sentAt && <p className="notice">Already sent on {letter.sentAt.toLocaleString("en-GB", { timeZone: "Europe/Skopje" })} to {letter.sentCount} girls.</p>}
           <label htmlFor="title">Title (also the email subject)</label>
           <input id="title" name="title" maxLength={120} defaultValue={letter?.title ?? ""} placeholder="Зошто е во ред да кажеш „не“" />
-          <label htmlFor="tips">Tips for the week (one per line, members only)</label>
+          <label htmlFor="tips">Tip of the week (one per line, members only)</label>
           <textarea id="tips" name="tips" rows={4} maxLength={2000} defaultValue={letter?.tips ?? ""} placeholder={"Пиј вода пред тенис, не за време.\nНова книга: …\nЗа падел носи патики со добар грип."} />
+          <label htmlFor="fact">Interesting fact (members only)</label>
+          <textarea id="fact" name="fact" rows={3} maxLength={1500} defaultValue={letter?.fact ?? ""} placeholder="Пр. 30 минути тенис согорува колку 45 минути брзо одење." />
           <label htmlFor="body">Thought of the week (members only)</label>
           <textarea id="body" name="body" rows={10} maxLength={4000} defaultValue={letter?.body ?? ""} placeholder="Неколку реченици, прашање за размислување, книга, цитат…" />
           <p style={{ marginTop: 12 }}><button className="btn" type="submit">Save</button></p>

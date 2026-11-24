@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { attempt, str } from "@/lib/act";
 import { Flash } from "@/components/Flash";
 import type { Partner, PartnerApplication } from "@prisma/client";
+import { ImageUploader } from "@/components/Interactive";
 import { decidePartnerApplication } from "@/lib/services/partners";
 
 function fields(form: FormData) {
@@ -12,6 +13,8 @@ function fields(form: FormData) {
     address: str(form.get("address")) || null,
     mapsUrl: str(form.get("mapsUrl")) || null,
     instagram: str(form.get("instagram")).replace(/^@/, "") || null,
+    website: str(form.get("website")) || null,
+    contact: str(form.get("contact")) || null,
     email: str(form.get("email")) || null,
     phone: str(form.get("phone")) || null,
     notes: str(form.get("notes")) || null,
@@ -76,9 +79,23 @@ function Application({ a }: { a: PartnerApplication }) {
   );
 }
 
-function PartnerForm({ p }: { p?: Partner }) {
+function PartnerForm({ p }: { p?: Partner & { logo?: { updatedAt: Date } | null } }) {
   return (
-    <form action={save} className="card">
+    <div className="card">
+    {p && (
+      <div className="row" style={{ marginBottom: 12, alignItems: "center" }}>
+        <span className="partner-logo">
+          {p.logo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={`/partner-logos/${p.id}?v=${p.logo.updatedAt.getTime()}`} alt={`${p.name} logo`} />
+          ) : (
+            <span aria-hidden="true">{p.name.slice(0, 1)}</span>
+          )}
+        </span>
+        <ImageUploader endpoint="/api/admin/partner-logo" fields={{ partnerId: p.id }} label={p.logo ? "Change logo" : "Upload logo"} uploading="Uploading…" failed="Upload failed" png />
+      </div>
+    )}
+    <form action={save}>
       {p && <input type="hidden" name="id" value={p.id} />}
       <div className="two">
         <div><label>Name</label><input name="name" required defaultValue={p?.name} /></div>
@@ -87,7 +104,9 @@ function PartnerForm({ p }: { p?: Partner }) {
         <div><label>Phone</label><input name="phone" defaultValue={p?.phone ?? ""} /></div>
         <div><label>Address</label><input name="address" defaultValue={p?.address ?? ""} /></div>
         <div><label>Google Maps link</label><input name="mapsUrl" defaultValue={p?.mapsUrl ?? ""} /></div>
-        <div><label>Instagram</label><input name="instagram" defaultValue={p?.instagram ?? ""} /></div>
+        <div><label>Instagram</label><input name="instagram" defaultValue={p?.instagram ?? ""} placeholder="pointer.tennis" /></div>
+        <div><label>Website (clicking the partner opens it; else Instagram)</label><input name="website" defaultValue={p?.website ?? ""} placeholder="https://…" /></div>
+        <div><label>Contact shown on the site (phone or email)</label><input name="contact" defaultValue={p?.contact ?? ""} placeholder="070 123 456" /></div>
         <div><label>What members get (shown on the site)</label><input name="offer" defaultValue={p?.offer ?? ""} placeholder="15% off court rental" /></div>
         <div><label>Discount code (members only)</label><input name="code" defaultValue={p?.code ?? ""} placeholder="SKOPJANKI15" /></div>
         <div><label>Shown on the site</label><select name="active" defaultValue={p?.active === false ? "0" : "1"}><option value="1">Yes</option><option value="0">No</option></select></div>
@@ -95,13 +114,14 @@ function PartnerForm({ p }: { p?: Partner }) {
       <label>Internal notes, organiser only (deal, prices, min/max)</label><textarea name="notes" rows={2} defaultValue={p?.notes ?? ""} />
       <p style={{ marginTop: 12 }}><button className="btn sm" type="submit">{p ? "Save" : "Add partner"}</button></p>
     </form>
+    </div>
   );
 }
 
 export default async function Partners({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
   const [partners, apps] = await Promise.all([
-    prisma.partner.findMany({ orderBy: { name: "asc" } }),
+    prisma.partner.findMany({ orderBy: { name: "asc" }, include: { logo: { select: { updatedAt: true } } } }),
     prisma.partnerApplication.findMany({ orderBy: [{ status: "desc" }, { createdAt: "desc" }], take: 50 }),
   ]);
   return (

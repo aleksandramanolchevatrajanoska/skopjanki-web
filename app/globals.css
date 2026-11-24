@@ -346,3 +346,26 @@ footer.site{padding:32px 16px;line-height:1.8}
 .points-big b{display:block;font:400 3.6rem/1 Newsreader,Georgia,serif;color:var(--plum)}
 .points-big span{color:var(--muted);font-size:.85rem}
 @media (max-width:620px){.points{grid-template-columns:1fr}}
+
+/* ---------- Partner cards ---------- */
+.partner{display:flex;flex-direction:column;gap:10px}
+.partner-head{display:flex;gap:14px;align-items:center}
+.partner-head h3 a{text-decoration:none}
+.partner-head h3 a:hover{text-decoration:underline}
+.partner-logo{flex:none;width:64px;height:64px;border-radius:16px;border:1px solid var(--line);background:#fff;display:grid;place-items:center;overflow:hidden;text-decoration:none}
+.partner-logo img{width:100%;height:100%;object-fit:contain;padding:6px}
+.partner-logo span{font:400 1.8rem/1 Newsreader,Georgia,serif;color:#432344}
+.partner-info{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-size:.92rem}
+.partner-info li{display:flex;gap:8px;align-items:baseline}
+.partner-info li > span{width:16px;flex:none;text-align:center;opacity:.7}
+.evcover{display:flex;flex-direction:column;justify-content:flex-end;gap:6px;padding:18px;background:linear-gradient(160deg,#DCE5B3,#F2D3E2);color:#432344;border-radius:12px}
+.evcover.fusion{background:linear-gradient(160deg,#F49BBC,#432344);color:#FFF9ED}
+.evcover span{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;opacity:.85}
+.evcover strong{font:400 1.7rem/1.05 Newsreader,Georgia,serif}
+.evimg.wide{aspect-ratio:16/10}
+.plan-list a{flex-direction:row!important;align-items:center;gap:14px!important;border-left:0!important;padding:0!important}
+.plan-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.plan-thumb{flex:none;width:72px;height:72px;border-radius:14px;object-fit:cover;display:block}
+.plan-thumb.blank{display:grid;place-items:center;background:linear-gradient(160deg,#DCE5B3,#F2D3E2);color:#432344;font:400 1.8rem/1 Newsreader,Georgia,serif}
+.plan-fusion{border-left:0!important;padding-left:0!important}
+.fusion-cover{width:100%;max-height:340px;aspect-ratio:4/5;object-fit:cover;border-radius:16px;margin-bottom:12px;display:block}

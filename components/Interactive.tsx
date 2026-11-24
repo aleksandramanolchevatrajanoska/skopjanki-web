@@ -61,14 +61,15 @@ export function CopyButton({ value, label, done }: { value: string; label: strin
 }
 
 /** Makes photos at most 1600 px and JPEG before upload, so phones' 8 MB photos fit. */
-async function shrink(file: File): Promise<Blob> {
+async function shrink(file: File, png = false): Promise<Blob> {
   const bmp = await createImageBitmap(file);
-  const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+  const scale = Math.min(1, (png ? 600 : 1600) / Math.max(bmp.width, bmp.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(bmp.width * scale);
   canvas.height = Math.round(bmp.height * scale);
   canvas.getContext("2d")!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
-  return new Promise((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error("encode"))), "image/jpeg", 0.85));
+  // Logos keep their transparent background as PNG; photos become JPEG.
+  return new Promise((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error("encode"))), png ? "image/png" : "image/jpeg", 0.85));
 }
 
 export function PhotoUploader({ eventId, labels }: { eventId: string; labels: { addPhotos: string; uploading: string; uploadFailed: string } }) {
@@ -243,7 +244,7 @@ function QueensMark() {
 }
 
 /** Organiser image upload (core team photo, posters): shrinks in the browser, then posts to an admin route. */
-export function ImageUploader({ endpoint, fields = {}, label, uploading, failed }: { endpoint: string; fields?: Record<string, string>; label: string; uploading: string; failed: string }) {
+export function ImageUploader({ endpoint, fields = {}, label, uploading, failed, png = false }: { endpoint: string; fields?: Record<string, string>; label: string; uploading: string; failed: string; png?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   async function onChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -252,10 +253,10 @@ export function ImageUploader({ endpoint, fields = {}, label, uploading, failed 
     setBusy(true);
     setErr(null);
     try {
-      const blob = await shrink(f);
+      const blob = await shrink(f, png);
       const fd = new FormData();
       for (const [k, v] of Object.entries(fields)) fd.append(k, v);
-      fd.append("photo", blob, "photo.jpg");
+      fd.append("photo", blob, png ? "logo.png" : "photo.jpg");
       const res = await fetch(endpoint, { method: "POST", body: fd });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));

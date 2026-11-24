@@ -8,7 +8,7 @@ export default async function Partners() {
   const user = await requireApproved();
   const { t, locale } = await getT(user.locale);
   const member = isMember(user);
-  const partners = await prisma.partner.findMany({ where: { active: true }, orderBy: { name: "asc" } });
+  const partners = await prisma.partner.findMany({ where: { active: true }, orderBy: { name: "asc" }, include: { logo: { select: { updatedAt: true } } } });
   return (
     <>
       <div className="between">

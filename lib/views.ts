@@ -12,13 +12,29 @@ export type EventCard = Event & {
   mine: Reservation | null;
   earlyUntil: Date | null;
   hasPoster: boolean;
+  /** Picture for cards: poster, picture link, first photo, or null (cards then draw a coloured cover). */
+  cover: string | null;
 };
+
+/** The cover picture of an event, in the same order the event page uses. */
+export function coverOf(e: { id: string; imageUrl: string | null; hasPoster: boolean; firstPhotoId?: string | null }) {
+  if (e.hasPoster) return `/posters/${e.id}`;
+  if (e.imageUrl) return e.imageUrl;
+  if (e.firstPhotoId) return `/photos/${e.firstPhotoId}`;
+  return null;
+}
 
 export async function loadEventCards(where: Prisma.EventWhereInput, userId: string | null, order: "asc" | "desc" = "asc") {
   const events = await prisma.event.findMany({
     where,
     orderBy: { startsAt: order },
-    include: { partner: true, captain: true, reservations: true, poster: { select: { eventId: true } } },
+    include: {
+      partner: true,
+      captain: true,
+      reservations: true,
+      poster: { select: { eventId: true } },
+      photos: { select: { id: true }, orderBy: { createdAt: "asc" }, take: 1 },
+    },
     take: 60,
   });
   return events.map((e): EventCard => {
@@ -27,7 +43,7 @@ export async function loadEventCards(where: Prisma.EventWhereInput, userId: stri
       e.lockedPriceMember != null && e.lockedPriceNonMember != null
         ? { nonMember: [e.lockedPriceNonMember, e.lockedPriceNonMember] as [number, number], member: [e.lockedPriceMember, e.lockedPriceMember] as [number, number], fixed: true }
         : priceRange(e, c.nonMembers, c.members);
-    const { reservations, poster, ...rest } = e;
+    const { reservations, poster, photos, ...rest } = e;
     return {
       ...rest,
       confirmed: reservations.filter((r) => r.status === "CONFIRMED").length,
@@ -36,6 +52,7 @@ export async function loadEventCards(where: Prisma.EventWhereInput, userId: stri
       mine: userId ? reservations.find((r) => r.userId === userId && r.status !== "CANCELLED") ?? null : null,
       earlyUntil: earlyAccessEnds(e),
       hasPoster: poster != null,
+      cover: coverOf({ id: e.id, imageUrl: e.imageUrl, hasPoster: poster != null, firstPhotoId: photos[0]?.id }),
     };
   });
 }

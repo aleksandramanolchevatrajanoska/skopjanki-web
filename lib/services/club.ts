@@ -38,7 +38,7 @@ export async function addPhoto(db: Db, userId: string, eventId: string, mime: st
 }
 
 /** Checks the file's first bytes so a renamed file cannot pass as an image. */
-function looksLikeImage(b: Buffer, mime: string) {
+export function looksLikeImage(b: Buffer, mime: string) {
   if (mime === "image/jpeg") return b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
   if (mime === "image/png") return b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
   if (mime === "image/webp") return b.subarray(0, 4).toString("ascii") === "RIFF" && b.subarray(8, 12).toString("ascii") === "WEBP";
@@ -290,4 +290,25 @@ export async function setSiteImage(db: Db, key: string, mime: string, data: Buff
   if (data.length === 0 || data.length > POSTER_MAX_BYTES) throw new AppError("PHOTO_TOO_BIG");
   const bytes = new Uint8Array(data);
   await db.siteImage.upsert({ where: { key }, create: { key, mime, data: bytes }, update: { mime, data: bytes } });
+}
+
+/* ---------- Partner logos (organiser) ---------- */
+
+export async function setPartnerLogo(db: Db, partnerId: string, mime: string, data: Buffer) {
+  if (!PHOTO_TYPES.includes(mime) || !looksLikeImage(data, mime)) throw new AppError("PHOTO_TYPE");
+  if (data.length === 0 || data.length > POSTER_MAX_BYTES) throw new AppError("PHOTO_TOO_BIG");
+  const bytes = new Uint8Array(data);
+  await db.partnerLogo.upsert({ where: { partnerId }, create: { partnerId, mime, data: bytes }, update: { mime, data: bytes } });
+}
+
+/** A web link people can click: adds https:// when missing, refuses anything that is not http(s). */
+export function safeUrl(raw: string | null | undefined) {
+  const v = (raw ?? "").trim();
+  if (!v) return null;
+  try {
+    const u = new URL(/^https?:\/\//i.test(v) ? v : `https://${v}`);
+    return u.protocol === "https:" || u.protocol === "http:" ? u.toString() : null;
+  } catch {
+    return null;
+  }
 }

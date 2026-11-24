@@ -9,9 +9,14 @@ export function EventCardView({ e, locale, member }: { e: EventCard; locale: Loc
   const past = e.startsAt < new Date();
   return (
     <a href={`/app/events/${e.id}`} className="card" style={{ textDecoration: "none", display: "block" }}>
-      {(e.hasPoster || e.imageUrl) && (
+      {e.cover ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={e.hasPoster ? `/posters/${e.id}` : e.imageUrl!} alt={`${e.title} poster`} className="evimg" loading="lazy" />
+        <img src={e.cover} alt={`${e.title} poster`} className={`evimg ${e.kind === "FUSION" ? "" : "wide"}`} loading="lazy" />
+      ) : (
+        <div className={`evimg evcover ${e.kind === "FUSION" ? "fusion" : "wide"}`} aria-hidden="true">
+          <span>{e.kind === "FUSION" ? "Fusion" : e.sport ?? t.kinds[e.kind]}</span>
+          <strong>{e.title}</strong>
+        </div>
       )}
       <div className="between">
         <span>

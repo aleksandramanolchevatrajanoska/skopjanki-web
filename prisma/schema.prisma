@@ -110,6 +110,9 @@ model Partner {
   address   String?
   mapsUrl   String?
   instagram String?
+  website   String?
+  contact   String? // phone or email shown on the site
+  logo      PartnerLogo?
   email     String? // receives the list of girls for each approved term
   phone     String?
   notes     String? // internal, organiser only
@@ -349,6 +352,7 @@ model WeeklyLetter {
   title     String
   body      String
   tips      String    @default("") // one tip per line, members only
+  fact      String    @default("") // interesting fact of the week, members only
   sentAt    DateTime?
   sentCount Int       @default(0)
   updatedAt DateTime  @updatedAt
@@ -388,4 +392,13 @@ model EventNote {
   createdAt DateTime @default(now())
 
   @@index([eventId, createdAt])
+}
+
+/** A partner's logo, kept apart so partner lists never load the bytes. */
+model PartnerLogo {
+  partnerId String   @id
+  partner   Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  mime      String
+  data      Bytes
+  updatedAt DateTime @updatedAt
 }

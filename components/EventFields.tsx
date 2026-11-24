@@ -10,7 +10,8 @@ export function EventFields({ locale, partners, e, owner }: { locale: Locale; pa
   const t = dicts[locale];
   return (
     <>
-      {owner && (
+      {e?.kind === "MEMBER_PLAN" && <input type="hidden" name="kind" value="MEMBER_PLAN" />}
+      {owner && e?.kind !== "MEMBER_PLAN" && (
         <>
           <label htmlFor="kind">Type</label>
           <select id="kind" name="kind" defaultValue={e?.kind ?? "WEEKLY"} disabled={!!e && e.kind === "FUSION"}>

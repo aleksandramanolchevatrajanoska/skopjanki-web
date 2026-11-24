@@ -15,6 +15,7 @@ import { pricesFor } from "@/lib/pricing";
 import { fusionCheckout } from "@/lib/stripe";
 import { Flash } from "@/components/Flash";
 import { PartnerCard } from "@/components/PartnerCard";
+import { canEditEvent } from "@/lib/services/events";
 import { appUrl } from "@/lib/email";
 import { googleCalendarUrl } from "@/lib/calendar";
 import { canAddPhotos, removePhoto } from "@/lib/services/club";
@@ -189,7 +190,10 @@ export default async function EventPage({ params, searchParams }: Params) {
             {e.status === "PENDING" && <span className="tag">{t.pendingApproval}</span>}
             {e.status === "CANCELLED" && <span className="tag">✕ {e.cancelReason}</span>}
           </div>
-          <h1>{e.title}</h1>
+          <div className="between">
+            <h1>{e.title}</h1>
+            {canEditEvent(user, e) && e.status !== "CANCELLED" && <a className="btn sm ghost" href={`/app/events/${e.id}/edit`}>✎ {t.editEvent}</a>}
+          </div>
           {e.tagline && <p className="tagline">{e.tagline}</p>}
           <p className="meta">{formatDateTime(e.startsAt, locale)}</p>
           <p className="meta">{host ? `${t.initiator}: ${host.name} (${t.captainFree})` : t.hostedBySkopjanki}</p>

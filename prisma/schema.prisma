@@ -278,6 +278,7 @@ model Photo {
   mime      String
   data      Bytes // resized in the browser to max 1600 px, max 1.5 MB
   public    Boolean  @default(false) // organiser chooses which photos show on the public home page
+  sourceId  String?  @unique // Instagram media id when imported, so a photo is never imported twice
   createdAt DateTime @default(now())
 
   @@index([eventId])
@@ -344,4 +345,11 @@ model WeeklyLetter {
   sentAt    DateTime?
   sentCount Int       @default(0)
   updatedAt DateTime  @updatedAt
+}
+
+/** Small settings the organiser saves from Admin (e.g. the Instagram access token). Never shown to girls. */
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }

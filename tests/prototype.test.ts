@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { db, girl, reset, weekly } from "./helpers";
+import { db, girl, reset, T0, weekly } from "./helpers";
 import { parseAgenda } from "@/lib/services/events";
 import { clubStats, eventMatches, setPoster } from "@/lib/services/club";
 
@@ -132,5 +132,70 @@ describe("import from Luma", () => {
     expect(e.poster?.mime).toBe("image/png");
     expect(e.photos.map((p) => p.public)).toEqual([true]);
     expect((await importFromLuma(db, owner.id, ["https://lu.ma/sip"], "FUSION", fake))[0].status).toBe("exists");
+  });
+});
+
+describe("import from Instagram (official API)", () => {
+  const jpg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0x10]);
+  const res = (body: unknown, ok = true) => ({ ok, status: ok ? 200 : 400, headers: { get: () => "application/json" }, json: async () => body, arrayBuffer: async () => new ArrayBuffer(0) });
+  const img = { ok: true, status: 200, headers: { get: () => "image/jpeg" }, json: async () => ({}), arrayBuffer: async () => jpg.buffer.slice(jpg.byteOffset, jpg.byteOffset + jpg.length) as ArrayBuffer };
+  const album = { id: "m1", caption: "Sip & Serve 🎾🍷\n#skopjanki", media_type: "CAROUSEL_ALBUM", permalink: "https://www.instagram.com/p/abc/", timestamp: "2026-10-23T18:00:00+0000",
+    children: { data: [{ id: "c1", media_type: "IMAGE", media_url: "https://cdn/c1.jpg" }, { id: "c2", media_type: "VIDEO", thumbnail_url: "https://cdn/c2.jpg" }] } };
+  const fake = async (url: string) => {
+    if (url.startsWith("https://cdn/")) return img;
+    if (url.includes("/me?")) return url.includes("bad") ? res({ error: { message: "Invalid OAuth access token" } }, false) : res({ id: "1", username: "skopjankii" });
+    if (url.includes("/me/media")) return res({ data: [album], paging: {} });
+    if (url.includes("/m1?")) return res(album);
+    return res({ error: { message: "x" } }, false);
+  };
+
+  it("connects with a valid token, lists posts and imports a carousel as a past event with all photos, once", async () => {
+    const ig = await import("@/lib/services/instagram");
+    const owner = await girl({ owner: true });
+    expect(await code(ig.saveInstagramToken(db, "bad-token-123456789012345", fake))).toBe("INSTAGRAM_TOKEN");
+    expect(await ig.saveInstagramToken(db, "good-token-123456789012345", fake)).toBe("skopjankii");
+    const list = await ig.listInstagramPosts(db, null, fake);
+    expect(list.posts[0].images.map((i) => i.id)).toEqual(["c1", "c2"]);
+    const r = await ig.importInstagramPosts(db, owner.id, [{ mediaId: "m1", target: "new", kind: "FUSION" }], fake);
+    expect(r[0]).toMatchObject({ status: "imported", photos: 2, title: "Sip & Serve 🎾🍷" });
+    const e = await db.event.findFirstOrThrow({ where: { sourceUrl: "https://www.instagram.com/p/abc/" }, include: { photos: true, poster: true } });
+    expect(e.photos.every((p) => p.public)).toBe(true);
+    expect(e.poster?.mime).toBe("image/jpeg");
+    expect((await ig.importInstagramPosts(db, owner.id, [{ mediaId: "m1", target: "new", kind: "FUSION" }], fake))[0].status).toBe("skipped");
+    expect((await ig.listInstagramPosts(db, null, fake)).posts[0].imported).toBe(true);
+  });
+});
+
+describe("editing events", () => {
+  it("organiser, captain and proposer can edit; others cannot; girls hear about a new time; the lock survives a text edit", async () => {
+    const { editEvent } = await import("@/lib/services/events");
+    const { reserve } = await import("@/lib/services/reservations");
+    const owner = await girl({ owner: true });
+    const e = await weekly(owner.id);
+    const captain = await girl({ member: true });
+    const other = await girl({ member: true });
+    await db.event.update({ where: { id: e.id }, data: { captainId: captain.id, lockedAt: new Date(), lockedPriceMember: 250, lockedPriceNonMember: 310 } });
+    await reserve(db, other.id, e.id, T0);
+    const input = { kind: "WEEKLY" as const, title: "Padel night", description: "Bring water", startsAt: e.startsAt, minSpots: e.minSpots, maxSpots: e.maxSpots, pricingMode: "SPLIT" as const, totalCost: 2400 };
+    expect(await code(editEvent(db, other.id, e.id, input))).toBe("FORBIDDEN");
+    await editEvent(db, captain.id, e.id, { ...input, kind: "FUSION" });
+    const kept = await db.event.findUniqueOrThrow({ where: { id: e.id } });
+    expect([kept.kind, kept.description, kept.lockedPriceMember]).toEqual(["WEEKLY", "Bring water", 250]);
+    const later = new Date(e.startsAt.getTime() + 3600_000);
+    await editEvent(db, owner.id, e.id, { ...input, startsAt: later });
+    expect((await db.event.findUniqueOrThrow({ where: { id: e.id } })).lockedAt).toBeNull();
+    const mails = await db.emailLog.findMany({ where: { subject: "Changed: Padel night" } });
+    expect(mails.map((m) => m.to)).toEqual([other.email]);
+    expect(await db.emailLog.count({ where: { subject: { contains: "edited: Padel night" } } })).toBe(1);
+  });
+
+  it("the member who proposed a plan can edit it", async () => {
+    const { editEvent, proposePlan } = await import("@/lib/services/events");
+    await girl({ owner: true });
+    const m = await girl({ member: true });
+    const plan = { title: "Run", startsAt: new Date(T0.getTime() + 3 * 86400_000), minSpots: 2, maxSpots: 8, pricingMode: "PER_PERSON" as const, priceNonMember: 0 };
+    const p = await proposePlan(db, m.id, plan, T0);
+    await editEvent(db, m.id, p.id, { ...plan, kind: "MEMBER_PLAN", title: "Sunrise run" });
+    expect((await db.event.findUniqueOrThrow({ where: { id: p.id } })).title).toBe("Sunrise run");
   });
 });

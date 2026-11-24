@@ -120,7 +120,7 @@ export default async function AdminEvent({ params, searchParams }: { params: Pro
         )}
       </div>
 
-      {e.status !== "CANCELLED" && e.kind !== "MEMBER_PLAN" && (
+      {e.status !== "CANCELLED" && (
         <section style={{ marginTop: 28 }}>
           <h2>Edit</h2>
           <div className="card" style={{ maxWidth: 720, marginBottom: 16 }}>

@@ -95,7 +95,55 @@ export async function updateEvent(db: Db, eventId: string, input: EventInput) {
   if (e.kind !== input.kind && (e.kind === "FUSION" || input.kind === "FUSION")) throw new AppError("CANNOT_CHANGE_KIND");
   const taken = await db.reservation.count({ where: { eventId, status: "CONFIRMED" } });
   if (input.maxSpots < taken) throw new AppError("BAD_SPOTS");
-  return db.event.update({ where: { id: eventId }, data: { ...data(input), lockedAt: null, lockedPriceMember: null, lockedPriceNonMember: null } });
+  const d = data(input);
+  // The cash price stays fixed unless something that sets it changed.
+  const priceChanged =
+    d.pricingMode !== e.pricingMode || d.totalCost !== e.totalCost || d.priceNonMember !== e.priceNonMember ||
+    d.priceMember !== e.priceMember || d.memberDiscountPct !== e.memberDiscountPct || d.startsAt.getTime() !== e.startsAt.getTime();
+  return db.event.update({
+    where: { id: eventId },
+    data: { ...d, ...(priceChanged ? { lockedAt: null, lockedPriceMember: null, lockedPriceNonMember: null } : {}) },
+  });
+}
+
+/** The organiser edits any event; a captain her term; a member the plan she proposed. */
+export function canEditEvent(user: { id: string; isOwner: boolean }, e: { captainId: string | null; createdById: string; kind: EventKind }) {
+  return user.isOwner || e.captainId === user.id || (e.kind === "MEMBER_PLAN" && e.createdById === user.id);
+}
+
+/** Edit from the event page. Girls hear about a new time or place; the organiser hears about edits by others. */
+export async function editEvent(db: Db, actorId: string, eventId: string, input: EventInput) {
+  const [actor, before] = await Promise.all([
+    db.user.findUniqueOrThrow({ where: { id: actorId } }),
+    db.event.findUniqueOrThrow({ where: { id: eventId }, include: { partner: true } }),
+  ]);
+  if (!canEditEvent(actor, before)) throw new AppError("FORBIDDEN");
+  if (before.status === "CANCELLED") throw new AppError("EVENT_NOT_OPEN");
+  const safe: EventInput = actor.isOwner
+    ? input
+    : { ...input, kind: before.kind, pricingMode: input.pricingMode === "ONLINE" ? before.pricingMode : input.pricingMode, memberDiscountPct: before.memberDiscountPct };
+  const after = await updateEvent(db, eventId, safe);
+  const out: Outbox = [];
+  const moved = after.startsAt.getTime() !== before.startsAt.getTime() || after.place !== before.place || after.partnerId !== before.partnerId;
+  if (moved && after.status === "APPROVED") {
+    const girls = await db.reservation.findMany({ where: { eventId, status: { in: ["CONFIRMED", "WAITLIST", "OFFERED"] }, userId: { not: actorId } }, include: { user: true } });
+    const partner = after.partnerId ? await db.partner.findUnique({ where: { id: after.partnerId } }) : null;
+    if (girls.length)
+      out.push({
+        to: girls.map((g) => g.user.email),
+        subject: `Changed: ${after.title}`,
+        text: `${after.title} has changed.\nNow: ${formatDateTime(after.startsAt, "en")}${partner ? `, ${partner.name}` : after.place ? `, ${after.place}` : ""}.\nIf you can no longer come, cancel on the site:\n${appUrl(`/app/events/${eventId}`)}`,
+      });
+  }
+  if (!actor.isOwner) {
+    out.push({
+      to: await ownerEmailsFromDb(db),
+      subject: `${actor.name} edited: ${after.title}`,
+      text: `${actor.name} edited "${after.title}" (${formatDateTime(after.startsAt, "en")}).\n${appUrl(`/app/events/${eventId}`)}`,
+    });
+  }
+  await flush(out);
+  return after;
 }
 
 /** A member proposes her own plan: max one per week (Mon-Sun), waits for the organiser. */

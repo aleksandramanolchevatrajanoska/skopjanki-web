@@ -3,6 +3,7 @@ import { requireOwner } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatDateTime } from "@/lib/time";
 import { createEvent } from "@/lib/services/events";
+import { importFromLuma } from "@/lib/services/importer";
 import { AppError } from "@/lib/services/common";
 import { EventFields, readEventForm } from "@/components/EventFields";
 import { Flash } from "@/components/Flash";
@@ -22,8 +23,24 @@ async function create(form: FormData) {
   redirect(`/admin/events/${id}?ok=saved`);
 }
 
+async function importLuma(form: FormData) {
+  "use server";
+  const owner = await requireOwner();
+  const kind = (["FUSION", "SPECIAL", "WEEKLY"].includes(String(form.get("kind"))) ? String(form.get("kind")) : "FUSION") as "FUSION" | "SPECIAL" | "WEEKLY";
+  const urls = String(form.get("urls") ?? "").split(/\s+/);
+  const results = await importFromLuma(prisma, owner.id, urls, kind);
+  const packed = Buffer.from(JSON.stringify(results.map((r) => [r.status, r.title ?? r.url, r.reason ?? ""]))).toString("base64url");
+  redirect(`/admin/events?imp=${packed}#import`);
+}
+
 export default async function AdminEvents({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
+  let imported: [string, string, string][] | null = null;
+  try {
+    imported = sp.imp ? JSON.parse(Buffer.from(sp.imp, "base64url").toString("utf8")) : null;
+  } catch {
+    imported = null;
+  }
   const now = new Date();
   const [events, partners] = await Promise.all([
     prisma.event.findMany({
@@ -53,6 +70,29 @@ export default async function AdminEvents({ searchParams }: { searchParams: Prom
           </tbody>
         </table>
       </div>
+      <section id="import" className="card" style={{ marginTop: 32, maxWidth: 720 }}>
+        <h2>Import from Luma</h2>
+        <p className="meta">Paste the links of your Luma events, one per line (open each event on luma.com and copy its link, e.g. https://lu.ma/abc123). The site reads the title, date, place, description and cover picture. Past events with a cover also appear in Moments. The same link is never imported twice.</p>
+        {imported && (
+          <ul className="plans">
+            {imported.map(([status, label, reason], i) => (
+              <li key={i}><strong>{status === "created" ? "✓ Imported" : status === "exists" ? "Already here" : "✕ Not imported"}</strong>: {label}{reason ? <span className="meta"> ({reason})</span> : null}</li>
+            ))}
+          </ul>
+        )}
+        <form action={importLuma}>
+          <label htmlFor="urls">Luma links</label>
+          <textarea id="urls" name="urls" rows={5} placeholder={"https://lu.ma/...\nhttps://lu.ma/..."} required />
+          <label htmlFor="ikind">Import as</label>
+          <select id="ikind" name="kind" defaultValue="FUSION" style={{ maxWidth: 260 }}>
+            <option value="FUSION">Fusion events</option>
+            <option value="SPECIAL">Week 4 specials</option>
+            <option value="WEEKLY">Weekly terms</option>
+          </select>
+          <p style={{ marginTop: 12 }}><button className="btn pink" type="submit">Import</button></p>
+        </form>
+      </section>
+
       <h2 style={{ marginTop: 32 }}>New event</h2>
       <p className="meta">After you publish, the event page opens and you can upload its poster there.</p>
       <p className="meta">Weekly terms: venue cost shared (members pay 20% less, captain free) or a fixed price per girl. Fusion: fixed member / non-member price, paid online.</p>

@@ -132,6 +132,8 @@ model Event {
   agenda            Json? // [["11:00","Yoga"],["12:30","Brunch & mimosas"]]
   poster            EventPoster?
   example           Boolean     @default(false) // created by "Add example events"; removed in one click
+  sourceUrl         String?     @unique // imported from Luma: the event's page, so it is never imported twice
+  imageUrl          String? // cover image on the source site, when it could not be copied
   partnerId         String?
   partner           Partner?    @relation(fields: [partnerId], references: [id])
   place             String?

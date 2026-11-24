@@ -5,12 +5,13 @@ import { formatDateTime } from "@/lib/time";
 
 export function EventCardView({ e, locale, member }: { e: EventCard; locale: Locale; member: boolean }) {
   const t = dicts[locale];
-  const pct = Math.min(100, Math.round((e.confirmed / e.maxSpots) * 100));
+  const pct = Math.min(100, Math.round((e.confirmed / Math.max(1, e.maxSpots)) * 100));
+  const past = e.startsAt < new Date();
   return (
     <a href={`/app/events/${e.id}`} className="card" style={{ textDecoration: "none", display: "block" }}>
-      {e.hasPoster && (
+      {(e.hasPoster || e.imageUrl) && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={`/posters/${e.id}`} alt={`${e.title} poster`} className="evimg" loading="lazy" />
+        <img src={e.hasPoster ? `/posters/${e.id}` : e.imageUrl!} alt={`${e.title} poster`} className="evimg" loading="lazy" />
       )}
       <div className="between">
         <span>
@@ -26,8 +27,8 @@ export function EventCardView({ e, locale, member }: { e: EventCard; locale: Loc
       <h3 style={{ marginTop: 8 }}>{e.title}</h3>
       {e.tagline && <p style={{ margin: 0 }}>{e.tagline}</p>}
       <p className="meta">{formatDateTime(e.startsAt, locale)}{e.partner ? ` · ${e.partner.name}` : e.place ? ` · ${e.place}` : ""}</p>
-      <div className="bar" aria-hidden="true"><i style={{ width: `${pct}%` }} /></div>
-      <p className="meta">{e.confirmed} / {e.maxSpots} {t.going}{e.waiting ? ` · ${e.waiting} ${t.waitlist}` : ""}</p>
+      {!past && <div className="bar" aria-hidden="true"><i style={{ width: `${pct}%` }} /></div>}
+      {!past && <p className="meta">{e.confirmed} / {e.maxSpots} {t.going}{e.waiting ? ` · ${e.waiting} ${t.waitlist}` : ""}</p>}
       {e.range && (
         <p style={{ marginTop: 6 }}>
           <strong>{fmtRange(member ? e.range.member : e.range.nonMember)} MKD</strong>{" "}

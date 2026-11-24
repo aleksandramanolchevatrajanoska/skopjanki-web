@@ -170,6 +170,8 @@ export default async function EventPage({ params, searchParams }: Params) {
   ]);
   const img = hasPoster
     ? `/posters/${e.id}`
+    : e.imageUrl
+    ? e.imageUrl
     : e.kind === "FUSION" ? (/yoga|asana|brunch/i.test(e.title) ? "/img/asanas.jpg" : /tennis|sip|wine/i.test(e.title) ? "/img/sip.jpg" : null) : null;
   const agenda = Array.isArray(e.agenda) ? (e.agenda as [string, string][]) : [];
 

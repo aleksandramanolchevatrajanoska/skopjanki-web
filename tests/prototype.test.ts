@@ -110,3 +110,27 @@ describe("member plans need a picture", () => {
     expect((await db.eventPoster.findUniqueOrThrow({ where: { eventId: e.id } })).mime).toBe("image/png");
   });
 });
+
+describe("import from Luma", () => {
+  const page = (title: string, date: string) => `<html><head><meta property="og:title" content="${title} · Luma">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Event","name":"${title}","startDate":"${date}","location":{"@type":"Place","name":"Tennis Park Pointer","address":{"@type":"PostalAddress","streetAddress":"Bul. Ilinden","addressLocality":"Skopje"}},"image":["https://images.lumacdn.com/cover.png"],"description":"Tennis &amp; wine","maximumAttendeeCapacity":18}</script></head></html>`;
+  const png = Buffer.from("89504e470d0a1a0a0000000d49484452", "hex");
+  const fake = async (url: string) => {
+    if (url.includes("lumacdn")) return { ok: true, status: 200, headers: { get: () => "image/png" }, text: async () => "", arrayBuffer: async () => png.buffer.slice(png.byteOffset, png.byteOffset + png.length) as ArrayBuffer };
+    if (url.endsWith("/sip")) return { ok: true, status: 200, headers: { get: () => "text/html" }, text: async () => page("Sip & Serve", "2026-10-23T16:00:00.000+02:00"), arrayBuffer: async () => new ArrayBuffer(0) };
+    if (url.endsWith("/nodate")) return { ok: true, status: 200, headers: { get: () => "text/html" }, text: async () => "<meta property='og:title' content='X'>", arrayBuffer: async () => new ArrayBuffer(0) };
+    return { ok: false, status: 404, headers: { get: () => null }, text: async () => "", arrayBuffer: async () => new ArrayBuffer(0) };
+  };
+
+  it("creates the event with place, capacity, poster and a public Moments photo; skips duplicates and bad links", async () => {
+    const { importFromLuma } = await import("@/lib/services/importer");
+    const owner = await girl({ owner: true });
+    const r = await importFromLuma(db, owner.id, ["https://lu.ma/sip", "https://lu.ma/sip?tk=1", "https://lu.ma/nodate", "https://example.com/x", "https://lu.ma/gone"], "FUSION", fake);
+    expect(r.map((x) => x.status)).toEqual(["created", "exists", "failed", "failed", "failed"]);
+    const e = await db.event.findFirstOrThrow({ where: { sourceUrl: "https://lu.ma/sip" }, include: { poster: true, photos: true } });
+    expect([e.title, e.place, e.maxSpots, e.description, e.kind]).toEqual(["Sip & Serve", "Tennis Park Pointer, Bul. Ilinden, Skopje", 18, "Tennis & wine", "FUSION"]);
+    expect(e.poster?.mime).toBe("image/png");
+    expect(e.photos.map((p) => p.public)).toEqual([true]);
+    expect((await importFromLuma(db, owner.id, ["https://lu.ma/sip"], "FUSION", fake))[0].status).toBe("exists");
+  });
+});

@@ -225,3 +225,53 @@ describe("event photos and videos", () => {
     expect(await canAddPhotos(db, g.id, e.id, T0)).toBe(false);
   });
 });
+
+describe("captain's desk: girls added by hand and notes", () => {
+  it("only the captain or organiser adds a girl by hand, and she counts in the price split", async () => {
+    const { addGuest } = await import("@/lib/services/eventdesk");
+    const { saveAttendance } = await import("@/lib/services/attendance");
+    const owner = await girl({ owner: true });
+    const other = await girl();
+    const ev = await weekly(owner.id, { startsAt: new Date(T0.getTime() + 2 * 3600_000) });
+    expect(await code(addGuest(db, other.id, ev.id, { name: "Ana" }))).toBe("FORBIDDEN");
+    const g = await addGuest(db, owner.id, ev.id, { name: " Ana ", phone: "070", isMember: false });
+    expect(g.name).toBe("Ana");
+    const without = await saveAttendance(db, owner.id, ev.id, [], T0);
+    const withHer = await saveAttendance(db, owner.id, ev.id, [`guest:${g.id}`], T0);
+    expect(withHer).not.toBeNull();
+    if (without && withHer) expect(withHer.nonMember).toBeLessThanOrEqual(without.nonMember);
+    expect((await db.eventGuest.findUniqueOrThrow({ where: { id: g.id } })).attended).toBe(true);
+  });
+
+  it("notes are seen by the author, the captain and the organiser only", async () => {
+    const { addNote, notesFor } = await import("@/lib/services/eventdesk");
+    const { reserve } = await import("@/lib/services/reservations");
+    const owner = await girl({ owner: true });
+    const a = await girl();
+    const b = await girl();
+    const stranger = await girl();
+    const ev = await weekly(owner.id);
+    await reserve(db, a.id, ev.id, T0);
+    await reserve(db, b.id, ev.id, T0);
+    expect(await code(addNote(db, stranger.id, ev.id, "hi"))).toBe("FORBIDDEN");
+    await addNote(db, a.id, ev.id, "I'll be 10 minutes late");
+    await addNote(db, b.id, ev.id, "Bringing a racket");
+    expect((await notesFor(db, owner.id, ev.id)).length).toBe(2);
+    expect((await notesFor(db, a.id, ev.id)).map((n) => n.body)).toEqual(["I'll be 10 minutes late"]);
+  });
+});
+
+describe("points and club movement", () => {
+  it("counts terms she came to, captain bonus, hours and km", async () => {
+    const { myPoints, clubMovement } = await import("@/lib/services/points");
+    const owner = await girl({ owner: true });
+    const a = await girl();
+    const ev = await weekly(owner.id, { sport: "Tennis", startsAt: new Date(T0.getTime() - 2 * 86400_000) });
+    await db.reservation.create({ data: { eventId: ev.id, userId: a.id, status: "CONFIRMED", isMember: false, attended: true } });
+    await db.event.update({ where: { id: ev.id }, data: { captainId: a.id } });
+    const p = await myPoints(db, a.id, T0);
+    expect(p).toMatchObject({ events: 1, captained: 1, points: 15, hours: 1.5 });
+    expect(p.km).toBeGreaterThan(0);
+    expect((await clubMovement(db, T0)).visits).toBe(1);
+  });
+});

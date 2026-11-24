@@ -40,9 +40,17 @@ export async function saveAttendance(db: Db, actorId: string, eventId: string, a
         await tx.debt.deleteMany({ where: { userId: r.userId, eventId, reason: "NO_SHOW", paidAt: null } });
       }
     }
+    // Girls the captain added by hand ("guest:<id>") count like everyone else who came.
+    const guests = await tx.eventGuest.findMany({ where: { eventId } });
+    for (const g of guests) {
+      g.attended = came.has(`guest:${g.id}`);
+      await tx.eventGuest.update({ where: { id: g.id }, data: { attended: g.attended } });
+    }
     await tx.event.update({ where: { id: eventId }, data: { attendanceClosedAt: now } });
     const c = payingCounts(e, rs, true);
-    return pricesFor(e, c.nonMembers, c.members);
+    const gm = guests.filter((g) => g.attended && g.isMember).length;
+    const gn = guests.filter((g) => g.attended && !g.isMember).length;
+    return pricesFor(e, c.nonMembers + gn, c.members + gm);
   });
   await flush(out);
   return prices;

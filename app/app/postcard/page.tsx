@@ -2,30 +2,9 @@ import { requireApproved } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getT } from "@/lib/i18n";
 import { isMember } from "@/lib/membership";
-import { attempt, str } from "@/lib/act";
-import { monthKey, saveAddress, stampsThisMonth, STAMPS_FOR_SURPRISE } from "@/lib/services/club";
+import { monthKey, stampsThisMonth, STAMPS_FOR_SURPRISE } from "@/lib/services/club";
 import { Flash } from "@/components/Flash";
 import { PartnerCard } from "@/components/PartnerCard";
-
-async function doSaveAddress(form: FormData) {
-  "use server";
-  const user = await requireApproved();
-  await attempt("/app/postcard#address", () =>
-    saveAddress(prisma, user.id, {
-      name: str(form.get("name")),
-      street: str(form.get("street")),
-      zip: str(form.get("zip")),
-      city: str(form.get("city")),
-      consent: form.get("consent") === "1",
-    }),
-  );
-}
-
-async function doRemoveAddress() {
-  "use server";
-  const user = await requireApproved();
-  await attempt("/app/postcard#address", () => prisma.address.deleteMany({ where: { userId: user.id } }));
-}
 
 export default async function Postcard({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
@@ -55,11 +34,10 @@ export default async function Postcard({ searchParams }: { searchParams: Promise
     );
   }
 
-  const [nl, stamps, partners, address] = await Promise.all([
+  const [nl, stamps, partners] = await Promise.all([
     prisma.newsletter.findUnique({ where: { month } }),
     stampsThisMonth(prisma, user.id),
     prisma.partner.findMany({ where: { active: true, OR: [{ code: { not: null } }, { offer: { not: null } }] }, orderBy: { name: "asc" } }),
-    prisma.address.findUnique({ where: { userId: user.id } }),
   ]);
   const unlocked = stamps >= STAMPS_FOR_SURPRISE;
 
@@ -109,29 +87,6 @@ export default async function Postcard({ searchParams }: { searchParams: Promise
         </section>
       )}
 
-      <section className="section" id="address">
-        <h2>{t.postalAddress}</h2>
-        <p className="meta">{t.postalHint}</p>
-        <form action={doSaveAddress} className="card" style={{ maxWidth: 560 }}>
-          <label htmlFor="a-name">{t.name}</label>
-          <input id="a-name" name="name" required autoComplete="name" defaultValue={address?.name ?? user.name} />
-          <label htmlFor="a-street">{t.street}</label>
-          <input id="a-street" name="street" required autoComplete="street-address" defaultValue={address?.street ?? ""} />
-          <div className="two">
-            <div><label htmlFor="a-zip">{t.zip}</label><input id="a-zip" name="zip" required autoComplete="postal-code" defaultValue={address?.zip ?? ""} /></div>
-            <div><label htmlFor="a-city">{t.city}</label><input id="a-city" name="city" required autoComplete="address-level2" defaultValue={address?.city ?? "Skopje"} /></div>
-          </div>
-          <label className="row check" style={{ fontWeight: 400 }}><input type="checkbox" name="consent" value="1" required defaultChecked={!!address} /> {t.addressConsent}</label>
-          <p className="row" style={{ marginTop: 14 }}>
-            <button className="btn" type="submit">{t.save}</button>
-          </p>
-        </form>
-        {address && (
-          <form action={doRemoveAddress} style={{ marginTop: 8 }}>
-            <button className="btn sm ghost" type="submit">{t.removeAddress}</button>
-          </form>
-        )}
-      </section>
     </>
   );
 }

@@ -7,6 +7,7 @@ import { Queens } from "@/components/Queens";
 import { askEnabled } from "@/lib/ask";
 import { AskBox, FlipCard, MomentCarousel, type Slide } from "@/components/Interactive";
 import { clubStats } from "@/lib/services/club";
+import { clubMovement } from "@/lib/services/points";
 import { PartnerCard } from "@/components/PartnerCard";
 import { DAY, HOUR } from "@/lib/time";
 
@@ -37,7 +38,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
     }),
     prisma.quote.findMany({ where: { hidden: false }, include: { user: { select: { name: true, memberUntil: true, isOwner: true } } }, orderBy: { updatedAt: "desc" }, take: 12 }),
   ]);
-  const stats = await clubStats(prisma);
+  const [stats, move] = await Promise.all([clubStats(prisma), clubMovement(prisma)]);
   // The organiser uploads the core team photo in Admin → Home page; without it the card does not flip.
   const team = await prisma.siteImage.findUnique({ where: { key: "team" }, select: { updatedAt: true } });
   const teamPhoto = team ? `/site-images/team?v=${team.updatedAt.getTime()}` : null;
@@ -121,6 +122,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
           <div><b>{stats.girls}</b><span>{t.statGirls}</span></div>
           <div><b>{stats.plans}</b><span>{t.statPlans}</span></div>
           <div><b>{stats.partners}</b><span>{t.statPartners}</span></div>
+          {move.hours > 0 && <div><b>{move.hours}</b><span>{t.statHours}</span></div>}
+          {move.km > 0 && <div><b>{move.km}</b><span>{t.statKm}</span></div>}
         </div>
       )}
 

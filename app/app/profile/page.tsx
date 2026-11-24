@@ -5,6 +5,7 @@ import { isMember } from "@/lib/membership";
 import { attempt, str } from "@/lib/act";
 import { loadEventCards } from "@/lib/views";
 import { openDebts } from "@/lib/services/attendance";
+import { myPoints } from "@/lib/services/points";
 import { EventCardView } from "@/components/EventCardView";
 import { Flash } from "@/components/Flash";
 import { LevelsFields, readLevels } from "@/components/LevelsFields";
@@ -63,14 +64,24 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
   const { t, locale } = await getT(user.locale);
   const member = isMember(user);
   const quote = await prisma.quote.findUnique({ where: { userId: user.id } });
-  const [cards, debts] = await Promise.all([
+  const [cards, debts, pts] = await Promise.all([
     loadEventCards({ startsAt: { gte: new Date() }, reservations: { some: { userId: user.id, status: { not: "CANCELLED" } } } }, user.id),
     openDebts(prisma, user.id),
+    myPoints(prisma, user.id),
   ]);
   return (
     <>
       <h1>{t.profile}</h1>
       <Flash sp={sp} locale={locale} />
+      <section className="points card" aria-label={t.yourPoints}>
+        <div className="points-big"><b>{pts.points}</b><span>{t.yourPoints}</span></div>
+        <div className="stats">
+          <div><b>{pts.events}</b><span>{t.termsAttended}</span></div>
+          <div><b>{Number.isInteger(pts.hours) ? pts.hours : pts.hours.toFixed(1)}</b><span>{t.hoursPlayed}</span></div>
+          <div><b>{pts.km}</b><span>{t.kmMoved}</span></div>
+        </div>
+        <p className="meta">{t.pointsHint}</p>
+      </section>
       <div className="two" style={{ alignItems: "start", marginTop: 16 }}>
         <form action={saveProfile} className="card">
           <label htmlFor="name">{t.name}</label><input id="name" name="name" defaultValue={user.name} required />
@@ -102,7 +113,6 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
               <p style={{ marginTop: 8 }}><button className="btn sm" type="submit">{t.save}</button></p>
             </form>
           )}
-          {member && <p><a href="/app/postcard#address">{t.postalAddress} →</a></p>}
         </div>
       </div>
       <section style={{ marginTop: 28 }}>

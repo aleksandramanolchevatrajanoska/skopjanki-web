@@ -8,11 +8,11 @@ const en = {
   draft: "Draft for the organiser to review before launch (have it checked against the Macedonian personal data law, ZZLP).",
   sections: [
     ["Who we are", "Skopjanki – Active Girls Club, Skopje. Contact: Instagram @skopjankii."],
-    ["What we keep", "Your name, email, phone and Instagram (optional), how you heard about us, your sports and levels, a short bio, your sign-ups, attendance and payments, any open debt or credit, your quote and the photos you add. Members who want the postcard also give a postal address."],
-    ["Why", "To run the club: approve members, organise plans, split costs, send sign-in links, reminders and the monthly email, and post the monthly postcard."],
-    ["Who sees what", "The organiser sees everything needed to run the club. Girls in the club see your name in “Who's going”, and in Community your name, bio, sports and Instagram if you allow it (Profile). Partners get the list of names for their term. Your address is seen only by you and the organiser. Photos are seen only by girls in the club, unless the organiser makes one public on the home page."],
+    ["What we keep", "Your name, email, phone and Instagram (optional), how you heard about us, your sports and levels, a short bio, your sign-ups, attendance and payments, any open debt or credit, your quote and the photos you add."],
+    ["Why", "To run the club: approve members, organise plans, split costs, send sign-in links, reminders and the monthly email."],
+    ["Who sees what", "The organiser sees everything needed to run the club. Girls in the club see your name in “Who's going”, and in Community your name, bio, sports and Instagram if you allow it (Profile). Partners get the list of names for their term. Photos are seen only by girls in the club, unless the organiser makes one public on the home page."],
     ["Services we use", "Vercel (hosting), Supabase (database), Resend (email), Stripe (online payments). Questions typed into “Ask Skopjanki” are sent to Anthropic to write the answer and are not stored by us."],
-    ["Your choices", "You can change your profile, hide yourself from Community, stop the monthly email, remove your quote, photos and address, and delete your account at any time in My profile."],
+    ["Your choices", "You can change your profile, hide yourself from Community, stop the monthly email, remove your quote, and photos, and delete your account at any time in My profile."],
   ],
 };
 const mk: typeof en = {

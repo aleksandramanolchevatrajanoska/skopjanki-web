@@ -80,6 +80,8 @@ model User {
   createdEvents       Event[]              @relation("EventCreator")
   captainOf           Event[]              @relation("EventCaptain")
   photos              Photo[]
+  guestsAdded         EventGuest[]
+  eventNotes          EventNote[]
   quote               Quote?
   address             Address?
 }
@@ -169,6 +171,8 @@ model Event {
   captainApplications CaptainApplication[]
   debts               Debt[]
   photos              Photo[]
+  guests              EventGuest[]
+  notes               EventNote[]
 
   @@index([startsAt])
 }
@@ -344,6 +348,7 @@ model WeeklyLetter {
   weekKey   String    @id // ISO week, e.g. 2026-W49
   title     String
   body      String
+  tips      String    @default("") // one tip per line, members only
   sentAt    DateTime?
   sentCount Int       @default(0)
   updatedAt DateTime  @updatedAt
@@ -354,4 +359,33 @@ model Setting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+/// A girl the captain or organiser adds by hand (she came without signing up on the site).
+model EventGuest {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name      String
+  phone     String?
+  isMember  Boolean  @default(false)
+  attended  Boolean?
+  addedById String
+  addedBy   User     @relation(fields: [addedById], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([eventId])
+}
+
+/// A note on an event, seen only by its author, the captain and the organiser.
+model EventNote {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([eventId, createdAt])
 }

@@ -4,7 +4,7 @@ import { requireApproved } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getT } from "@/lib/i18n";
 import { isMember } from "@/lib/membership";
-import { attempt } from "@/lib/act";
+import { attempt, str } from "@/lib/act";
 import { fmtRange, loadEventCards } from "@/lib/views";
 import { formatDateTime } from "@/lib/time";
 import { lockTime, AppError } from "@/lib/services/common";
@@ -21,6 +21,7 @@ import { googleCalendarUrl } from "@/lib/calendar";
 import { canAddPhotos, removePhoto } from "@/lib/services/club";
 import { MediaCarousel, PhotoUploader, ShareButton, type MediaSlide } from "@/components/Interactive";
 import { toEmbed } from "@/lib/embeds";
+import { addGuest, removeGuest, addNote, deleteNote, notesFor, canWriteNote, NOTE_MAX } from "@/lib/services/eventdesk";
 
 type Params = { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | undefined>> };
 
@@ -118,6 +119,36 @@ async function doRemovePhoto(form: FormData) {
   await attempt(`/app/events/${id}#moments`, () => removePhoto(prisma, user.id, String(form.get("photoId"))));
 }
 
+async function doAddGuest(form: FormData) {
+  "use server";
+  const user = await requireApproved();
+  const id = String(form.get("eventId"));
+  await attempt(`/app/events/${id}#desk`, () =>
+    addGuest(prisma, user.id, id, { name: str(form.get("name")), phone: str(form.get("phone")), isMember: form.get("isMember") === "1" }),
+  );
+}
+
+async function doRemoveGuest(form: FormData) {
+  "use server";
+  const user = await requireApproved();
+  const id = String(form.get("eventId"));
+  await attempt(`/app/events/${id}#desk`, () => removeGuest(prisma, user.id, String(form.get("guestId"))));
+}
+
+async function doAddNote(form: FormData) {
+  "use server";
+  const user = await requireApproved();
+  const id = String(form.get("eventId"));
+  await attempt(`/app/events/${id}#notes`, () => addNote(prisma, user.id, id, str(form.get("body"))));
+}
+
+async function doDeleteNote(form: FormData) {
+  "use server";
+  const user = await requireApproved();
+  const id = String(form.get("eventId"));
+  await attempt(`/app/events/${id}#notes`, () => deleteNote(prisma, user.id, String(form.get("noteId"))));
+}
+
 export default async function EventPage({ params, searchParams }: Params) {
   const { id } = await params;
   const sp = await searchParams;
@@ -143,6 +174,11 @@ export default async function EventPage({ params, searchParams }: Params) {
     orderBy: { createdAt: "asc" },
   });
   const confirmed = people.filter((p) => p.status === "CONFIRMED");
+  const [guests, mayNote] = await Promise.all([
+    prisma.eventGuest.findMany({ where: { eventId: id }, orderBy: { createdAt: "asc" } }),
+    canWriteNote(prisma, user.id, id),
+  ]);
+  const notes = mayNote || canManage ? await notesFor(prisma, user.id, id) : [];
 
   // Captain's corner data
   let debtsToCollect: { id: string; amount: number; user: { name: string } }[] = [];
@@ -154,7 +190,8 @@ export default async function EventPage({ params, searchParams }: Params) {
     });
     if (e.attendanceClosedAt) {
       const came = confirmed.filter((c) => c.attended && c.userId !== e.captainId);
-      finalPrices = pricesFor(e, came.filter((c) => !c.isMember).length, came.filter((c) => c.isMember).length);
+      const g = guests.filter((x) => x.attended);
+      finalPrices = pricesFor(e, came.filter((c) => !c.isMember).length + g.filter((x) => !x.isMember).length, came.filter((c) => c.isMember).length + g.filter((x) => x.isMember).length);
     }
   }
   const myDebts = await prisma.debt.findMany({ where: { userId: user.id, paidAt: null, waivedAt: null } });
@@ -185,36 +222,38 @@ export default async function EventPage({ params, searchParams }: Params) {
     ...embeds.map((v) => ({ type: "embed" as const, src: v.embedUrl, title: `${e.title} · ${v.kind}`, portrait: v.portrait })),
   ];
 
+  const attendanceOpen = now.getTime() >= e.startsAt.getTime() - 3 * 3600_000 && now.getTime() <= e.startsAt.getTime() + 7 * 86400_000;
+  const goingCount = confirmed.length + guests.length;
+
   return (
-    <article>
+    <article className="event-page">
       <p><a href="/app" className="meta">← {t.events}</a></p>
       <Flash sp={sp} locale={locale} />
       {sp.ok === "paid" && <div className="notice ok">{t.payPending}</div>}
-      {/* poster, photos, videos and the Instagram post in one carousel */}
-      <div className="two" style={{ alignItems: "start", marginTop: 12 }}>
-        <div className="stack">
-          <div>
-            <span className={`tag ${e.kind === "FUSION" ? "p" : ""}`}>{t.kinds[e.kind]}</span>
-            {e.sport && <span className="tag c">{e.sport} · {e.level ? t.levels[e.level] ?? e.level : t.allLevels}</span>}
-            {e.vibe && <span className="tag">{t.vibes[e.vibe]}</span>}
-            {e.status === "PENDING" && <span className="tag">{t.pendingApproval}</span>}
-            {e.status === "CANCELLED" && <span className="tag">✕ {e.cancelReason}</span>}
-          </div>
-          <div className="between">
-            <h1>{e.title}</h1>
-            {canEditEvent(user, e) && e.status !== "CANCELLED" && <a className="btn sm ghost" href={`/app/events/${e.id}/edit`}>✎ {t.editEvent}</a>}
-          </div>
-          {e.tagline && <p className="tagline">{e.tagline}</p>}
-          <p className="meta">{formatDateTime(e.startsAt, locale)}</p>
-          <p className="meta">{host ? `${t.initiator}: ${host.name} (${t.captainFree})` : t.hostedBySkopjanki}</p>
-          {(e.partner || e.place) && (
-            <p>
-              {e.partner?.name ?? e.place}
-              {e.partner?.address && <span className="meta"> · {e.partner.address}</span>}
-              {e.partner?.mapsUrl && <> · <a href={e.partner.mapsUrl}>Maps</a></>}
-            </p>
+
+      <header className="ev-head">
+        <div>
+          <span className={`tag ${e.kind === "FUSION" ? "p" : ""}`}>{t.kinds[e.kind]}</span>
+          {e.sport && <span className="tag c">{e.sport} · {e.level ? t.levels[e.level] ?? e.level : t.allLevels}</span>}
+          {e.vibe && <span className="tag">{t.vibes[e.vibe]}</span>}
+          {e.status === "PENDING" && <span className="tag">{t.pendingApproval}</span>}
+          {e.status === "CANCELLED" && <span className="tag">✕ {e.cancelReason}</span>}
+        </div>
+        <h1>{e.title}</h1>
+        {e.tagline && <p className="tagline">{e.tagline}</p>}
+        <div className="ev-actions">
+          {canEditEvent(user, e) && e.status !== "CANCELLED" && <a className="btn sm ghost" href={`/app/events/${e.id}/edit`}>✎ {t.editEvent}</a>}
+          {e.instagramUrl && <a className="btn sm ghost" href={e.instagramUrl} target="_blank" rel="noopener noreferrer">↗ {t.seeOnInstagram}</a>}
+          {e.status === "APPROVED" && (
+            <ShareButton url={`/app/events/${e.id}`} title={`Skopjanki: ${e.title}`} labels={{ share: t.share, copyLink: t.copyLink, copied: t.copied }} />
           )}
-          {e.description && <p style={{ whiteSpace: "pre-line" }}>{e.description}</p>}
+        </div>
+      </header>
+
+      <div className="ev-grid">
+        <div className="stack">
+          {slides.length > 0 && <MediaCarousel slides={slides} labels={{ prev: t.prevSlide, next: t.nextSlide }} />}
+          {e.description && <p className="ev-desc">{e.description}</p>}
           {agenda.length > 0 && (
             <div>
               <p className="label">{t.agendaTitle}</p>
@@ -223,16 +262,29 @@ export default async function EventPage({ params, searchParams }: Params) {
               </ul>
             </div>
           )}
-          {e.captain && <p>{t.captain}: <strong>{e.captain.name}</strong> <span className="meta">({t.captainFree})</span></p>}
-          <div className="bar" aria-hidden="true"><i style={{ width: `${Math.min(100, (e.confirmed / e.maxSpots) * 100)}%` }} /></div>
-          <p className="meta">{e.confirmed} / {e.maxSpots} {t.going} · min {e.minSpots}{e.waiting ? ` · ${e.waiting} ${t.waitlist}` : ""}</p>
-          {slides.length > 0 && <MediaCarousel slides={slides} labels={{ prev: t.prevSlide, next: t.nextSlide }} />}
-          {e.instagramUrl && (
-            <p><a className="btn sm ghost" href={e.instagramUrl} target="_blank" rel="noopener noreferrer">↗ {t.seeOnInstagram}</a></p>
-          )}
         </div>
 
-        <div className="card stack">
+        <aside className="card stack ev-side">
+          <div className="ev-facts">
+            <p><span className="ev-ic" aria-hidden="true">◷</span>{formatDateTime(e.startsAt, locale)}</p>
+            {(e.partner || e.place) && (
+              <p>
+                <span className="ev-ic" aria-hidden="true">⌖</span>
+                <span>
+                  {e.partner?.name ?? e.place}
+                  {e.partner?.address && <span className="meta"> · {e.partner.address}</span>}
+                  {e.partner?.mapsUrl && <> · <a href={e.partner.mapsUrl}>Maps</a></>}
+                </span>
+              </p>
+            )}
+            <p><span className="ev-ic" aria-hidden="true">✦</span><span className="meta">{host ? `${t.initiator}: ${host.name} (${t.captainFree})` : t.hostedBySkopjanki}</span></p>
+            {e.captain && <p><span className="ev-ic" aria-hidden="true">♛</span><span>{t.captain}: <strong>{e.captain.name}</strong> <span className="meta">({t.captainFree})</span></span></p>}
+          </div>
+          <div>
+            <div className="bar" aria-hidden="true"><i style={{ width: `${Math.min(100, (goingCount / e.maxSpots) * 100)}%` }} /></div>
+            <p className="meta" style={{ marginTop: 6 }}>{goingCount} / {e.maxSpots} {t.going} · min {e.minSpots}{e.waiting ? ` · ${e.waiting} ${t.waitlist}` : ""}</p>
+          </div>
+
           {e.range && (
             <div>
               <p className="label">{e.lockedAt ? t.priceLocked : t.price}</p>
@@ -261,7 +313,7 @@ export default async function EventPage({ params, searchParams }: Params) {
                       <a className="btn pink" href="/app/membership">{t.becomeMember}</a>
                     </>
                   ) : (
-                    <button className="btn pink" type="submit">
+                    <button className="btn pink wide" type="submit">
                       {e.confirmed >= e.maxSpots ? t.joinWaitlist : e.kind === "FUSION" ? t.reservePay : t.reserve}
                     </button>
                   )}
@@ -319,14 +371,156 @@ export default async function EventPage({ params, searchParams }: Params) {
               )}
             </div>
           )}
-          {e.status === "APPROVED" && (
-            <ShareButton url={`/app/events/${e.id}`} title={`Skopjanki: ${e.title}`} labels={{ share: t.share, copyLink: t.copyLink, copied: t.copied }} />
-          )}
-        </div>
+        </aside>
       </div>
 
+      <section className="ev-section">
+        <h2>{t.whoIsGoing} <span className="meta">({goingCount})</span></h2>
+        {goingCount === 0 ? (
+          <p className="meta">–</p>
+        ) : (
+          <ul className="people">
+            {confirmed.map((p) => (
+              <li key={p.id}>
+                <span className="avatar" aria-hidden="true">{p.user.name.slice(0, 1).toUpperCase()}</span>
+                {p.user.name}{p.userId === e.captainId ? " ♛" : ""}
+              </li>
+            ))}
+            {guests.map((g) => (
+              <li key={g.id}>
+                <span className="avatar" aria-hidden="true">{g.name.slice(0, 1).toUpperCase()}</span>
+                {g.name}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {canManage && e.status === "APPROVED" && (
+        <section className="card ev-section desk" id="desk">
+          <h2>♛ {t.captainBox}</h2>
+          <p className="meta">{t.captainDeskHint}</p>
+
+          <div className="desk-grid">
+            <div>
+              <h3>{t.whoIsGoing} ({goingCount})</h3>
+              {e.kind !== "FUSION" && attendanceOpen ? (
+                <form action={doAttendance}>
+                  <input type="hidden" name="eventId" value={e.id} />
+                  <p className="meta">{t.captainBoxHint}</p>
+                  <p className="label" style={{ marginTop: 12 }}>{t.markAttendance}</p>
+                  {confirmed.map((p) => (
+                    <label key={p.id} style={{ fontWeight: 400 }} className="row">
+                      <input type="checkbox" name="came" value={p.userId} defaultChecked={p.attended ?? true} disabled={p.userId === e.captainId} />
+                      {p.user.name} <span className="meta">{p.isMember ? t.member : t.nonMember}</span>
+                    </label>
+                  ))}
+                  {guests.map((g) => (
+                    <label key={g.id} style={{ fontWeight: 400 }} className="row">
+                      <input type="checkbox" name="came" value={`guest:${g.id}`} defaultChecked={g.attended ?? true} />
+                      {g.name} <span className="meta">{g.isMember ? t.member : t.nonMember} · {t.addedByHand}</span>
+                    </label>
+                  ))}
+                  <p style={{ marginTop: 10 }}><button className="btn sm" type="submit">{t.saveAttendance}</button></p>
+                </form>
+              ) : (
+                <>
+                  <ul className="desk-list">
+                    {confirmed.map((p) => (
+                      <li key={p.id}>
+                        <span>{p.user.name}{p.userId === e.captainId ? " ♛" : ""}</span>
+                        <span className="meta">{p.isMember ? t.member : t.nonMember}{p.user.instagram ? ` · @${p.user.instagram.replace(/^@/, "")}` : ""}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {e.kind !== "FUSION" && <p className="meta">{t.attendanceOpensLater}</p>}
+                </>
+              )}
+              {guests.length > 0 && (
+                <ul className="desk-list">
+                  {guests.map((g) => (
+                    <li key={g.id}>
+                      <span>{g.name} <span className="meta">· {t.addedByHand}{g.phone ? ` · ${g.phone}` : ""}</span></span>
+                      <form action={doRemoveGuest}>
+                        <input type="hidden" name="eventId" value={e.id} />
+                        <input type="hidden" name="guestId" value={g.id} />
+                        <button className="btn sm ghost" type="submit">{t.remove}</button>
+                      </form>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {finalPrices && (
+                <p className="notice ok">{t.finalPrices}: {t.nonMember} <strong>{finalPrices.nonMember} MKD</strong> · {t.member} <strong>{finalPrices.member} MKD</strong></p>
+              )}
+              {debtsToCollect.length > 0 && (
+                <>
+                  <p className="label" style={{ marginTop: 16 }}>{t.debtsToCollect}</p>
+                  {debtsToCollect.map((d) => (
+                    <form key={d.id} action={doDebtPaid} className="row" style={{ marginTop: 6 }}>
+                      <input type="hidden" name="eventId" value={e.id} />
+                      <input type="hidden" name="debtId" value={d.id} />
+                      <span>{d.user.name}: <strong>{d.amount} MKD</strong></span>
+                      <button className="btn sm ghost" type="submit">{t.markPaid}</button>
+                    </form>
+                  ))}
+                </>
+              )}
+            </div>
+
+            <form action={doAddGuest} className="desk-add">
+              <h3>{t.addGuest}</h3>
+              <p className="meta">{t.addGuestHint}</p>
+              <input type="hidden" name="eventId" value={e.id} />
+              <label htmlFor="g-name">{t.guestName}</label>
+              <input id="g-name" name="name" required maxLength={80} />
+              <label htmlFor="g-phone">{t.guestPhone}</label>
+              <input id="g-phone" name="phone" maxLength={40} inputMode="tel" />
+              <label className="row check" style={{ fontWeight: 400 }}><input type="checkbox" name="isMember" value="1" /> {t.guestIsMember}</label>
+              <p style={{ marginTop: 10 }}><button className="btn sm" type="submit">+ {t.addGuest}</button></p>
+            </form>
+          </div>
+        </section>
+      )}
+
+      {(mayNote || notes.length > 0) && (
+        <section className="ev-section" id="notes">
+          <h2>{t.notesTitle}</h2>
+          <p className="meta">{t.notesHint}</p>
+          {notes.length === 0 ? (
+            <p className="meta">{t.noNotes}</p>
+          ) : (
+            <ul className="notes">
+              {notes.map((n) => (
+                <li key={n.id}>
+                  <div className="between">
+                    <strong>{n.user.name}</strong>
+                    <span className="meta">{formatDateTime(n.createdAt, locale)}</span>
+                  </div>
+                  <p>{n.body}</p>
+                  {(n.userId === user.id || user.isOwner) && (
+                    <form action={doDeleteNote}>
+                      <input type="hidden" name="eventId" value={e.id} />
+                      <input type="hidden" name="noteId" value={n.id} />
+                      <button className="btn sm ghost" type="submit">{t.remove}</button>
+                    </form>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {mayNote && (
+            <form action={doAddNote} className="note-form">
+              <input type="hidden" name="eventId" value={e.id} />
+              <textarea name="body" rows={3} required maxLength={NOTE_MAX} placeholder={t.notePlaceholder} aria-label={t.notesTitle} />
+              <p style={{ marginTop: 8 }}><button className="btn sm" type="submit">{t.sendNote}</button></p>
+            </form>
+          )}
+        </section>
+      )}
+
       {(photos.length > 0 || mayAddPhotos) && (
-        <section id="moments" style={{ marginTop: 28 }}>
+        <section id="moments" className="ev-section">
           <div className="between">
             <h2>{e.startsAt < now ? t.momentsTitle : t.photosAndVideos}</h2>
             {mayAddPhotos && <PhotoUploader eventId={e.id} labels={{ addPhotos: t.addPhotos, uploading: t.uploading, uploadFailed: t.uploadFailed }} />}
@@ -355,50 +549,10 @@ export default async function EventPage({ params, searchParams }: Params) {
         </section>
       )}
 
-      <section style={{ marginTop: 28 }}>
-        <h3>{t.whoIsGoing} ({confirmed.length})</h3>
-        <p>{confirmed.map((p) => p.user.name + (p.userId === e.captainId ? " ♛" : "")).join(", ") || "–"}</p>
-      </section>
-
       {e.partner && (
-        <section style={{ marginTop: 28 }}>
-          <h3>{t.whereItHappens}</h3>
+        <section className="ev-section">
+          <h2>{t.whereItHappens}</h2>
           <div className="grid" style={{ maxWidth: 420 }}><PartnerCard p={e.partner} locale={locale} member={member} /></div>
-        </section>
-      )}
-
-      {canManage && e.kind !== "FUSION" && e.status === "APPROVED" && confirmed.length > 0 &&
-        now.getTime() >= e.startsAt.getTime() - 3 * 3600_000 && now.getTime() <= e.startsAt.getTime() + 7 * 86400_000 && (
-        <section className="card" style={{ marginTop: 28 }}>
-          <h2>♛ {t.captainBox}</h2>
-          <p className="meta">{t.captainBoxHint}</p>
-          <form action={doAttendance}>
-            <input type="hidden" name="eventId" value={e.id} />
-            <p className="label" style={{ marginTop: 12 }}>{t.markAttendance}</p>
-            {confirmed.map((p) => (
-              <label key={p.id} style={{ fontWeight: 400 }} className="row">
-                <input type="checkbox" name="came" value={p.userId} defaultChecked={p.attended ?? true} disabled={p.userId === e.captainId} />
-                {p.user.name} <span className="meta">{p.isMember ? t.member : t.nonMember}</span>
-              </label>
-            ))}
-            <p style={{ marginTop: 10 }}><button className="btn sm" type="submit">{t.saveAttendance}</button></p>
-          </form>
-          {finalPrices && (
-            <p className="notice ok">{t.finalPrices}: {t.nonMember} <strong>{finalPrices.nonMember} MKD</strong> · {t.member} <strong>{finalPrices.member} MKD</strong></p>
-          )}
-          {debtsToCollect.length > 0 && (
-            <>
-              <p className="label" style={{ marginTop: 16 }}>{t.debtsToCollect}</p>
-              {debtsToCollect.map((d) => (
-                <form key={d.id} action={doDebtPaid} className="row" style={{ marginTop: 6 }}>
-                  <input type="hidden" name="eventId" value={e.id} />
-                  <input type="hidden" name="debtId" value={d.id} />
-                  <span>{d.user.name}: <strong>{d.amount} MKD</strong></span>
-                  <button className="btn sm ghost" type="submit">{t.markPaid}</button>
-                </form>
-              ))}
-            </>
-          )}
         </section>
       )}
     </article>

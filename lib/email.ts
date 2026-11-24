@@ -1,6 +1,6 @@
 import { prisma } from "./db";
 
-export type Mail = { to: string | string[]; subject: string; text: string };
+export type Mail = { to: string | string[]; subject: string; text: string; html?: string };
 
 /**
  * Sends through Resend when RESEND_API_KEY is set; otherwise logs (development / tests).
@@ -21,6 +21,7 @@ export async function sendMail(mail: Mail): Promise<void> {
           to,
           subject: mail.subject,
           text: mail.text,
+          ...(mail.html ? { html: mail.html } : {}),
         }),
       });
       sent = res.ok;

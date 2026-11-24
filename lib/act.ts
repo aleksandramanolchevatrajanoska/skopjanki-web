@@ -10,8 +10,10 @@ export async function attempt(path: string, fn: () => Promise<unknown>, ok = "sa
     if (e instanceof AppError) err = e.code;
     else throw e;
   }
-  const sep = path.includes("?") ? "&" : "?";
-  redirect(`${path}${sep}${err ? `err=${err}` : `ok=${ok}`}`);
+  // Keep a #section at the very end, after the query.
+  const [base, hash] = path.split("#");
+  const sep = base.includes("?") ? "&" : "?";
+  redirect(`${base}${sep}${err ? `err=${err}` : `ok=${ok}`}${hash ? `#${hash}` : ""}`);
 }
 
 export const int = (v: FormDataEntryValue | null) => {

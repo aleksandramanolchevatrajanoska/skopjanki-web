@@ -59,8 +59,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
           </div>
           <h1 className="display">{t.heroTitle}</h1>
           <p className="tagline">{t.tagline}</p>
-          {locale === "en" && <p className="lead">{t.heroIntro}</p>}
-          <p className="lead" lang="mk">{t.heroMk}</p>
+          {locale === "en" ? <p className="lead">{t.heroIntro}</p> : <p className="lead" lang="mk">{t.heroMk}</p>}
           <p className="row" style={{ marginTop: 18 }}>
             <a className="btn" href={joinHref}>{inside ? t.events : t.join}</a>
             {!inside && <a className="btn ghost" href="/login">{t.signIn}</a>}

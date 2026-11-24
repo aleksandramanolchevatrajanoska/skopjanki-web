@@ -49,7 +49,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   const cover = (e: { id: string; imageUrl: string | null; poster: { eventId: string } | null; photos: { id: string }[] }) =>
     coverOf({ id: e.id, imageUrl: e.imageUrl, hasPoster: e.poster != null, firstPhotoId: e.photos[0]?.id });
   const fusionCover = nextFusion ? cover(nextFusion) : null;
-  const weeks = [t.week1, t.week2, t.week3, t.week4];
   const joinHref = inside ? "/app" : "/join";
   const eventsHref = (kind: string) => (inside ? `/app?kind=${kind}` : "/join");
 
@@ -84,32 +83,24 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
         </a>
       )}
 
-      {/* Two big choices */}
-      <section className="choices">
-        <a className="choice" href={eventsHref("weekly")}>
-          <span className="between"><span className="label">{t.weeklyLabel}</span><span className="label">{t.weeklyBadge}</span></span>
-          <h2>{t.playTitle}</h2>
-          <p>{t.playText}</p>
-          <ol className="weeks-mini">
-            {weeks.map((w, i) => <li key={i}><span className="label">{t.weekN} {i + 1}</span> {w}</li>)}
-          </ol>
-          <strong>{t.findPlan}</strong>
-        </a>
-        <a className="choice plum" href={eventsHref("fusion")}>
-          <span className="between"><span className="label">{t.monthlyLabel}</span><span className="label">{t.monthlyBadge}</span></span>
-          <h2>{t.fusionCardTitle}</h2>
-          <p>{t.fusionCardText}</p>
-          <strong>{t.seeFusion}</strong>
-        </a>
-      </section>
-
-      <section className="mood">
+      {/* Pick a mood: the two ways to join in */}
+      <section className="mood-pick">
         <span className="label">{t.moodKicker}</span>
-        <h2 className="display-sm">{t.moodTitle}</h2>
-        <p className="row" style={{ marginTop: 10 }}>
-          <a className="mood-btn" href={eventsHref("weekly")}>{t.moodMove}</a>
-          <a className="mood-btn" href={eventsHref("fusion")}>{t.moodMeet}</a>
-        </p>
+        <h2>{t.moodTitle}</h2>
+        <div className="mood-cards">
+          <a className="mood-card" href={eventsHref("weekly")}>
+            <span className="label">{t.weeklyLabel} · {t.playTitle}</span>
+            <strong>{t.moodMove}</strong>
+            <span>{t.playText}</span>
+            <em>{t.findPlan}</em>
+          </a>
+          <a className="mood-card plum" href={eventsHref("fusion")}>
+            <span className="label">{t.monthlyLabel} · {t.monthlyBadge}</span>
+            <strong>{t.moodMeet}</strong>
+            <span>{t.fusionCardText}</span>
+            <em>{t.seeFusion}</em>
+          </a>
+        </div>
         {askEnabled() && (
           <div style={{ marginTop: 16 }}>
             <AskBox examples={t.askExamples} labels={{ askTitle: t.askOr, askPlaceholder: t.askPlaceholder, askButton: t.askButton, askThinking: t.askThinking, askError: t.askError, askNote: t.askNote }} />
@@ -121,15 +112,18 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
         <span>{SPORTS_TICKER.repeat(4)}</span>
       </div>
 
-      {(stats.girls > 0 || stats.plans > 0 || stats.partners > 0) && (
-        <div className="stats">
+      <section className="bignums" aria-label={t.numbersTitle}>
+        <span className="label">{t.numbersKicker}</span>
+        <h2>{t.numbersTitle}</h2>
+        <div className="bignums-grid">
+          <div><b>{move.playHours}</b><span>{t.statHours}</span></div>
+          <div><b>{move.socialHours}</b><span>{t.statSocialHours}</span></div>
+          <div><b>{move.km}</b><span>{t.statKm}</span></div>
           <div><b>{stats.girls}</b><span>{t.statGirls}</span></div>
-          <div><b>{stats.plans}</b><span>{t.statPlans}</span></div>
           <div><b>{stats.partners}</b><span>{t.statPartners}</span></div>
-          {move.hours > 0 && <div><b>{move.hours}</b><span>{t.statHours}</span></div>}
-          {move.km > 0 && <div><b>{move.km}</b><span>{t.statKm}</span></div>}
+          <div><b>{move.eventsHeld}</b><span>{t.statEventsHeld}</span></div>
         </div>
-      )}
+      </section>
 
       <section className="steps">
         {t.steps.map(([title, text], i) => (
@@ -177,9 +171,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
             <h2>{t.nextFusionTitle}</h2>
             {nextFusion ? (
               <a href={inside ? `/app/events/${nextFusion.id}` : "/join"} className="plan-fusion">
-                {fusionCover && (
+                {fusionCover ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img className="fusion-cover" src={fusionCover} alt={`${nextFusion.title} poster`} loading="lazy" />
+                ) : (
+                  <span className="fusion-cover evcover fusion" aria-hidden="true">
+                    <span>Fusion</span>
+                    <strong>{nextFusion.title}</strong>
+                  </span>
                 )}
                 <strong>{nextFusion.title}</strong>
                 <span>{formatDateTime(nextFusion.startsAt, locale)}{nextFusion.partner ? ` · ${nextFusion.partner.name}` : nextFusion.place ? ` · ${nextFusion.place}` : ""}</span>
@@ -191,6 +190,33 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
             <p><a className="btn sm light" href={eventsHref("fusion")}>{t.allFusion}</a></p>
           </div>
         </div>
+      </section>
+
+      {/* Captains: who can, how to sign up, what she does */}
+      <section className="section captain-home">
+        <span className="label">{t.capHomeKicker}</span>
+        <h2 className="display-md">{t.capHomeTitle}</h2>
+        <p style={{ maxWidth: "62ch" }}>{t.capHomeIntro}</p>
+        <p className="meta">{t.capHomeWho}</p>
+        <div className="captain-home-grid">
+          <div>
+            <h3>{t.capHomeHowTitle}</h3>
+            <ol className="cap-steps">{t.capHomeHow.map((x) => <li key={x}>{x}</li>)}</ol>
+          </div>
+          <div>
+            <h3>{t.capHomeDoTitle}</h3>
+            <ul className="cap-do">{t.capHomeDo.map((x) => <li key={x}>{x}</li>)}</ul>
+          </div>
+        </div>
+        <p style={{ marginTop: 16 }}>
+          {!inside ? (
+            <a className="btn pink" href="/join">{t.join}</a>
+          ) : member ? (
+            <a className="btn pink" href="/app?kind=weekly">{t.capHomeCta}</a>
+          ) : (
+            <a className="btn pink" href="/app/membership">{t.capHomeMember}</a>
+          )}
+        </p>
       </section>
 
       {/* 03 · Moments */}

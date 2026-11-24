@@ -21,8 +21,9 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
   const member = isMember(user);
   const now = new Date();
   const tab = sp.tab === "past" ? "past" : "upcoming";
-  const kind = sp.kind === "fusion" ? "fusion" : sp.kind === "weekly" ? "weekly" : "all";
-  const kindWhere = kind === "fusion" ? { kind: "FUSION" as const } : kind === "weekly" ? { kind: { not: "FUSION" as const } } : {};
+  // Fusion events have their own page and never mix with the weekly ones.
+  const kind: "fusion" | "weekly" = sp.kind === "fusion" ? "fusion" : "weekly";
+  const kindWhere = kind === "fusion" ? { kind: "FUSION" as const } : { kind: { not: "FUSION" as const } };
   const visible = { OR: [{ status: { in: ["APPROVED", "CANCELLED"] as ("APPROVED" | "CANCELLED")[] } }, { createdById: user.id }] };
   const cards = await loadEventCards(
     tab === "past" ? { AND: [visible, kindWhere, { startsAt: { lt: now } }] } : { AND: [visible, kindWhere, { startsAt: { gte: now } }] },
@@ -43,7 +44,7 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
       <div className="between">
         <div>
           <p className="label">{member ? `${t.member} ♛` : t.nonMember}</p>
-          <h1>{kind === "fusion" ? t.fusionTab : kind === "weekly" ? t.playTab : t.events}</h1>
+          <h1>{kind === "fusion" ? t.fusionTab : t.playTab}</h1>
         </div>
         <div className="row">
           {member && <a className="btn ghost sm" href="/app/propose">{t.propose}</a>}
@@ -68,7 +69,7 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
       </nav>
       <form className="filters" role="search" aria-label={t.filter}>
         {tab === "past" && <input type="hidden" name="tab" value="past" />}
-        {kind !== "all" && <input type="hidden" name="kind" value={kind} />}
+        <input type="hidden" name="kind" value={kind} />
         <input name="q" defaultValue={filter.q ?? ""} placeholder={t.searchPlaceholder} aria-label={t.search} />
         <select name="sport" defaultValue={filter.sport ?? ""} aria-label={t.sport}>
           <option value="">{t.allSports}</option>
@@ -76,7 +77,7 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
         </select>
         <select name="type" defaultValue={filter.kind ?? ""} aria-label={t.filter}>
           <option value="">{t.allTypes}</option>
-          {(kind === "weekly" ? (["WEEKLY", "SPECIAL", "MEMBER_PLAN"] as const) : kind === "fusion" ? (["FUSION"] as const) : (["WEEKLY", "SPECIAL", "FUSION", "MEMBER_PLAN"] as const)).map((k) => <option key={k} value={k}>{t.kinds[k]}</option>)}
+          {(kind === "weekly" ? (["WEEKLY", "SPECIAL", "MEMBER_PLAN"] as const) : (["FUSION"] as const)).map((k) => <option key={k} value={k}>{t.kinds[k]}</option>)}
         </select>
         <select name="vibe" defaultValue={filter.vibe ?? ""} aria-label={t.vibeLabel}>
           <option value="">{t.allVibes}</option>

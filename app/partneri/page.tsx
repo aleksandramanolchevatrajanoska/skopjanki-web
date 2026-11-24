@@ -37,7 +37,6 @@ async function apply(form: FormData) {
       person: str(form.get("person")), phone: str(form.get("phone")), email: str(form.get("email")),
       instagram: str(form.get("instagram")), website: str(form.get("website")),
       sports: [], sportRows: str(form.get("sportRows")), slots: str(form.get("slots")),
-      captainFree: str(form.get("captainFree")),
       offers: form.getAll("offers").map(String), discountPct: int(form.get("discountPct")), gearPct: int(form.get("gearPct")),
       hostWeekly: form.get("hostWeekly") === "on", hostFusion: form.get("hostFusion") === "on",
       capacity: int(form.get("capacity")), days: [], times: str(form.get("times")),
@@ -59,14 +58,6 @@ function StandaloneHead() {
   );
 }
 
-function Chip({ name, value, type = "checkbox" }: { name: string; value: string; type?: "checkbox" | "radio" }) {
-  return (
-    <label className="chipbox">
-      <input type={type} name={name} value={value} />
-      <span>{value}</span>
-    </label>
-  );
-}
 
 export default async function Partneri({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
@@ -118,8 +109,6 @@ export default async function Partneri({ searchParams }: { searchParams: Promise
           <p className="label">02 / 05</p><h2>Термини и цени</h2>
           <p className="meta">За спортски терени и студија. Ако нудите повеќе спортови, за секој спорт внесете посебна цена и број на девојки. Ако не нудите термини, прескокнете.</p>
           <SportsPricing sports={SPORTS.filter((x) => x !== "Друго")} />
-          <label>Капитенката на групата (наша членка што ги пречекува девојките) може да игра бесплатно?</label>
-          <div className="row">{["Да", "Не", "Да разговараме"].map((v) => <Chip key={v} name="captainFree" value={v} type="radio" />)}</div>
         </section>
 
         <section className="card">

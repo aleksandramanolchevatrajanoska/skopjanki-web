@@ -77,9 +77,13 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Re
         {plans.length === 0 && <p className="meta">None.</p>}
         {plans.map((p) => (
           <div key={p.id} className="between" style={{ borderBottom: "1px solid var(--line)", padding: "10px 0" }}>
-            <div>
+            <div className="row" style={{ alignItems: "flex-start", flexWrap: "nowrap" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`/posters/${p.id}`} alt="" style={{ width: 72, height: 90, objectFit: "cover", borderRadius: 4, flex: "none" }} />
+              <div>
               <strong><a href={`/app/events/${p.id}`}>{p.title}</a></strong> by {p.createdBy.name}
               <div className="meta">{formatDateTime(p.startsAt, "en")} · {p.partner?.name ?? p.place ?? "no place"} · {p.minSpots}–{p.maxSpots} girls · {p.pricingMode === "SPLIT" ? `${p.totalCost} MKD shared` : `${p.priceNonMember} MKD per girl`}</div>
+              </div>
             </div>
             <Decide action={planDecision} id={p.id} />
           </div>

@@ -278,3 +278,45 @@ export function ImageUploader({ endpoint, fields = {}, label, uploading, failed 
     </div>
   );
 }
+
+/**
+ * A file field that shrinks the chosen photo in the browser (max 1600 px JPEG) and puts the small file
+ * back into the form, so the form can be sent with any phone photo.
+ */
+export function ShrinkingImageInput({ name, required, label, hint, failed }: { name: string; required?: boolean; label: string; hint: string; failed: string }) {
+  const [preview, setPreview] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  async function onChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const input = e.target;
+    const f = input.files?.[0];
+    setErr(null);
+    if (!f) return setPreview(null);
+    setBusy(true);
+    try {
+      const blob = await shrink(f);
+      const small = new File([blob], "poster.jpg", { type: "image/jpeg" });
+      const dt = new DataTransfer();
+      dt.items.add(small);
+      input.files = dt.files;
+      setPreview(URL.createObjectURL(small));
+    } catch {
+      input.value = "";
+      setPreview(null);
+      setErr(failed);
+    }
+    setBusy(false);
+  }
+  return (
+    <div>
+      <label htmlFor={`f-${name}`}>{label}{required ? " *" : ""}</label>
+      <p className="meta" style={{ marginTop: 0 }}>{hint}</p>
+      <input id={`f-${name}`} type="file" name={name} accept="image/*" required={required} onChange={onChange} disabled={busy} />
+      {preview && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={preview} alt="" style={{ marginTop: 10, maxWidth: 200, borderRadius: 4, display: "block" }} />
+      )}
+      {err && <p className="notice err" role="alert">{err}</p>}
+    </div>
+  );
+}

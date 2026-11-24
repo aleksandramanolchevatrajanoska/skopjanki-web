@@ -231,9 +231,30 @@ export async function sendNewsletter(db: Db, month: string, appLink: (p: string)
 
 export const POSTER_MAX_BYTES = 2_500_000;
 
-export async function setPoster(db: Db, eventId: string, mime: string, data: Buffer) {
+export function checkPoster(mime: string, data: Buffer) {
+  if (data.length === 0) throw new AppError("POSTER_REQUIRED");
   if (!PHOTO_TYPES.includes(mime) || !looksLikeImage(data, mime)) throw new AppError("PHOTO_TYPE");
-  if (data.length === 0 || data.length > POSTER_MAX_BYTES) throw new AppError("PHOTO_TOO_BIG");
+  if (data.length > POSTER_MAX_BYTES) throw new AppError("PHOTO_TOO_BIG");
+}
+
+/** A member's plan always comes with a picture: checked first, saved with the plan. */
+export async function proposePlanWithPoster(
+  db: Db,
+  userId: string,
+  input: Parameters<typeof import("./events").proposePlan>[2],
+  poster: { mime: string; data: Buffer } | null,
+  now = new Date(),
+) {
+  if (!poster) throw new AppError("POSTER_REQUIRED");
+  checkPoster(poster.mime, poster.data);
+  const { proposePlan } = await import("./events");
+  const e = await proposePlan(db, userId, input, now);
+  await setPoster(db, e.id, poster.mime, poster.data);
+  return e;
+}
+
+export async function setPoster(db: Db, eventId: string, mime: string, data: Buffer) {
+  checkPoster(mime, data);
   const bytes = new Uint8Array(data);
   await db.eventPoster.upsert({ where: { eventId }, create: { eventId, mime, data: bytes }, update: { mime, data: bytes } });
 }

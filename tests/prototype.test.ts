@@ -95,3 +95,18 @@ describe("join as captain", () => {
     expect(await code(applyCaptain(db, free.id, e.id))).toBe("MEMBERS_ONLY");
   });
 });
+
+describe("member plans need a picture", () => {
+  it("refuses a plan without a picture or with a fake one, saves it with a real one", async () => {
+    const { proposePlanWithPoster } = await import("@/lib/services/club");
+    await girl({ owner: true });
+    const m = await girl({ member: true });
+    const plan = { title: "Running", startsAt: new Date(Date.now() + 3 * 86400_000), minSpots: 2, maxSpots: 8, pricingMode: "PER_PERSON" as const, priceNonMember: 0 };
+    expect(await code(proposePlanWithPoster(db, m.id, plan, null))).toBe("POSTER_REQUIRED");
+    expect(await code(proposePlanWithPoster(db, m.id, plan, { mime: "image/png", data: Buffer.from("nope") }))).toBe("PHOTO_TYPE");
+    expect(await db.event.count()).toBe(0);
+    const png = Buffer.from("89504e470d0a1a0a0000000d49484452", "hex");
+    const e = await proposePlanWithPoster(db, m.id, plan, { mime: "image/png", data: png });
+    expect((await db.eventPoster.findUniqueOrThrow({ where: { eventId: e.id } })).mime).toBe("image/png");
+  });
+});

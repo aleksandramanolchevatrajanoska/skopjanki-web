@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireApproved } from "@/lib/auth";
 import { getT } from "@/lib/i18n";
-import { isMember } from "@/lib/membership";
+import { isMember, MEMBERSHIP_MKD } from "@/lib/membership";
 import { AppError } from "@/lib/services/common";
 import { billingPortal, membershipCheckout } from "@/lib/stripe";
 import { Flash } from "@/components/Flash";
@@ -57,7 +57,7 @@ export default async function Membership({ searchParams }: { searchParams: Promi
         <div className="card" style={{ border: "2.5px solid var(--pink)" }}>
           <span className="tag p">{t.memberLabel}</span>
           <h3>Skopjanki {t.memberLabel}</h3>
-          <p className="price">350 <small className="meta">MKD / {t.perMonth}</small></p>
+          <p className="price">{MEMBERSHIP_MKD} <small className="meta">MKD / {t.perMonth}</small></p>
           <ul className="ticks"><li>{t.memberEverythingFree}</li>{t.memberPerks.map((p) => <li key={p}>{p}</li>)}</ul>
           {!member && <form action={subscribe}><button className="btn pink" type="submit">{t.subscribe}</button></form>}
           {member && <MemberCard user={user} locale={locale} />}

@@ -15,3 +15,6 @@ export function ownerEmails(): string[] {
 export function isOwnerEmail(email: string) {
   return ownerEmails().includes(email.trim().toLowerCase());
 }
+
+/** Monthly membership in MKD, as shown on the site. The amount charged is the Stripe price (STRIPE_MEMBERSHIP_PRICE_ID). */
+export const MEMBERSHIP_MKD = 600;

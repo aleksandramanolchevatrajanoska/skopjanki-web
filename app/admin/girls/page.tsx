@@ -1,7 +1,7 @@
 import { requireOwner } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { attempt, int } from "@/lib/act";
-import { isMember } from "@/lib/membership";
+import { isMember, MEMBERSHIP_MKD } from "@/lib/membership";
 import { DAY } from "@/lib/time";
 import { decideUser, setMembership } from "@/lib/services/users";
 import { markDebtPaid } from "@/lib/services/attendance";
@@ -45,7 +45,7 @@ export default async function Girls({ searchParams }: { searchParams: Promise<Re
     <>
       <div className="between">
         <h1>Girls</h1>
-        <p className="meta">{users.length} girls · {members} members · {members * 350} MKD / month</p>
+        <p className="meta">{users.length} girls · {members} members · {members * MEMBERSHIP_MKD} MKD / month</p>
       </div>
       <Flash sp={sp} locale="en" />
       <form className="row" style={{ margin: "12px 0" }}><input name="q" defaultValue={q} placeholder="Search name or email" style={{ maxWidth: 320 }} /><button className="btn sm" type="submit">Search</button></form>

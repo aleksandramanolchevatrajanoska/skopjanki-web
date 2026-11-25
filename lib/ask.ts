@@ -1,3 +1,4 @@
+import { MEMBERSHIP_MKD } from "./membership";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "./db";
 import { dicts } from "./i18n";
@@ -42,7 +43,7 @@ export async function clubContext(now = new Date()) {
 About: ${en.heroIntro}
 Every month: week 1 ${en.week1}; week 2 ${en.week2}; week 3 ${en.week3}; week 4 ${en.week4}. ${en.fusionText}
 How it works: ${en.how.join(" ")}
-Membership is 350 MKD a month. Members get: ${en.memberPerks.join("; ")}.
+Membership is ${MEMBERSHIP_MKD} MKD a month. Members get: ${en.memberPerks.join("; ")}.
 Late cancellation: less than 48 hours before a weekly term, or not coming, you owe your part unless someone takes your place. Fusion: cancel 7 or more days before and you get credit. Waiting list: the first girl gets an email and has 12 hours to confirm.
 Joining: ask to join on the home page; the organiser approves every girl. Sign-in is with a link sent by email.
 Today: ${formatDateTime(now, "en")}.

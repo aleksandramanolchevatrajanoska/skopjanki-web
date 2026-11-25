@@ -9,7 +9,7 @@ export type PartnerApplicationInput = {
   offers: string[]; discountPct?: number | null; gearPct?: number | null; otherOffer?: string;
   hostWeekly: boolean; hostFusion: boolean; capacity?: number | null; days: string[]; times?: string;
   message?: string; consent: boolean;
-  sportRows?: string; slots?: string;
+  sportRows?: string; slots?: string; suspect?: boolean;
 };
 
 const n = (v: unknown, max = 1_000_000) => {
@@ -76,14 +76,35 @@ export async function submitPartnerApplication(db: Db, i: PartnerApplicationInpu
       gearPct: offers.includes("discount_gear") ? i.gearPct ?? null : null,
       otherOffer: offers.includes("other") ? clean(i.otherOffer) : null,
       hostWeekly: i.hostWeekly, hostFusion: i.hostFusion, capacity: i.capacity ?? null,
-      days: slots.length ? [...new Set(slots.map((x) => x.day))] : i.days.slice(0, 7), times: clean(i.times), message: (i.message ?? "").trim().slice(0, 2000) || null,
+      days: slots.length ? [...new Set(slots.map((x) => x.day))] : i.days.slice(0, 7), times: clean(i.times),
+      message: [i.suspect ? "[можеби спам: пополнето скриено поле]" : "", (i.message ?? "").trim().slice(0, 2000)].filter(Boolean).join("\n") || null,
     },
   });
-  await flush([{
-    to: await ownerEmailsFromDb(db),
-    subject: `Нова партнерска пријава: ${app.business}`,
-    text: `${app.business} (${app.kind}) сака да биде партнер.\nКонтакт: ${app.person}, ${app.phone}, ${app.email}\nПогледни: ${appUrl("/admin/partners")}`,
-  }]);
+  const OFFER_MK: Record<string, string> = {
+    discount_session: "попуст на термини", discount_gear: "попуст на опрема", free_trial: "бесплатен пробен термин / ваучери",
+    space: "простор за активности", gifts: "подароци / производи", other: "на друг начин",
+  };
+  const details = [
+    `${app.business} (${app.kind})${app.address ? `, ${app.address}` : ""}`,
+    `Контакт: ${app.person}, ${app.phone}, ${app.email}${app.instagram ? `, @${app.instagram}` : ""}${app.website ? `, ${app.website}` : ""}`,
+    `Нудат: ${app.offers.map((o) => OFFER_MK[o] ?? o).join(", ")}${app.discountPct ? ` (${app.discountPct}% на термини)` : ""}${app.gearPct ? ` (${app.gearPct}% на опрема)` : ""}`,
+    ...partnerDealLines(app),
+    app.hostFusion ? "Сакаат да бидат домаќин на fusion настан." : "",
+    app.capacity ? `Капацитет: ${app.capacity} луѓе` : "",
+    app.message ? `Порака:\n${app.message}` : "",
+  ].filter(Boolean).join("\n");
+  await flush([
+    {
+      to: await ownerEmailsFromDb(db),
+      subject: `${i.suspect ? "(можеби спам) " : ""}Нова партнерска пријава: ${app.business}`,
+      text: `${details}\n\nПогледни и одговори: ${appUrl("/admin/partners")}`,
+    },
+    {
+      to: app.email,
+      subject: "Скопјанки: ја примивме вашата пријава",
+      text: `Здраво ${app.person},\n\nВи благодариме што сакате да бидете партнер на Скопјанки. Ја примивме пријавата и ќе ве контактираме во наредните денови.\n\nОва е копија од она што го испративте:\n\n${details}\n\nСкопјанки · instagram.com/skopjankii`,
+    },
+  ]);
   return app;
 }
 

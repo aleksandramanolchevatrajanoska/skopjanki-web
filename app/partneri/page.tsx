@@ -29,7 +29,6 @@ const ERR: Record<string, string> = {
 
 async function apply(form: FormData) {
   "use server";
-  if (str(form.get("website_confirm"))) redirect("/partneri?ok=1"); // honeypot for bots
   let dest = "/partneri?ok=1";
   try {
     await submitPartnerApplication(prisma, {
@@ -41,6 +40,9 @@ async function apply(form: FormData) {
       hostWeekly: form.get("hostWeekly") === "on", hostFusion: form.get("hostFusion") === "on",
       capacity: int(form.get("capacity")), days: [], times: str(form.get("times")),
       message: str(form.get("message")), consent: form.get("consent") === "on",
+      // Hidden field only bots fill. Browsers can autofill it too, so the application is still
+      // saved and sent, only marked as possible spam.
+      suspect: Boolean(str(form.get("hp_note"))),
     });
   } catch (e) {
     if (e instanceof AppError) dest = `/partneri?err=${e.code}#forma`;
@@ -67,7 +69,7 @@ export default async function Partneri({ searchParams }: { searchParams: Promise
       <StandaloneHead />
       <div className="card tilt" style={{ maxWidth: 560, margin: "40px auto" }}>
         <h1>Ви благодариме!</h1>
-        <p>Пријавата е примена. Ќе ве контактираме во наредните денови.</p>
+        <p>Пријавата е примена. Ви испративме копија на е-пошта. Ќе ве контактираме во наредните денови.</p>
         <p className="meta">Скопјанки · <a href="https://instagram.com/skopjankii">@skopjankii</a></p>
       </div>
       </div>
@@ -89,7 +91,7 @@ export default async function Partneri({ searchParams }: { searchParams: Promise
 
       <form action={apply} id="forma" className="stack" style={{ marginTop: 20 }}>
         {sp.err && <div className="notice err" role="alert">{ERR[sp.err] ?? ERR.BAD_INPUT}</div>}
-        <input type="text" name="website_confirm" tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: "absolute", left: -9999 }} />
+        <input type="text" name="hp_note" tabIndex={-1} autoComplete="new-password" aria-hidden="true" style={{ position: "absolute", left: -9999 }} />
 
         <section className="card">
           <p className="label">01 / 05</p><h2>За вас</h2>

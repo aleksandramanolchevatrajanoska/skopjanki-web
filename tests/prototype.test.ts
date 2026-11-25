@@ -314,3 +314,20 @@ describe("club numbers never show zero", () => {
     expect(one).toMatchObject({ eventsHeld: 1, visits: 10, playHours: 15, socialHours: 0 });
   });
 });
+
+describe("partner applications are never lost", () => {
+  it("saves even when the hidden field is filled, and emails the organiser and the partner", async () => {
+    const { submitPartnerApplication } = await import("@/lib/services/partners");
+    const owner = await girl({ owner: true });
+    const app = await submitPartnerApplication(db, {
+      business: "Vinarija", kind: "Винарија", person: "Ana", phone: "070", email: "vino@example.com", sports: [],
+      offers: ["gifts"], hostWeekly: false, hostFusion: true, days: [], consent: true, suspect: true,
+    });
+    expect(await db.partnerApplication.count()).toBe(1);
+    expect(app.message).toContain("можеби спам");
+    const mails = await db.emailLog.findMany();
+    const toOwner = mails.find((m) => m.to.split(",").includes(owner.email));
+    expect(toOwner?.body).toContain("Сакаат да бидат домаќин на fusion настан.");
+    expect(mails.some((m) => m.to === "vino@example.com")).toBe(true);
+  });
+});

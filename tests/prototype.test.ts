@@ -331,3 +331,18 @@ describe("partner applications are never lost", () => {
     expect(mails.some((m) => m.to === "vino@example.com")).toBe(true);
   });
 });
+
+describe("deleting a partner", () => {
+  it("keeps the place name on its events and removes the partner", async () => {
+    const { deletePartner } = await import("@/lib/services/partners");
+    const owner = await girl({ owner: true });
+    const p = await db.partner.create({ data: { name: "Old Club", activity: "Tennis", address: "Centar" } });
+    const ev = await weekly(owner.id);
+    await db.event.update({ where: { id: ev.id }, data: { partnerId: p.id, place: null } });
+    await deletePartner(db, p.id);
+    expect(await db.partner.count({ where: { id: p.id } })).toBe(0);
+    const after = await db.event.findUniqueOrThrow({ where: { id: ev.id } });
+    expect(after.partnerId).toBeNull();
+    expect(after.place).toBe("Old Club, Centar");
+  });
+});

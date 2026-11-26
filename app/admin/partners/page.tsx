@@ -4,7 +4,9 @@ import { attempt, str } from "@/lib/act";
 import { Flash } from "@/components/Flash";
 import type { Partner, PartnerApplication } from "@prisma/client";
 import { ImageUploader } from "@/components/Interactive";
-import { decidePartnerApplication, partnerDealLines } from "@/lib/services/partners";
+import { decidePartnerApplication, deletePartner, partnerDealLines } from "@/lib/services/partners";
+import { revalidatePath } from "next/cache";
+import { DeleteButton, SaveButton } from "@/components/AdminPartnerButtons";
 
 function fields(form: FormData) {
   return {
@@ -20,20 +22,41 @@ function fields(form: FormData) {
     notes: str(form.get("notes")) || null,
     offer: str(form.get("offer")) || null,
     code: str(form.get("code")) || null,
-    active: form.get("active") !== "0",
   };
 }
 
+/**
+ * Saves one partner and refreshes the list in place, without leaving the page, so what is typed
+ * into the other partners' forms stays where it is.
+ */
 async function save(form: FormData) {
   "use server";
   await requireOwner();
   const id = str(form.get("id"));
-  await attempt("/admin/partners", async () => {
-    const data = fields(form);
-    if (!data.name) throw new (await import("@/lib/services/common")).AppError("BAD_INPUT");
-    if (id) await prisma.partner.update({ where: { id }, data });
-    else await prisma.partner.create({ data });
-  });
+  const data = fields(form);
+  if (!data.name) return;
+  if (id) await prisma.partner.update({ where: { id }, data });
+  else await prisma.partner.create({ data });
+  revalidatePath("/admin/partners");
+  revalidatePath("/");
+}
+
+async function remove(form: FormData) {
+  "use server";
+  await requireOwner();
+  await deletePartner(prisma, str(form.get("id")));
+  revalidatePath("/admin/partners");
+  revalidatePath("/");
+}
+
+async function toggleShown(form: FormData) {
+  "use server";
+  await requireOwner();
+  const id = str(form.get("id"));
+  const p = await prisma.partner.findUnique({ where: { id } });
+  if (p) await prisma.partner.update({ where: { id }, data: { active: !p.active } });
+  revalidatePath("/admin/partners");
+  revalidatePath("/");
 }
 
 async function decideApp(form: FormData) {
@@ -76,7 +99,16 @@ function Application({ a }: { a: PartnerApplication }) {
 
 function PartnerForm({ p }: { p?: Partner & { logo?: { updatedAt: Date } | null } }) {
   return (
-    <div className="card">
+    <div className="card" style={p && !p.active ? { opacity: 0.75 } : undefined}>
+    {p && (
+      <div className="between" style={{ marginBottom: 12 }}>
+        <h3>{p.name} {!p.active && <span className="tag">hidden from the site</span>}</h3>
+        <div className="row">
+          <form action={toggleShown}><input type="hidden" name="id" value={p.id} /><button className="btn sm ghost" type="submit">{p.active ? "Hide from site" : "Show on site"}</button></form>
+          <form action={remove}><input type="hidden" name="id" value={p.id} /><DeleteButton name={p.name} /></form>
+        </div>
+      </div>
+    )}
     {p && (
       <div className="row" style={{ marginBottom: 12, alignItems: "center" }}>
         <span className="partner-logo">
@@ -104,10 +136,9 @@ function PartnerForm({ p }: { p?: Partner & { logo?: { updatedAt: Date } | null 
         <div><label>Contact shown on the site (phone or email)</label><input name="contact" defaultValue={p?.contact ?? ""} placeholder="070 123 456" /></div>
         <div><label>What members get (shown on the site)</label><input name="offer" defaultValue={p?.offer ?? ""} placeholder="15% off court rental" /></div>
         <div><label>Discount code (members only)</label><input name="code" defaultValue={p?.code ?? ""} placeholder="SKOPJANKI15" /></div>
-        <div><label>Shown on the site</label><select name="active" defaultValue={p?.active === false ? "0" : "1"}><option value="1">Yes</option><option value="0">No</option></select></div>
       </div>
       <label>Internal notes, organiser only (deal, prices, min/max)</label><textarea name="notes" rows={2} defaultValue={p?.notes ?? ""} />
-      <p style={{ marginTop: 12 }}><button className="btn sm" type="submit">{p ? "Save" : "Add partner"}</button></p>
+      <p style={{ marginTop: 12 }}><SaveButton label={p ? "Save" : "Add partner"} /></p>
     </form>
     </div>
   );

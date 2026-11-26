@@ -154,3 +154,17 @@ export function partnerDealLines(a: AppLike) {
   else if (a.days.length || a.times) lines.push(`Denovi: ${[a.days.join(", "), a.times].filter(Boolean).join(" · ")}`);
   return lines;
 }
+
+/**
+ * Removes a partner for good. Its past and planned events keep the place by name, so nothing
+ * on the event pages goes blank; its logo goes with it.
+ */
+export async function deletePartner(db: Db, partnerId: string) {
+  const p = await db.partner.findUnique({ where: { id: partnerId } });
+  if (!p) throw new AppError("NOT_FOUND");
+  await db.$transaction([
+    db.event.updateMany({ where: { partnerId, place: null }, data: { place: [p.name, p.address].filter(Boolean).join(", ") } }),
+    db.event.updateMany({ where: { partnerId }, data: { partnerId: null } }),
+    db.partner.delete({ where: { id: partnerId } }),
+  ]);
+}

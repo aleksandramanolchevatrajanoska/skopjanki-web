@@ -156,8 +156,8 @@ const en = {
   seeFusion: "See fusion events →",
   moodKicker: "Not sure where to start?",
   moodTitle: "Pick a mood.",
-  moodMove: "I want to move",
-  moodMeet: "I want to meet people",
+  moodMove: "I want to play sports",
+  moodMeet: "I want fusion experiences",
   steps: [
     ["Ask to join", "Tell us your sports and your level. The organiser approves every girl."],
     ["Sign up or captain", "Book a weekly term or a fusion event. Members can be the captain and play free."],
@@ -581,8 +581,8 @@ const mk: Dict = {
   seeFusion: "Види fusion настани →",
   moodKicker: "Не знаеш од каде да почнеш?",
   moodTitle: "Избери расположение.",
-  moodMove: "Сакам да се движам",
-  moodMeet: "Сакам да запознаам луѓе",
+  moodMove: "Сакам да спортувам",
+  moodMeet: "Сакам да одам на fusion искуства",
   steps: [
     ["Побарај да се приклучиш", "Кажи ни ги спортовите и нивото. Организаторката ја одобрува секоја девојка."],
     ["Пријави се или биди капитенка", "Резервирај неделен термин или fusion настан. Членките можат да бидат капитенки и играат бесплатно."],

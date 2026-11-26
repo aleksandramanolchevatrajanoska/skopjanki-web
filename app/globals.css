@@ -420,3 +420,7 @@ body:has(.standalone) header.site,body:has(.standalone) footer{display:none}
 .cap-do li::before{content:"♛";color:var(--plum);opacity:.7}
 .tag.cap{background:#432344;color:#FFF9ED}
 @media (max-width:700px){.captain-home-grid{grid-template-columns:1fr}.captain-home{padding:24px 18px}}
+/* Long discount codes wrap inside the card instead of running out of it. */
+code.code{max-width:100%;overflow-wrap:anywhere;white-space:normal;display:inline-block}
+.offer .row{flex-wrap:wrap;min-width:0}
+.partner{min-width:0}

@@ -48,7 +48,7 @@ export function PartnerCard({ p, locale, member }: { p: PartnerWithLogo; locale:
           {p.offer && <p>{p.offer}</p>}
           {p.code &&
             (member ? (
-              <p className="row"><span>{t.partnerCode}:</span> <code className="code">{p.code}</code> <CopyButton value={p.code} label={t.copy} done={t.copied} /></p>
+              <p className="row"><span>{t.partnerCode}:</span> <code className="code">{p.code.split(/(?<=[_\-.])/).map((part, i) => <span key={i}>{part}<wbr /></span>)}</code> <CopyButton value={p.code} label={t.copy} done={t.copied} /></p>
             ) : (
               <p className="row"><span>{t.partnerCode}:</span> <code className="code blurred" aria-hidden="true">SKOPJANKI</code> <span className="meta">{t.codeLocked}</span></p>
             ))}

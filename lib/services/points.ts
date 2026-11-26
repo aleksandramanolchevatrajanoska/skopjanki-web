@@ -6,19 +6,8 @@ export const POINTS_CAPTAIN_BONUS = 5;
 /** A term is about an hour and a half of play. */
 export const MINUTES_PER_EVENT = 90;
 
-/** Rough distance covered per hour of play, by sport (km). Used for the "≈ km" figure only. */
-const KM_PER_HOUR: [RegExp, number][] = [
-  [/football|фудбал|soccer/i, 7],
-  [/tennis|тенис|padel|падел/i, 3.5],
-  [/volley|одбојка|basket|кошарка/i, 2],
-  [/run|трча|hike|планин|walk|пешач/i, 8],
-  [/yoga|јога|aerial|pilates|пилатес|stretch/i, 0.5],
-];
-export function kmPerHour(sport: string | null | undefined, title = "") {
-  const s = `${sport ?? ""} ${title}`;
-  for (const [re, km] of KM_PER_HOUR) if (re.test(s)) return km;
-  return 2.5;
-}
+/** One average for every sport: about 3 km covered per hour of play. Used for the "≈ km" figure only. */
+export const KM_PER_HOUR = 3;
 
 /** A term counts when she was confirmed, it already happened, and she was not marked absent. */
 function cameWhere(now: Date) {
@@ -32,12 +21,12 @@ export async function myPoints(db: Db, userId: string, now = new Date()) {
   });
   const captained = rs.filter((r) => r.event.captainId === userId).length;
   const hours = (rs.length * MINUTES_PER_EVENT) / 60;
-  const km = rs.reduce((s, r) => s + (kmPerHour(r.event.sport, r.event.title) * MINUTES_PER_EVENT) / 60, 0);
+  const km = hours * KM_PER_HOUR;
   return { events: rs.length, captained, points: rs.length * POINTS_PER_EVENT + captained * POINTS_CAPTAIN_BONUS, hours, km: Math.round(km) };
 }
 
-/** A fusion event (sport + hanging out) counts as about eight hours of friendship. */
-export const MINUTES_PER_FUSION = 480;
+/** A fusion event (sport + hanging out) counts as three hours of friendship. */
+export const MINUTES_PER_FUSION = 180;
 
 /**
  * The events the club ran before the site existed (Sip & Serve with about 10 girls on tennis,
@@ -80,7 +69,7 @@ export async function clubMovement(db: Db, now = new Date()) {
     const hoursEach = MINUTES_PER_EVENT / 60;
     play += e.girls * hoursEach;
     if (e.kind === "FUSION") social += e.girls * (MINUTES_PER_FUSION / 60);
-    km += e.girls * kmPerHour(e.sport, e.title) * hoursEach;
+    km += e.girls * hoursEach * KM_PER_HOUR;
   }
   const playHours = Math.round(play) + base.playHours;
   const socialHours = Math.round(social) + base.socialHours;

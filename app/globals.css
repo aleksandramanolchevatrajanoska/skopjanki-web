@@ -424,3 +424,20 @@ body:has(.standalone) header.site,body:has(.standalone) footer{display:none}
 code.code{max-width:100%;overflow-wrap:anywhere;white-space:normal;display:inline-block}
 .offer .row{flex-wrap:wrap;min-width:0}
 .partner{min-width:0}
+
+/* ---------- Personal invitation (/pokana) ---------- */
+.invite{max-width:620px;margin:0 auto;display:grid;gap:28px;padding-bottom:40px}
+.invite-card{background:#432344;color:#FFF9ED;border-radius:20px;padding:26px 26px 22px;aspect-ratio:1.6;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 20px 44px rgba(67,35,68,.28);transform:rotate(-1.5deg)}
+.invite-card .label{color:#F2D3E2}
+.invite-to{margin:0;font:400 clamp(1.8rem,6vw,2.6rem)/1.05 Newsreader,Georgia,serif;color:#F49BBC}
+.invite-big{margin:4px 0 0;font:400 clamp(1.4rem,4.6vw,2rem)/1.1 Newsreader,Georgia,serif}
+.invite-foot{margin:0;font:400 italic .95rem Newsreader,Georgia,serif;color:#F2D3E2}
+.invite-letter p{font-size:1.05rem;line-height:1.7;margin:0 0 14px}
+.invite-sign{font:400 italic 1.1rem Newsreader,Georgia,serif;color:var(--muted)}
+.invite-perks{border:1px solid var(--line);border-radius:18px;padding:22px;background:var(--surface)}
+.invite-perks ul{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:10px}
+.invite-perks li{display:grid;grid-template-columns:22px 1fr;gap:8px}
+.invite-perks li::before{content:"♛";color:var(--plum);opacity:.7}
+.invite-price{margin-top:16px;font-size:1.05rem}
+.invite-cta{display:grid;gap:10px;justify-items:start}
+@media (max-width:480px){.invite-card{aspect-ratio:auto;min-height:210px;gap:18px}}

@@ -346,3 +346,13 @@ describe("deleting a partner", () => {
     expect(after.place).toBe("Old Club, Centar");
   });
 });
+
+describe("personal invitations", () => {
+  it("keeps only a clean name and saves the letter and list", async () => {
+    const { cleanName, saveInviteSettings, inviteSettings } = await import("@/lib/services/invites");
+    expect(cleanName("  Ана<script>alert(1)</script> ")).toBe("Анаscriptalertscript");
+    expect(cleanName("Марија-Елена")).toBe("Марија-Елена");
+    await saveInviteSettings(db, "Мое писмо.", "Ана\n\n  Теона  \n");
+    expect(await inviteSettings(db)).toEqual({ letter: "Мое писмо.", names: ["Ана", "Теона"] });
+  });
+});

@@ -11,6 +11,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <a className="btn sm ghost" href="/admin/partners">Partners</a>
         <a className="btn sm ghost" href="/admin/site">Home page</a>
         <a className="btn sm ghost" href="/admin/weekly">Weekly</a>
+        <a className="btn sm ghost" href="/admin/invites">Invites</a>
         <a className="btn sm ghost" href="/admin/instagram">Instagram</a>
         <a className="btn sm ghost" href="/admin/postcard">Postcard</a>
         <a className="btn sm ghost" href="/admin/moderation">Photos &amp; quotes</a>

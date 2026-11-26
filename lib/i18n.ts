@@ -24,7 +24,7 @@ const en = {
   fusionText: "Sport meets something social: tennis and wine tasting, yoga and brunch with mimosas. Every one to two months.",
   memberTitle: "Membership · 600 MKD / month",
   memberPerks: [
-    "20% lower price on every weekly activity, only through Skopjanki",
+    "At least 20% lower price on every weekly activity, only through Skopjanki",
     "Book 48 hours before everyone else, weekly and fusion",
     "20% off fusion events",
     "Be a captain and play free",
@@ -450,7 +450,7 @@ const mk: Dict = {
   fusionText: "Спорт и дружење заедно: тенис и дегустација на вино, јога и brunch со мимози. На секој месец или два.",
   memberTitle: "Членарина · 600 ден. месечно",
   memberPerks: [
-    "20% пониска цена на секоја неделна активност, само преку Skopjanki",
+    "Минимум 20% пониска цена на секоја неделна активност, само преку Skopjanki",
     "Пријава 48 часа пред другите, за неделни и fusion настани",
     "20% попуст на fusion настани",
     "Биди капитенка и играј бесплатно",

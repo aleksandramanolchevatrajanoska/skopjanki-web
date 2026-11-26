@@ -36,8 +36,8 @@ export async function myPoints(db: Db, userId: string, now = new Date()) {
   return { events: rs.length, captained, points: rs.length * POINTS_PER_EVENT + captained * POINTS_CAPTAIN_BONUS, hours, km: Math.round(km) };
 }
 
-/** A fusion event (sport + hanging out) counts as about three hours together. */
-export const MINUTES_PER_FUSION = 180;
+/** A fusion event (sport + hanging out) counts as about eight hours of friendship. */
+export const MINUTES_PER_FUSION = 480;
 
 /**
  * The events the club ran before the site existed (Sip & Serve with about 10 girls on tennis,

@@ -55,7 +55,7 @@ export default async function SiteAdmin({ searchParams }: { searchParams: Promis
       </section>
       <section className="card" style={{ maxWidth: 640, marginTop: 16 }}>
         <h2>Numbers on the home page</h2>
-        <p className="meta">The site counts hours and km from the events girls came to (about 1.5 h of play per term, 3 h together per fusion event, km by sport). Add here what happened before the site, e.g. events you ran over Instagram. These are added on top.</p>
+        <p className="meta">The site counts hours and km from the events girls came to (about 1.5 h of play per term, 8 h of friendship per fusion event, km by sport). Add here what happened before the site, e.g. events you ran over Instagram. These are added on top.</p>
         <p className="meta">Shown now: {shown.playHours} h played · {shown.socialHours} h of friendship · {shown.km} km · {shown.eventsHeld} events held.</p>
         <form action={saveBase}>
           <div className="two">

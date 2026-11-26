@@ -21,6 +21,7 @@ import { googleCalendarUrl } from "@/lib/calendar";
 import { canAddPhotos, removePhoto } from "@/lib/services/club";
 import { MediaCarousel, PhotoUploader, ShareButton, type MediaSlide } from "@/components/Interactive";
 import { toEmbed } from "@/lib/embeds";
+import { markCommissionPaid, workshopCommission } from "@/lib/services/workshops";
 import { addGuest, removeGuest, addNote, deleteNote, notesFor, canWriteNote, NOTE_MAX } from "@/lib/services/eventdesk";
 
 type Params = { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | undefined>> };
@@ -117,6 +118,14 @@ async function doRemovePhoto(form: FormData) {
   const user = await requireApproved();
   const id = String(form.get("eventId"));
   await attempt(`/app/events/${id}#moments`, () => removePhoto(prisma, user.id, String(form.get("photoId"))));
+}
+
+async function doCommissionPaid(form: FormData) {
+  "use server";
+  const user = await requireApproved();
+  const id = String(form.get("eventId"));
+  if (!user.isOwner) redirect(`/app/events/${id}?err=FORBIDDEN`);
+  await attempt(`/app/events/${id}#desk`, () => markCommissionPaid(prisma, id, form.get("paid") === "1"));
 }
 
 async function doAddGuest(form: FormData) {
@@ -223,6 +232,7 @@ export default async function EventPage({ params, searchParams }: Params) {
     ...embeds.map((v) => ({ type: "embed" as const, src: v.embedUrl, title: `${e.title} · ${v.kind}`, portrait: v.portrait })),
   ];
 
+  const money = canManage && e.workshop ? await workshopCommission(prisma, id) : null;
   const attendanceOpen = now.getTime() >= e.startsAt.getTime() - 3 * 3600_000 && now.getTime() <= e.startsAt.getTime() + 7 * 86400_000;
   const goingCount = confirmed.length + guests.length;
 
@@ -234,7 +244,7 @@ export default async function EventPage({ params, searchParams }: Params) {
 
       <header className="ev-head">
         <div>
-          <span className={`tag ${e.kind === "FUSION" ? "p" : ""}`}>{t.kinds[e.kind]}</span>
+          <span className={`tag ${e.kind === "FUSION" ? "p" : e.workshop ? "c" : ""}`}>{e.workshop ? t.workshopTag : t.kinds[e.kind]}</span>
           {e.sport && <span className="tag c">{e.sport} · {e.level ? t.levels[e.level] ?? e.level : t.allLevels}</span>}
           {e.vibe && <span className="tag">{t.vibes[e.vibe]}</span>}
           {e.status === "PENDING" && <span className="tag">{t.pendingApproval}</span>}
@@ -401,6 +411,25 @@ export default async function EventPage({ params, searchParams }: Params) {
         <section className="card ev-section desk" id="desk">
           <h2>♛ {t.captainBox}</h2>
           <p className="meta">{t.captainDeskHint}</p>
+
+          {money && (
+            <div className="workshop-money">
+              <p className="label">{t.workshopBoxTitle}</p>
+              <div className="row" style={{ gap: 28 }}>
+                <div><b>{money.collected} MKD</b><span className="meta">{t.workshopCollected} · {money.girls} {t.going}</span></div>
+                <div><b>{money.owed} MKD</b><span className="meta">{t.workshopOwed} ({money.pct}%)</span></div>
+              </div>
+              {!money.final && <p className="meta">{t.workshopEstimate}</p>}
+              {money.paidAt && <p className="notice ok">{t.workshopPaid} · {formatDateTime(money.paidAt, locale)}</p>}
+              {user.isOwner && (
+                <form action={doCommissionPaid}>
+                  <input type="hidden" name="eventId" value={e.id} />
+                  <input type="hidden" name="paid" value={money.paidAt ? "0" : "1"} />
+                  <button className="btn sm ghost" type="submit">{money.paidAt ? t.workshopMarkUnpaid : t.workshopMarkPaid}</button>
+                </form>
+              )}
+            </div>
+          )}
 
           <div className="desk-grid">
             <div>

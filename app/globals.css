@@ -441,3 +441,19 @@ code.code{max-width:100%;overflow-wrap:anywhere;white-space:normal;display:inlin
 .invite-price{margin-top:16px;font-size:1.05rem}
 .invite-cta{display:grid;gap:10px;justify-items:start}
 @media (max-width:480px){.invite-card{aspect-ratio:auto;min-height:210px;gap:18px}}
+.propose-what{border:0;padding:0;margin:0 0 16px}
+.propose-what legend{font-weight:600;margin-bottom:6px}
+.optbox>input[type=radio]{width:18px;height:18px;margin-top:3px;accent-color:var(--pink);flex:none}
+.workshop-money{border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:16px 0;background:var(--bg);display:grid;gap:8px}
+.workshop-money b{display:block;font:400 1.6rem/1.1 Newsreader,Georgia,serif;color:var(--plum);font-variant-numeric:tabular-nums}
+.biz-head{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+.propose-what .optbox{flex-wrap:nowrap}.propose-what .optbox>span{flex:1;min-width:0}
+/* Skopjanki's three parts, numbered: home hero and the partner form */
+.pillars{margin-top:20px}
+.pillars ol{list-style:none;counter-reset:p;padding:0;margin:8px 0 0;display:grid;gap:12px}
+.pillars li{counter-increment:p;display:grid;grid-template-columns:34px 1fr;column-gap:12px;row-gap:2px;align-items:baseline}
+.pillars li::before{content:counter(p);grid-row:span 2;width:30px;height:30px;border-radius:50%;background:var(--pink);color:#432344;display:grid;place-items:center;font-weight:600;align-self:start}
+.pillars li a{text-decoration:none;color:inherit}
+.pillars li a:hover strong{text-decoration:underline}
+.pillars li strong{font:400 1.2rem/1.2 Newsreader,Georgia,serif;color:var(--plum)}
+.pillars li span{color:var(--muted);font-size:.95rem}

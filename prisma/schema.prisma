@@ -81,6 +81,7 @@ model User {
   captainOf           Event[]              @relation("EventCaptain")
   photos              Photo[]
   guestsAdded         EventGuest[]
+  businesses          MemberBusiness[]
   eventNotes          EventNote[]
   quote               Quote?
   address             Address?
@@ -137,6 +138,9 @@ model Event {
   agenda            Json? // [["11:00","Yoga"],["12:30","Brunch & mimosas"]]
   poster            EventPoster?
   example           Boolean     @default(false) // created by "Add example events"; removed in one click
+  workshop          Boolean     @default(false) // a member plan that is a paid workshop or session led by the member
+  commissionPct     Int? // workshop: share of what the host collects that goes to Skopjanki
+  commissionPaidAt  DateTime? // workshop: when the host paid that share
   sourceUrl         String?     @unique // imported from Luma: the event's page, so it is never imported twice
   imageUrl          String? // cover image on the source site, when it could not be copied
   instagramUrl      String? // the event's Instagram post or reel ("See it on Instagram")
@@ -403,4 +407,22 @@ model PartnerLogo {
   mime      String
   data      Bytes
   updatedAt DateTime @updatedAt
+}
+
+/** A small business run by a member, listed for the other girls, often with a member discount. */
+model MemberBusiness {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  category    String
+  description String?
+  offer       String? // what members get, e.g. "15% for Skopjanki members"
+  instagram   String?
+  website     String?
+  contact     String?
+  status      String   @default("PENDING") // PENDING | APPROVED | DECLINED
+  createdAt   DateTime @default(now())
+
+  @@index([status])
 }

@@ -149,11 +149,13 @@ export function fitsLevel(e: { sport: string | null; level: string | null }, lev
 }
 
 export function eventMatches(
-  e: { title: string; sport: string | null; level: string | null; kind: string; vibe?: string | null; place: string | null; partner: { name: string } | null },
+  e: { title: string; sport: string | null; level: string | null; kind: string; workshop?: boolean; vibe?: string | null; place: string | null; partner: { name: string } | null },
   f: EventFilter,
   levels: LevelMap,
 ) {
-  if (f.kind && e.kind !== f.kind) return false;
+  if (f.kind === "WORKSHOP") {
+    if (!e.workshop) return false;
+  } else if (f.kind && e.kind !== f.kind) return false;
   // "Active" also matches Active + Social, and so does "Social".
   if (f.vibe && !(e.vibe === f.vibe || e.vibe === "BOTH")) return false;
   if (f.sport && (e.sport ?? "").toLowerCase() !== f.sport.toLowerCase()) return false;

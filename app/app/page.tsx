@@ -78,6 +78,7 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
         <select name="type" defaultValue={filter.kind ?? ""} aria-label={t.filter}>
           <option value="">{t.allTypes}</option>
           {(kind === "weekly" ? (["WEEKLY", "SPECIAL", "MEMBER_PLAN"] as const) : (["FUSION"] as const)).map((k) => <option key={k} value={k}>{t.kinds[k]}</option>)}
+          {kind === "weekly" && <option value="WORKSHOP">{t.workshopsFilter}</option>}
         </select>
         <select name="vibe" defaultValue={filter.vibe ?? ""} aria-label={t.vibeLabel}>
           <option value="">{t.allVibes}</option>

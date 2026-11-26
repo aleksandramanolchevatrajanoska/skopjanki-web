@@ -20,7 +20,7 @@ export function EventCardView({ e, locale, member }: { e: EventCard; locale: Loc
       )}
       <div className="between">
         <span>
-          <span className={`tag ${e.kind === "FUSION" ? "p" : e.kind === "SPECIAL" ? "c" : ""}`}>{t.kinds[e.kind]}</span>
+          <span className={`tag ${e.kind === "FUSION" ? "p" : e.kind === "SPECIAL" || e.workshop ? "c" : ""}`}>{e.workshop ? t.workshopTag : t.kinds[e.kind]}</span>
           {e.sport && <span className="tag c">{e.sport}{e.level ? ` · ${t.levels[e.level] ?? e.level}` : ""}</span>}
           {e.vibe && <span className="tag">{t.vibes[e.vibe]}</span>}
           {e.example && <span className="tag">{t.exampleTag}</span>}

@@ -356,3 +356,54 @@ describe("personal invitations", () => {
     expect(await inviteSettings(db)).toEqual({ letter: "Мое писмо.", names: ["Ана", "Теона"] });
   });
 });
+
+describe("workshops led by members", () => {
+  const png = { mime: "image/png", data: Buffer.from("89504e470d0a1a0a0000000d49484452", "hex") };
+  const input = (over = {}) => ({
+    title: "Make-up basics", startsAt: new Date(T0.getTime() + 5 * 86400_000), minSpots: 3, maxSpots: 10,
+    pricingMode: "PER_PERSON" as const, priceNonMember: 1000, memberDiscountPct: 20, ...over,
+  });
+
+  it("needs a price per girl, and the host owes the club its share of what came in", async () => {
+    const { proposeWorkshop, workshopCommission, setCommissionPct } = await import("@/lib/services/workshops");
+    const { saveAttendance } = await import("@/lib/services/attendance");
+    await girl({ owner: true });
+    const host = await girl({ member: true });
+    expect(await code(proposeWorkshop(db, host.id, input({ pricingMode: "SPLIT", totalCost: 3000, priceNonMember: null }), png, T0))).toBe("WORKSHOP_PRICE");
+    await setCommissionPct(db, 15);
+    const ev = await proposeWorkshop(db, host.id, input(), png, T0);
+    expect(ev).toMatchObject({ workshop: true, commissionPct: 15, captainId: host.id, status: "PENDING" });
+    await db.event.update({ where: { id: ev.id }, data: { status: "APPROVED" } });
+    const a = await girl({ member: true });
+    const b = await girl();
+    await db.reservation.createMany({ data: [
+      { eventId: ev.id, userId: a.id, status: "CONFIRMED", isMember: true },
+      { eventId: ev.id, userId: b.id, status: "CONFIRMED", isMember: false },
+    ] });
+    const before = await workshopCommission(db, ev.id);
+    expect(before).toMatchObject({ girls: 2, collected: 1800, owed: 270, final: false });
+    await saveAttendance(db, host.id, ev.id, [a.id], new Date(ev.startsAt.getTime() + 3600_000));
+    expect(await workshopCommission(db, ev.id)).toMatchObject({ girls: 1, collected: 800, owed: 120, final: true });
+  });
+
+  it("the Workshops filter shows only workshops", () => {
+    const base = { title: "x", sport: null, level: null, kind: "MEMBER_PLAN", place: null, partner: null };
+    expect(eventMatches({ ...base, workshop: true }, { kind: "WORKSHOP" }, {})).toBe(true);
+    expect(eventMatches({ ...base, workshop: false }, { kind: "WORKSHOP" }, {})).toBe(false);
+  });
+});
+
+describe("member businesses", () => {
+  it("only paying members list a business, at most two, and it waits for approval", async () => {
+    const { submitBusiness, decideBusiness } = await import("@/lib/services/businesses");
+    await girl({ owner: true });
+    const free = await girl();
+    const m = await girl({ member: true });
+    expect(await code(submitBusiness(db, free.id, { name: "Shop", category: "Jewellery" }))).toBe("MEMBERS_ONLY");
+    const b = await submitBusiness(db, m.id, { name: "Shop", category: "Jewellery", instagram: "@shop", offer: "15% off" });
+    expect(b).toMatchObject({ status: "PENDING", instagram: "shop" });
+    await submitBusiness(db, m.id, { name: "Two", category: "Cafe" });
+    expect(await code(submitBusiness(db, m.id, { name: "Three", category: "Cafe" }))).toBe("BUSINESS_LIMIT");
+    expect((await decideBusiness(db, b.id, true)).status).toBe("APPROVED");
+  });
+});

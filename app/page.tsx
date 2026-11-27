@@ -199,6 +199,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
                     <strong>{nextFusion.title}</strong>
                   </span>
                 )}
+                <span className="tag cap" style={{ alignSelf: "flex-start" }}>♛ {t.membersOnlyTag}</span>
                 <strong>{nextFusion.title}</strong>
                 <span>{formatDateTime(nextFusion.startsAt, locale)}{nextFusion.partner ? ` · ${nextFusion.partner.name}` : nextFusion.place ? ` · ${nextFusion.place}` : ""}</span>
                 <span>{t.member} {nextFusion.priceMember} MKD · {t.nonMember} {nextFusion.priceNonMember} MKD</span>

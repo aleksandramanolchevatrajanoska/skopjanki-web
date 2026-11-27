@@ -41,6 +41,7 @@ const en = {
     "Digital member card and a postcard at each fusion event",
   ],
   partnersTitle: "Our partners",
+  partnerMemberDiscount: "for members on Skopjanki terms here",
   howTitle: "How it works",
   how: [
     "Ask to join. The organiser approves every girl.",
@@ -532,6 +533,7 @@ const mk: Dict = {
     "Дигитална членска картичка и разгледница на секој fusion",
   ],
   partnersTitle: "Наши партнери",
+  partnerMemberDiscount: "за членките на термините на Скопјанки тука",
   howTitle: "Како функционира",
   how: [
     "Побарај да се приклучиш. Организаторката ја одобрува секоја девојка.",

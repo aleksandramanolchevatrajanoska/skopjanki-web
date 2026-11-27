@@ -168,3 +168,16 @@ export async function deletePartner(db: Db, partnerId: string) {
     db.partner.delete({ where: { id: partnerId } }),
   ]);
 }
+
+/**
+ * Saves a partner's member discount and passes it on to its coming events whose price is not fixed
+ * yet. Between 0 and 90 %, empty means the default 20 %.
+ */
+export async function setPartnerDiscount(db: Db, partnerId: string, pct: number | null, now = new Date()) {
+  const v = pct == null ? null : Math.max(0, Math.min(90, Math.round(pct)));
+  await db.partner.update({ where: { id: partnerId }, data: { memberDiscountPct: v } });
+  await db.event.updateMany({
+    where: { partnerId, startsAt: { gt: now }, lockedAt: null, status: { not: "CANCELLED" } },
+    data: { memberDiscountPct: v ?? 20 },
+  });
+}

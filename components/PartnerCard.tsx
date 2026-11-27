@@ -42,6 +42,7 @@ export function PartnerCard({ p, locale, member }: { p: PartnerWithLogo; locale:
         {site && <a className="btn sm ghost" href={site} {...ext}>{t.website}</a>}
         {igUrl && <a className="btn sm ghost" href={igUrl} {...ext}>@{ig}</a>}
       </p>
+      <p className="partner-discount"><strong>−{p.memberDiscountPct ?? 20}%</strong> {t.partnerMemberDiscount}</p>
       {(p.offer || p.code) && (
         <div className="offer">
           <p className="label">{t.partnerOffer}</p>

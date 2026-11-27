@@ -1,10 +1,10 @@
 import { requireOwner } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { attempt, str } from "@/lib/act";
+import { attempt, int, str } from "@/lib/act";
 import { Flash } from "@/components/Flash";
 import type { Partner, PartnerApplication } from "@prisma/client";
 import { ImageUploader } from "@/components/Interactive";
-import { decidePartnerApplication, deletePartner, partnerDealLines } from "@/lib/services/partners";
+import { decidePartnerApplication, deletePartner, partnerDealLines, setPartnerDiscount } from "@/lib/services/partners";
 import { revalidatePath } from "next/cache";
 import { DeleteButton, SaveButton } from "@/components/AdminPartnerButtons";
 
@@ -35,8 +35,8 @@ async function save(form: FormData) {
   const id = str(form.get("id"));
   const data = fields(form);
   if (!data.name) return;
-  if (id) await prisma.partner.update({ where: { id }, data });
-  else await prisma.partner.create({ data });
+  const partner = id ? await prisma.partner.update({ where: { id }, data }) : await prisma.partner.create({ data });
+  await setPartnerDiscount(prisma, partner.id, int(form.get("memberDiscountPct")));
   revalidatePath("/admin/partners");
   revalidatePath("/");
 }
@@ -132,6 +132,7 @@ function PartnerForm({ p }: { p?: Partner & { logo?: { updatedAt: Date } | null 
         <div><label>Address</label><input name="address" defaultValue={p?.address ?? ""} /></div>
         <div><label>Google Maps link</label><input name="mapsUrl" defaultValue={p?.mapsUrl ?? ""} /></div>
         <div><label>Instagram</label><input name="instagram" defaultValue={p?.instagram ?? ""} placeholder="pointer.tennis" /></div>
+        <div><label htmlFor={`disc-${p?.id ?? "new"}`}>Member discount on our terms (%)</label><input id={`disc-${p?.id ?? "new"}`} name="memberDiscountPct" type="number" min={0} max={90} step={1} defaultValue={p?.memberDiscountPct ?? ""} placeholder="20" /></div>
         <div><label>Website (clicking the partner opens it; else Instagram)</label><input name="website" defaultValue={p?.website ?? ""} placeholder="https://…" /></div>
         <div><label>Contact shown on the site (phone or email)</label><input name="contact" defaultValue={p?.contact ?? ""} placeholder="070 123 456" /></div>
         <div><label>What members get (shown on the site)</label><input name="offer" defaultValue={p?.offer ?? ""} placeholder="15% off court rental" /></div>

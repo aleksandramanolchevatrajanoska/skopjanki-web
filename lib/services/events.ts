@@ -78,13 +78,24 @@ function data(i: EventInput) {
     totalCost: i.pricingMode === "SPLIT" ? i.totalCost ?? null : null,
     priceNonMember: i.pricingMode === "SPLIT" ? null : i.priceNonMember ?? null,
     priceMember: i.pricingMode === "ONLINE" ? i.priceMember ?? i.priceNonMember ?? null : null,
-    memberDiscountPct: i.memberDiscountPct ?? 20,
+    memberDiscountPct: i.memberDiscountPct ?? DEFAULT_MEMBER_DISCOUNT,
   };
 }
 
 /** Organiser creates a club event (weekly, week-4 special or fusion). It is live at once. */
-export async function createEvent(db: Db, ownerId: string, input: EventInput, now = new Date()) {
-  if (input.kind === "MEMBER_PLAN") throw new AppError("USE_PROPOSE_PLAN");
+/** Default members' discount when the partner has none of its own. */
+export const DEFAULT_MEMBER_DISCOUNT = 20;
+
+/** An event at a partner takes that partner's member discount; elsewhere the default. */
+export async function withPartnerDiscount<T extends { partnerId?: string | null; memberDiscountPct?: number }>(db: Db, input: T): Promise<T> {
+  if (!input.partnerId) return input;
+  const p = await db.partner.findUnique({ where: { id: input.partnerId }, select: { memberDiscountPct: true } });
+  return p?.memberDiscountPct != null ? { ...input, memberDiscountPct: p.memberDiscountPct } : input;
+}
+
+export async function createEvent(db: Db, ownerId: string, input0: EventInput, now = new Date()) {
+  if (input0.kind === "MEMBER_PLAN") throw new AppError("USE_PROPOSE_PLAN");
+  const input = await withPartnerDiscount(db, input0);
   validate(input);
   const out: Outbox = [];
   const event = await db.$transaction(async (tx) => {
@@ -96,7 +107,8 @@ export async function createEvent(db: Db, ownerId: string, input: EventInput, no
   return event;
 }
 
-export async function updateEvent(db: Db, eventId: string, input: EventInput) {
+export async function updateEvent(db: Db, eventId: string, input0: EventInput) {
+  const input = await withPartnerDiscount(db, input0);
   validate(input);
   const e = await db.event.findUniqueOrThrow({ where: { id: eventId } });
   if (e.kind !== input.kind && (e.kind === "FUSION" || input.kind === "FUSION")) throw new AppError("CANNOT_CHANGE_KIND");
@@ -154,7 +166,8 @@ export async function editEvent(db: Db, actorId: string, eventId: string, input:
 }
 
 /** A member proposes her own plan: max one per week (Mon-Sun), waits for the organiser. */
-export async function proposePlan(db: Db, userId: string, input: Omit<EventInput, "kind">, now = new Date()) {
+export async function proposePlan(db: Db, userId: string, input0: Omit<EventInput, "kind">, now = new Date()) {
+  const input = await withPartnerDiscount(db, input0);
   const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
   if (user.status !== "APPROVED") throw new AppError("NOT_APPROVED");
   if (!isMember(user, now)) throw new AppError("MEMBERS_ONLY");

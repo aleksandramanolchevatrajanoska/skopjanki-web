@@ -117,6 +117,7 @@ model Partner {
   instagram String?
   website   String?
   contact   String? // phone or email shown on the site
+  memberDiscountPct Int? // members' discount on Skopjanki terms here (e.g. 25); empty = 20
   logo      PartnerLogo?
   email     String? // receives the list of girls for each approved term
   phone     String?

@@ -507,3 +507,19 @@ describe("asking to become a member", () => {
     expect((await db.user.findUniqueOrThrow({ where: { id: a.id } })).membershipRequestedAt).toBeNull();
   });
 });
+
+describe("member discount per partner", () => {
+  it("events at a partner use its discount, and changing it updates coming events", async () => {
+    const { setPartnerDiscount } = await import("@/lib/services/partners");
+    const { pricesFor } = await import("@/lib/pricing");
+    const owner = await girl({ owner: true });
+    const p = await db.partner.create({ data: { name: "Aerial", activity: "Aerial", memberDiscountPct: 30 } });
+    const ev = await weekly(owner.id, { partnerId: p.id, pricingMode: "PER_PERSON", priceNonMember: 1000, totalCost: null });
+    expect(ev.memberDiscountPct).toBe(30);
+    expect(pricesFor(ev, 0, 0)).toEqual({ nonMember: 1000, member: 700 });
+    const other = await weekly(owner.id, { title: "No partner" });
+    expect(other.memberDiscountPct).toBe(20);
+    await setPartnerDiscount(db, p.id, 25, T0);
+    expect((await db.event.findUniqueOrThrow({ where: { id: ev.id } })).memberDiscountPct).toBe(25);
+  });
+});

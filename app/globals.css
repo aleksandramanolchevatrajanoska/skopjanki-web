@@ -472,3 +472,4 @@ code.code{max-width:100%;overflow-wrap:anywhere;white-space:normal;display:inlin
 .reply-box[open] summary{margin-bottom:8px}
 .admin-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;flex:none;display:inline-grid;place-items:center;background:var(--soft);color:var(--muted)}
 .spam-note{margin-top:12px;font-size:.92rem;line-height:1.5}
+.partner-discount{margin:0;font-size:.92rem;color:var(--muted)}.partner-discount strong{font:400 1.3rem Newsreader,Georgia,serif;color:var(--plum)}

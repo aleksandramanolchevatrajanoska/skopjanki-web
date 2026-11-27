@@ -25,7 +25,7 @@ export const MEMBER_SPOTS = 30;
 
 /** Fusion events, and any event the organiser marks so, are for members only. */
 export function isMembersOnly(e: { kind: string; membersOnly?: boolean | null }) {
-  return e.kind === "FUSION" || Boolean(e.membersOnly);
+  return Boolean(e.membersOnly);
 }
 
 /** A newly approved girl can try the club for this long without a membership. */

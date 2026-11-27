@@ -179,7 +179,7 @@ describe("fusion (online, Stripe)", () => {
     return createEvent(db, owner.id, { kind: "FUSION", title: "Sip & Serve", startsAt: new Date(T0.getTime() + 20 * DAY), minSpots: 1, maxSpots: 2, pricingMode: "ONLINE", priceNonMember: 1800, priceMember: 1500 }, new Date(T0.getTime() - 3 * DAY));
   }
 
-  it("seat confirmed only after payment; members pay 1500; non-members cannot book", async () => {
+  it("seat confirmed only after payment; members pay 1500; trial non-members pay 1800 after the 48h", async () => {
     const e = await fusion();
     const m = await girl({ member: true });
     const r = await reserve(db, m.id, e.id, T0);
@@ -187,7 +187,7 @@ describe("fusion (online, Stripe)", () => {
     await db.reservation.update({ where: { id: r.reservationId }, data: { stripeSessionId: "cs_1" } });
     expect(await confirmPayment(db, "cs_1", "pi_1", 1500, T0)).toBe("CONFIRMED");
     const g = await girl();
-    expect(await code(reserve(db, g.id, e.id, T0))).toBe("MEMBERS_ONLY_EVENT"); // fusion events are for members only
+    expect((await reserve(db, g.id, e.id, T0)).amountDue).toBe(1800); // fusion: members first 48h, then trial girls too
   });
 
   it("unpaid holds expire after 30 minutes and the seat is free again", async () => {

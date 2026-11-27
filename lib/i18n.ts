@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 
 const en = {
-  tagline: "For girls who play",
+  tagline: "For ambitious girls",
   heroTitle: "Game on, girls.",
   pillarsTitle: "Skopjanki is three things",
   pillars: [
@@ -9,7 +9,7 @@ const en = {
     ["Small businesses of members", "Members show their own brands and give each other discounts."],
     ["Workshops and topics that matter", "Sessions led by members and guests: health, money, tech, career, creativity, self-care and more."],
   ] as [string, string][],
-  heroIntro: "A sport and social club for women in Skopje. One activity every week, a fusion event every month, and a crew that shows up.",
+  heroIntro: "A club for ambitious girls in Skopje: sport, workshops, small businesses and a crew that pushes you further. One activity every week, a fusion event every month.",
   mkIntro: "Спортски и социјален клуб за девојки од Скопје.",
   join: "I want to join",
   signIn: "Sign in",
@@ -183,7 +183,7 @@ const en = {
   planSent: "Sent! The organiser will approve or reject it.",
   pendingApproval: "Waiting for approval",
   kicker: "An Active Girls Club · Skopje",
-  heroMk: "Секоја недела се организираме за спортски активности со женски ентузијастки во Скопје. Почнато од девојки од Скопје за сите девојки од цела МКД!",
+  heroMk: "Секоја недела се собираме амбициозни девојки во Скопје: спорт, работилници, мали бизниси и дружење што носи понатаму. Почнато од девојки од Скопје, за сите девојки од цела МКД!",
   cardLine: "Who are Skopjanki?",
   whoWeAre: "Girls from Skopje who play, move and hang out together. Sport every week, a fusion event every month, and a club that shows up for each other.",
   stepN: "Step",
@@ -536,7 +536,7 @@ type Dict = typeof en;
 
 const mk: Dict = {
   ...en,
-  tagline: "За девојки што играат",
+  tagline: "За амбициозни девојки",
   heroTitle: "Game on, girls.",
   pillarsTitle: "Скопјанки се три работи",
   pillars: [

@@ -47,7 +47,11 @@ export default async function EditEvent({ params, searchParams }: { params: Prom
           // eslint-disable-next-line @next/next/no-img-element
           <img src={`/posters/${id}`} alt="" style={{ maxWidth: 180, borderRadius: 4, display: "block", marginBottom: 12 }} />
         )}
-        <ImageUploader endpoint="/api/admin/poster" fields={{ eventId: id }} label={hasPoster ? t.replacePicture : t.uploadPicture} uploading={t.uploading} failed={t.uploadFailed} />
+        {user.isOwner ? (
+          <ImageUploader endpoint="/api/admin/poster" fields={{ eventId: id }} label={hasPoster ? t.replacePicture : t.uploadPicture} uploading={t.uploading} failed={t.uploadFailed} />
+        ) : (
+          <p className="meta">{t.pictureByOrganiser}</p>
+        )}
       </section>
       <form action={save} className="card" style={{ marginTop: 16 }}>
         <input type="hidden" name="id" value={id} />

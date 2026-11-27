@@ -15,29 +15,21 @@ const JPEG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(
 beforeEach(reset);
 
 describe("moments: photos", () => {
-  it("only girls who came to a past event can add photos, and each removes only her own", async () => {
+  it("only the organiser adds photos, so the database stays small", async () => {
     const owner = await girl({ owner: true });
     const e = await weekly(owner.id); // starts T0 + 5 days
     const ana = await girl();
-    const mia = await girl();
-    const absent = await girl();
     await reserve(db, ana.id, e.id, T0);
-    await reserve(db, absent.id, e.id, T0);
     const after = new Date(e.startsAt.getTime() + 3 * 3600_000);
-
-    expect(await code(addPhoto(db, ana.id, e.id, "image/jpeg", JPEG, T0))).toBe("PHOTO_NOT_ALLOWED"); // not happened yet
-    expect(await code(addPhoto(db, mia.id, e.id, "image/jpeg", JPEG, after))).toBe("PHOTO_NOT_ALLOWED"); // not signed up
     await saveAttendance(db, owner.id, e.id, [ana.id], new Date(e.startsAt.getTime() + 3600_000));
-    expect(await code(addPhoto(db, absent.id, e.id, "image/jpeg", JPEG, after))).toBe("PHOTO_NOT_ALLOWED"); // marked absent
 
-    expect(await code(addPhoto(db, ana.id, e.id, "image/png", JPEG, after))).toBe("PHOTO_BAD_TYPE");
-    expect(await code(addPhoto(db, ana.id, e.id, "image/jpeg", Buffer.concat([JPEG, Buffer.alloc(1_600_000)]), after))).toBe("PHOTO_TOO_BIG");
-    const p = await addPhoto(db, ana.id, e.id, "image/jpeg", JPEG, after);
-    expect(await code(addPhoto(db, owner.id, e.id, "image/jpeg", JPEG, after))).toBe("OK");
-
-    expect(await code(removePhoto(db, mia.id, p.id))).toBe("FORBIDDEN");
-    expect(await code(removePhoto(db, ana.id, p.id))).toBe("OK");
-    expect(await db.photo.count()).toBe(1);
+    expect(await code(addPhoto(db, ana.id, e.id, "image/jpeg", JPEG, after))).toBe("PHOTO_NOT_ALLOWED"); // came, but not the organiser
+    expect(await code(addPhoto(db, owner.id, e.id, "image/png", JPEG, T0))).toBe("PHOTO_BAD_TYPE");
+    expect(await code(addPhoto(db, owner.id, e.id, "image/jpeg", Buffer.concat([JPEG, Buffer.alloc(1_600_000)]), T0))).toBe("PHOTO_TOO_BIG");
+    const p = await addPhoto(db, owner.id, e.id, "image/jpeg", JPEG, T0);
+    expect(await code(removePhoto(db, ana.id, p.id))).toBe("FORBIDDEN");
+    expect(await code(removePhoto(db, owner.id, p.id))).toBe("OK");
+    expect(await db.photo.count()).toBe(0);
   });
 });
 

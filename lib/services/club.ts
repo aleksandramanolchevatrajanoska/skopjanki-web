@@ -12,15 +12,11 @@ export const PHOTO_MAX_BYTES = 1_500_000;
 export const PHOTOS_PER_GIRL_PER_EVENT = 12;
 
 /** Only girls who came to an event that already happened (or the organiser) can add photos. */
-export async function canAddPhotos(db: Db, userId: string, eventId: string, now = new Date()) {
+/** Only the organiser adds photos, so the database stays small. */
+export async function canAddPhotos(db: Db, userId: string, eventId: string, _now = new Date()) {
   const user = await db.user.findUnique({ where: { id: userId } });
   const event = await db.event.findUnique({ where: { id: eventId } });
-  if (!user || user.status !== "APPROVED" || !event || event.status === "CANCELLED") return false;
-  // The organiser, the captain and the member who proposed it can add pictures any time.
-  if (user.isOwner || event.captainId === userId || (event.kind === "MEMBER_PLAN" && event.createdById === userId)) return true;
-  if (event.status !== "APPROVED" || event.startsAt > now) return false;
-  const r = await db.reservation.findUnique({ where: { eventId_userId: { eventId, userId } } });
-  return r?.status === "CONFIRMED" && r.attended !== false;
+  return Boolean(user?.isOwner && event && event.status !== "CANCELLED");
 }
 
 export async function addPhoto(db: Db, userId: string, eventId: string, mime: string, data: Buffer, now = new Date()) {

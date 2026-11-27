@@ -470,3 +470,4 @@ code.code{max-width:100%;overflow-wrap:anywhere;white-space:normal;display:inlin
 .reply-box summary{list-style:none;cursor:pointer;display:inline-block}
 .reply-box summary::-webkit-details-marker{display:none}
 .reply-box[open] summary{margin-bottom:8px}
+.admin-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;flex:none;display:inline-grid;place-items:center;background:var(--soft);color:var(--muted)}

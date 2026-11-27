@@ -7,6 +7,7 @@ import { importFromLuma } from "@/lib/services/importer";
 import { AppError } from "@/lib/services/common";
 import { EventFields, readEventForm } from "@/components/EventFields";
 import { Flash } from "@/components/Flash";
+import { ImageUploader } from "@/components/Interactive";
 
 async function create(form: FormData) {
   "use server";
@@ -46,7 +47,7 @@ export default async function AdminEvents({ searchParams }: { searchParams: Prom
     prisma.event.findMany({
       where: { startsAt: { gte: new Date(now.getTime() - 14 * 86400_000) } },
       orderBy: { startsAt: "asc" },
-      include: { partner: true, captain: true, _count: { select: { reservations: { where: { status: "CONFIRMED" } } } } },
+      include: { partner: true, captain: true, poster: { select: { updatedAt: true } }, _count: { select: { reservations: { where: { status: "CONFIRMED" } } } } },
     }),
     prisma.partner.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
   ]);
@@ -56,15 +57,27 @@ export default async function AdminEvents({ searchParams }: { searchParams: Prom
       <Flash sp={sp} locale="en" />
       <div className="tablewrap" style={{ marginTop: 16 }}>
         <table>
-          <thead><tr><th>When</th><th>Event</th><th>Girls</th><th>Captain</th><th>Status</th></tr></thead>
+          <thead><tr><th>When</th><th>Event</th><th>Picture</th><th>Girls</th><th>Captain</th><th>Status</th><th></th></tr></thead>
           <tbody>
             {events.map((e) => (
               <tr key={e.id}>
                 <td>{formatDateTime(e.startsAt, "en")}</td>
                 <td><a href={`/admin/events/${e.id}`}><strong>{e.title}</strong></a><div className="meta">{e.kind.toLowerCase().replace("_", " ")}{e.partner ? ` · ${e.partner.name}` : ""}</div></td>
+                <td>
+                  <div className="row" style={{ gap: 8, flexWrap: "nowrap" }}>
+                    {e.poster || e.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={e.poster ? `/posters/${e.id}?v=${e.poster.updatedAt.getTime()}` : e.imageUrl!} alt="" className="admin-thumb" />
+                    ) : (
+                      <span className="admin-thumb empty" aria-hidden="true">–</span>
+                    )}
+                    <ImageUploader endpoint="/api/admin/poster" fields={{ eventId: e.id }} label={e.poster || e.imageUrl ? "Replace" : "Upload"} uploading="Uploading…" failed="Upload failed" />
+                  </div>
+                </td>
                 <td>{e._count.reservations} / {e.maxSpots} <span className="meta">(min {e.minSpots})</span></td>
                 <td>{e.kind === "FUSION" ? "–" : e.captain?.name ?? <span className="meta">none yet</span>}</td>
                 <td>{e.status.toLowerCase()}{e.lockedAt ? " · price fixed" : ""}</td>
+                <td><a className="btn sm ghost" href={`/admin/events/${e.id}`}>✎ Edit</a></td>
               </tr>
             ))}
           </tbody>

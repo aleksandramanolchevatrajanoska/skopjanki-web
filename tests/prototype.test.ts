@@ -213,7 +213,7 @@ describe("event photos and videos", () => {
     expect(cleanVideoLinks(["https://youtu.be/dQw4w9WgXcQ", "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "nope"])).toEqual(["https://www.youtube.com/watch?v=dQw4w9WgXcQ"]);
   });
 
-  it("the organiser and captain add photos before the event; a girl only after she came", async () => {
+  it("only the organiser adds photos; captains and girls do not", async () => {
     const { canAddPhotos } = await import("@/lib/services/club");
     const owner = await girl({ owner: true });
     const e = await weekly(owner.id);
@@ -221,7 +221,7 @@ describe("event photos and videos", () => {
     const g = await girl();
     await db.event.update({ where: { id: e.id }, data: { captainId: cap.id } });
     expect(await canAddPhotos(db, owner.id, e.id, T0)).toBe(true);
-    expect(await canAddPhotos(db, cap.id, e.id, T0)).toBe(true);
+    expect(await canAddPhotos(db, cap.id, e.id, T0)).toBe(false);
     expect(await canAddPhotos(db, g.id, e.id, T0)).toBe(false);
   });
 });

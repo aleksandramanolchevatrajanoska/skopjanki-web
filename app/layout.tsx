@@ -28,6 +28,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={locale}>
       <head>
+        {/* Always Skopjanki's own colours: no browser or phone dark mode may repaint the site. */}
+        <meta name="color-scheme" content="only light" />
+        <meta name="darkreader-lock" />
+        <meta name="theme-color" content="#FFF9ED" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link

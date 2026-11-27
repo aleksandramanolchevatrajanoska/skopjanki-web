@@ -38,7 +38,7 @@ async function join(form: FormData) {
 export default async function Join({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
   const user = await currentUser();
-  if (user?.status === "APPROVED") redirect("/app");
+  if (user?.status === "APPROVED") redirect("/?ok=alreadyIn"); // already in the club: to the home page
   const { t, locale } = await getT(user?.locale);
   return (
     <div style={{ maxWidth: 680, margin: "0 auto" }}>

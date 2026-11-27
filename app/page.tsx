@@ -92,6 +92,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       </section>
 
       {sp.ok === "deleted" && <div className="notice ok" role="status">{t.deleted}</div>}
+      {sp.ok === "alreadyIn" && <div className="notice ok" role="status">{t.alreadyIn}</div>}
       {nextFusion && (
         <a className="countdown" href={inside ? `/app/events/${nextFusion.id}` : "/join"} style={{ marginTop: 20 }}>
           <span className="label">{t.countdownTo}</span>

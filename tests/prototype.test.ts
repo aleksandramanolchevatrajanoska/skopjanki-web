@@ -627,3 +627,21 @@ describe("events without a price", () => {
     expect((await reserve(db, m.id, ev.id, T0)).status).toBe("PENDING_PAYMENT");
   });
 });
+
+describe("changing an event between Play for fun and Fusion", () => {
+  it("weekly becomes fusion (online, no captain) and back (price per girl); refused once someone paid online", async () => {
+    const { updateEvent } = await import("@/lib/services/events");
+    const owner = await girl({ owner: true });
+    const cap = await girl({ member: true });
+    const ev = await weekly(owner.id);
+    await db.event.update({ where: { id: ev.id }, data: { captainId: cap.id } });
+    const base = { title: ev.title, startsAt: ev.startsAt, minSpots: 10, maxSpots: 14 };
+    const f = await updateEvent(db, ev.id, { ...base, kind: "FUSION", pricingMode: "SPLIT", priceNonMember: 1800, priceMember: 1500 });
+    expect(f).toMatchObject({ kind: "FUSION", pricingMode: "ONLINE", captainId: null });
+    const w = await updateEvent(db, ev.id, { ...base, kind: "WEEKLY", pricingMode: "ONLINE", priceNonMember: 600 });
+    expect(w).toMatchObject({ kind: "WEEKLY", pricingMode: "PER_PERSON", priceNonMember: 600 });
+    await updateEvent(db, ev.id, { ...base, kind: "FUSION", pricingMode: "ONLINE", priceNonMember: 1800, priceMember: 1500 });
+    await db.reservation.create({ data: { eventId: ev.id, userId: cap.id, status: "CONFIRMED", isMember: true, paidAmount: 1500 } });
+    expect(await code(updateEvent(db, ev.id, { ...base, kind: "WEEKLY", pricingMode: "PER_PERSON", priceNonMember: 600 }))).toBe("EVENT_HAS_PAYMENTS");
+  });
+});

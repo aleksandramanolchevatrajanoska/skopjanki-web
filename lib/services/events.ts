@@ -53,6 +53,7 @@ export type EventInput = {
 export function normalizeEventInput<T extends EventInput>(i: T, now = new Date()): T {
   const out = { ...i };
   if (out.kind === "FUSION") out.pricingMode = "ONLINE";
+  else if (out.pricingMode === "ONLINE") out.pricingMode = "PER_PERSON"; // e.g. a fusion event turned into a weekly one
   if (out.startsAt < now) {
     const missing = out.pricingMode === "SPLIT" ? !(out.totalCost && out.totalCost > 0) : out.priceNonMember == null;
     if (missing) {
@@ -142,7 +143,14 @@ export async function updateEvent(db: Db, eventId: string, input1: EventInput) {
   const keep = input0.memberDiscountPct == null && (input0.partnerId ?? null) === e.partnerId;
   const input = keep ? { ...input0, memberDiscountPct: e.memberDiscountPct } : await withPartnerDiscount(db, input0);
   validate(input);
-  if (e.kind !== input.kind && (e.kind === "FUSION" || input.kind === "FUSION")) throw new AppError("CANNOT_CHANGE_KIND");
+  // Moving between Play for fun and Fusion is allowed, unless someone already paid online for it
+  // (refund her first). A fusion event has no captain.
+  const toFusion = input.kind === "FUSION" && e.kind !== "FUSION";
+  const fromFusion = e.kind === "FUSION" && input.kind !== "FUSION";
+  if (fromFusion) {
+    const paid = await db.reservation.count({ where: { eventId, paidAmount: { gt: 0 }, status: { not: "CANCELLED" } } });
+    if (paid > 0) throw new AppError("EVENT_HAS_PAYMENTS");
+  }
   const taken = await db.reservation.count({ where: { eventId, status: "CONFIRMED" } });
   if (input.maxSpots < taken) throw new AppError("BAD_SPOTS");
   const d = data(input);
@@ -152,7 +160,11 @@ export async function updateEvent(db: Db, eventId: string, input1: EventInput) {
     d.priceMember !== e.priceMember || d.memberDiscountPct !== e.memberDiscountPct || d.startsAt.getTime() !== e.startsAt.getTime();
   return db.event.update({
     where: { id: eventId },
-    data: { ...d, ...(priceChanged ? { lockedAt: null, lockedPriceMember: null, lockedPriceNonMember: null } : {}) },
+    data: {
+      ...d,
+      ...(priceChanged || toFusion || fromFusion ? { lockedAt: null, lockedPriceMember: null, lockedPriceNonMember: null } : {}),
+      ...(toFusion ? { captainId: null } : {}),
+    },
   });
 }
 

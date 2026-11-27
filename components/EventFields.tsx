@@ -14,12 +14,11 @@ export function EventFields({ locale, partners, e, owner }: { locale: Locale; pa
       {owner && e?.kind !== "MEMBER_PLAN" && (
         <>
           <label htmlFor="kind">Type</label>
-          <select id="kind" name="kind" defaultValue={e?.kind ?? "WEEKLY"} disabled={!!e && e.kind === "FUSION"}>
+          <select id="kind" name="kind" defaultValue={e?.kind ?? "WEEKLY"}>
             <option value="WEEKLY">{t.kinds.WEEKLY}</option>
             <option value="SPECIAL">{t.kinds.SPECIAL}</option>
             <option value="FUSION">{t.kinds.FUSION}</option>
           </select>
-          {e?.kind === "FUSION" && <input type="hidden" name="kind" value="FUSION" />}
         </>
       )}
       <label htmlFor="title">{t.title}</label>

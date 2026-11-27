@@ -314,3 +314,32 @@ export function safeUrl(raw: string | null | undefined) {
     return null;
   }
 }
+
+/* ---------- Search that forgives case, Cyrillic or Latin letters, and accents ---------- */
+
+const CYR: Record<string, string> = {
+  а: "a", б: "b", в: "v", г: "g", д: "d", ѓ: "gj", е: "e", ж: "zh", з: "z", ѕ: "dz", и: "i", ј: "j", к: "k", л: "l", љ: "lj",
+  м: "m", н: "n", њ: "nj", о: "o", п: "p", р: "r", с: "s", т: "t", ќ: "kj", у: "u", ф: "f", х: "h", ц: "c", ч: "ch", џ: "dz", ш: "sh",
+  й: "j", я: "ja", ю: "ju", ё: "e", э: "e", ы: "i", щ: "sht", ъ: "", ь: "",
+};
+const LAT: Record<string, string> = { č: "ch", ć: "kj", š: "sh", ž: "zh", đ: "gj", ǵ: "gj", ḱ: "kj" };
+
+/** Lower case, Cyrillic written in Latin letters, accents dropped: "Фотографија" and "fotografija" match. */
+export function foldText(s: string) {
+  return s
+    .toLowerCase()
+    .replace(/[а-яѓѕјљњќџйёэыщъь]/g, (c) => CYR[c] ?? c)
+    .replace(/[čćšžđǵḱ]/g, (c) => LAT[c] ?? c)
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Every word of the query must appear somewhere in the text. */
+export function matchesQuery(text: string, query: string) {
+  const words = foldText(query).split(" ").filter(Boolean);
+  if (words.length === 0) return true;
+  const hay = foldText(text);
+  return words.every((w) => hay.includes(w));
+}

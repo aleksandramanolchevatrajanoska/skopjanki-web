@@ -457,3 +457,17 @@ describe("hours are the length of the events", () => {
     expect(await clubMovement(db, T0)).toMatchObject({ eventsHeld: 1, playHours: 1, socialHours: 0, km: 24 });
   });
 });
+
+describe("community search", () => {
+  it("ignores case, matches Cyrillic and Latin, and needs every word", async () => {
+    const { matchesQuery } = await import("@/lib/services/club");
+    const text = "Марија Фотографија, сметководство Креативна индустрија Здравје health";
+    expect(matchesQuery(text, "ФОТО")).toBe(true);
+    expect(matchesQuery(text, "fotografija")).toBe(true);
+    expect(matchesQuery(text, "smetkovodstvo zdravje")).toBe(true);
+    expect(matchesQuery(text, "HEALTH")).toBe(true);
+    expect(matchesQuery(text, "јога")).toBe(false);
+    expect(matchesQuery("Ana Čolić", "colic")).toBe(false);
+    expect(matchesQuery("Ana Čolić", "cholikj")).toBe(true);
+  });
+});

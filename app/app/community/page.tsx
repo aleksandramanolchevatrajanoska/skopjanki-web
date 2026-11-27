@@ -3,7 +3,8 @@ import { prisma } from "@/lib/db";
 import { BACKGROUNDS, getT, LEVELS, SPORTS, TOPICS } from "@/lib/i18n";
 import { topicLabel } from "@/components/Topics";
 import { isMember } from "@/lib/membership";
-import { matchesCommunityFilter } from "@/lib/services/club";
+import { matchesCommunityFilter, matchesQuery } from "@/lib/services/club";
+import { dicts } from "@/lib/i18n";
 
 export default async function Community({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
@@ -13,7 +14,15 @@ export default async function Community({ searchParams }: { searchParams: Promis
   const level = LEVELS.includes(sp.level ?? "") ? sp.level : undefined;
   const topic = TOPICS.includes(sp.topic ?? "") ? sp.topic : undefined;
   const background = BACKGROUNDS.includes(sp.bg ?? "") ? sp.bg : undefined;
-  const q = (sp.q ?? "").trim().toLowerCase().slice(0, 60);
+  const q = (sp.q ?? "").trim().slice(0, 60);
+  // What a search looks through: name, skills, about, bio, background and interests, in both languages.
+  const searchText = (g: { name: string; skills: string | null; about: string | null; bio: string | null; background: string | null; topics: string[]; levels: unknown }) =>
+    [
+      g.name, g.skills, g.about, g.bio,
+      g.background && dicts.mk.backgroundNames[g.background], g.background && dicts.en.backgroundNames[g.background],
+      ...g.topics.flatMap((k) => [k, dicts.mk.topicNames[k], dicts.en.topicNames[k]]),
+      ...Object.keys((g.levels ?? {}) as Record<string, string>),
+    ].filter(Boolean).join(" ");
   const girls = await prisma.user.findMany({
     where: { status: "APPROVED", OR: [{ showInCommunity: true }, { id: user.id }] },
     select: { id: true, name: true, bio: true, about: true, topics: true, skills: true, background: true, instagram: true, levels: true, isOwner: true, memberUntil: true },
@@ -24,7 +33,7 @@ export default async function Community({ searchParams }: { searchParams: Promis
       matchesCommunityFilter((g.levels ?? {}) as Record<string, string>, sport, level) &&
       (!topic || g.topics.includes(topic)) &&
       (!background || g.background === background) &&
-      (!q || [g.skills, g.about, g.bio, ...g.topics].filter(Boolean).join(" ").toLowerCase().includes(q)),
+      (!q || matchesQuery(searchText(g), q)),
   );
   return (
     <>

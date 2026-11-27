@@ -363,3 +363,23 @@ export function MediaCarousel({ slides, labels }: { slides: MediaSlide[]; labels
     </div>
   );
 }
+
+/** A row that scrolls sideways with snap, plus previous / next buttons: one card per past event. */
+export function ScrollRow({ children, labels }: { children: React.ReactNode; labels: { prev: string; next: string } }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const go = (dir: number) => {
+    const el = ref.current;
+    if (!el) return;
+    const card = el.firstElementChild as HTMLElement | null;
+    el.scrollBy({ left: dir * ((card?.offsetWidth ?? 240) + 20), behavior: "smooth" });
+  };
+  return (
+    <div className="scrollrow">
+      <div className="scrollrow-track" ref={ref}>{children}</div>
+      <div className="scrollrow-bar">
+        <button type="button" className="btn sm ghost" onClick={() => go(-1)} aria-label={labels.prev}>←</button>
+        <button type="button" className="btn sm ghost" onClick={() => go(1)} aria-label={labels.next}>→</button>
+      </div>
+    </div>
+  );
+}

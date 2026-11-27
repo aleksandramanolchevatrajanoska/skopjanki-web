@@ -5,10 +5,10 @@ import { isMember, MEMBERSHIP_MKD } from "@/lib/membership";
 import { formatDateTime } from "@/lib/time";
 import { Queens } from "@/components/Queens";
 import { askEnabled } from "@/lib/ask";
-import { AskBox, FlipCard, MomentCarousel, type Slide } from "@/components/Interactive";
+import { AskBox, FlipCard, MomentCarousel, ScrollRow, type Slide } from "@/components/Interactive";
 import { clubStats } from "@/lib/services/club";
 import { clubMovement } from "@/lib/services/points";
-import { coverOf } from "@/lib/views";
+import { coverOf, posterUrl } from "@/lib/views";
 import { PartnerCard } from "@/components/PartnerCard";
 import { DAY, HOUR } from "@/lib/time";
 
@@ -30,12 +30,20 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       take: 4,
       include: { partner: true, poster: { select: { eventId: true, updatedAt: true } }, photos: { select: { id: true }, orderBy: { createdAt: "asc" }, take: 1 } },
     }),
-    // Moments: past events with photos. Visitors see only photos the organiser made public.
+    // Moments: every past event with a picture or photos, newest first. Visitors see only photos the
+    // organiser made public; event pictures (posters) are promotional, so everyone sees them.
     prisma.event.findMany({
-      where: { status: "APPROVED", startsAt: { lt: now }, photos: { some: inside ? {} : { public: true } } },
+      where: {
+        status: "APPROVED", startsAt: { lt: now }, example: false,
+        OR: [{ photos: { some: inside ? {} : { public: true } } }, { poster: { isNot: null } }, { imageUrl: { not: null } }],
+      },
       orderBy: { startsAt: "desc" },
-      take: 6,
-      include: { partner: true, photos: { where: inside ? {} : { public: true }, select: { id: true }, orderBy: { createdAt: "asc" }, take: 20 } },
+      take: 24,
+      include: {
+        partner: true,
+        poster: { select: { updatedAt: true } },
+        photos: { where: inside ? {} : { public: true }, select: { id: true }, orderBy: { createdAt: "asc" }, take: 20 },
+      },
     }),
     prisma.quote.findMany({ where: { hidden: false }, include: { user: { select: { name: true, memberUntil: true, isOwner: true } } }, orderBy: { updatedAt: "desc" }, take: 12 }),
     clubStats(prisma),
@@ -235,9 +243,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
         <h2 className="display-md">{t.momentsTitle}</h2>
         <p className="meta">{t.momentsText}</p>
         {moments.length > 0 ? (
-          <div className="moments">
+          (() => {
+            const cards = (
+              <>
             {moments.map((e) => {
+              const picture = e.poster ? posterUrl(e.id, e.poster.updatedAt) : e.imageUrl;
               const slides: Slide[] = [
+                ...(picture ? [{ src: picture, alt: `${e.title} poster` }] : []),
                 ...e.photos.map((ph) => ({ src: `/photos/${ph.id}`, alt: e.title })),
                 // Only public fields go to the browser (never the code, email, phone or notes).
                 ...(e.partner
@@ -247,7 +259,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
               return (
                 <MomentCarousel
                   key={e.id}
-                  cover={e.photos[0] ? `/photos/${e.photos[0].id}` : null}
+                  cover={picture ?? (e.photos[0] ? `/photos/${e.photos[0].id}` : null)}
                   title={e.title}
                   meta={formatDateTime(e.startsAt, locale)}
                   slides={slides}
@@ -256,7 +268,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
                 />
               );
             })}
-          </div>
+              </>
+            );
+            // A few events sit as tiles; once there are more than four they scroll sideways.
+            return moments.length > 4 ? (
+              <ScrollRow labels={{ prev: t.prevSlide, next: t.nextSlide }}>{cards}</ScrollRow>
+            ) : (
+              <div className="moments">{cards}</div>
+            );
+          })()
         ) : (
           <div className="moments">
             {[

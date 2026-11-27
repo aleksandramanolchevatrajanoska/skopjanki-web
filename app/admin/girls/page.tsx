@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { attempt, int } from "@/lib/act";
 import { isMember, MEMBERSHIP_MKD } from "@/lib/membership";
 import { DAY } from "@/lib/time";
-import { addGirl, decideUser, setMembership } from "@/lib/services/users";
+import { addGirl, closeCancelRequest, decideUser, setMembership } from "@/lib/services/users";
 import { str } from "@/lib/act";
 import { markDebtPaid } from "@/lib/services/attendance";
 import { Flash } from "@/components/Flash";
@@ -38,6 +38,12 @@ async function add(form: FormData) {
     }), "girlAdded");
 }
 
+async function cancelDone(form: FormData) {
+  "use server";
+  await requireOwner();
+  await attempt("/admin/girls", () => closeCancelRequest(prisma, String(form.get("id")), form.get("endNow") === "1"));
+}
+
 async function debtPaid(form: FormData) {
   "use server";
   const owner = await requireOwner();
@@ -54,6 +60,7 @@ export default async function Girls({ searchParams }: { searchParams: Promise<Re
   });
   const members = users.filter((u) => isMember(u)).length;
   const requests = users.filter((u) => u.membershipRequestedAt && !isMember(u));
+  const cancels = users.filter((u) => u.membershipCancelRequestedAt);
   return (
     <>
       <div className="between">
@@ -81,6 +88,27 @@ export default async function Girls({ searchParams }: { searchParams: Promise<Re
           <p style={{ marginTop: 10 }}><button className="btn sm pink" type="submit">Add</button></p>
         </form>
       </details>
+      {cancels.length > 0 && (
+        <section className="card" style={{ margin: "12px 0", borderColor: "var(--warn)" }}>
+          <h2>Cancellation requests ({cancels.length})</h2>
+          <p className="meta">Cancel each subscription on Stripe (Customers → Subscriptions → Cancel), then mark it here.</p>
+          <ul className="desk-list">
+            {cancels.map((u) => (
+              <li key={u.id}>
+                <span>
+                  <strong>{u.name}</strong> <span className="meta">· asked {u.membershipCancelRequestedAt!.toLocaleDateString("en-GB")}{u.memberUntil ? ` · member until ${u.memberUntil.toLocaleDateString("en-GB")}` : ""}</span>
+                  <br /><span className="meta">{u.email}</span>
+                </span>
+                <span className="row">
+                  <CopyButton value={u.email} label="Copy email" done="Copied" />
+                  <form action={cancelDone}><input type="hidden" name="id" value={u.id} /><button className="btn sm" type="submit">Cancelled on Stripe, member until her date</button></form>
+                  <form action={cancelDone}><input type="hidden" name="id" value={u.id} /><input type="hidden" name="endNow" value="1" /><button className="btn sm ghost" type="submit">End now</button></form>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {requests.length > 0 && (
         <section className="card" style={{ margin: "12px 0", borderColor: "var(--pink)" }}>
           <h2>Membership requests ({requests.length})</h2>

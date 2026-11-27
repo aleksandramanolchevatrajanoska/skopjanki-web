@@ -5,7 +5,7 @@ import { isMember, MEMBERSHIP_EUR, MEMBERSHIP_MKD } from "@/lib/membership";
 import { AppError } from "@/lib/services/common";
 import { billingPortal } from "@/lib/stripe";
 import { prisma } from "@/lib/db";
-import { requestMembership } from "@/lib/services/users";
+import { requestMembership, requestMembershipCancel } from "@/lib/services/users";
 import { Flash } from "@/components/Flash";
 import { MemberCardWithHint as MemberCard } from "@/components/MemberCard";
 import { fmtRange, loadEventCards } from "@/lib/views";
@@ -22,6 +22,13 @@ async function askToJoin() {
     throw e;
   }
   redirect("/app/membership?ok=membershipRequested");
+}
+
+async function askToCancel() {
+  "use server";
+  const user = await requireApproved();
+  await requestMembershipCancel(prisma, user.id);
+  redirect("/app/membership?ok=cancelRequested");
 }
 
 async function portal() {
@@ -68,6 +75,15 @@ export default async function Membership({ searchParams }: { searchParams: Promi
           ))}
           {member && <MemberCard user={user} locale={locale} />}
           {member && user.stripeSubscriptionId && <form action={portal} style={{ marginTop: 10 }}><button className="btn ghost sm" type="submit">{t.manageSub}</button></form>}
+          {member && !user.isOwner && (user.membershipCancelRequestedAt ? (
+            <p className="notice" style={{ marginTop: 10 }}>{t.cancelRequestedOn.replace("{date}", formatDateTime(user.membershipCancelRequestedAt, locale))}</p>
+          ) : (
+            <details className="cancel-box" style={{ marginTop: 14 }}>
+              <summary className="meta">{t.cancelMembership}</summary>
+              <p className="meta">{t.cancelMembershipHint}</p>
+              <form action={askToCancel}><button className="btn sm ghost" type="submit">{t.cancelMembershipConfirm}</button></form>
+            </details>
+          ))}
         </div>
       </div>
 

@@ -157,3 +157,36 @@ export async function addGirl(
   }
   return db.user.findUniqueOrThrow({ where: { id: u.id } });
 }
+
+/**
+ * A member asks to stop her membership. The organiser gets an email and cancels the subscription
+ * on Stripe; the membership stays valid until the end of the paid month.
+ */
+export async function requestMembershipCancel(db: Db, userId: string, now = new Date()) {
+  const u = await db.user.findUniqueOrThrow({ where: { id: userId } });
+  if (u.membershipCancelRequestedAt) return u;
+  const updated = await db.user.update({ where: { id: userId }, data: { membershipCancelRequestedAt: now } });
+  await flush([{
+    to: await ownerEmailsFromDb(db),
+    subject: `Откажување членство: ${u.name}`,
+    text: [
+      `${u.name} сака да ја откаже членарината.`,
+      "",
+      `Мејл: ${u.email}`,
+      u.phone ? `Телефон: ${u.phone}` : "",
+      u.memberUntil ? `Членството важи до: ${u.memberUntil.toLocaleDateString("mk-MK", { timeZone: "Europe/Skopje" })}` : "",
+      "",
+      "Откажи ја претплатата во Stripe (Customers → Subscriptions → Cancel), па означи тука:",
+      appUrl("/admin/girls"),
+    ].filter((l) => l !== "").join("\n"),
+  }]);
+  return updated;
+}
+
+/** The organiser cancelled it on Stripe: the request is done, and the membership can end now or at its date. */
+export async function closeCancelRequest(db: Db, userId: string, endNow: boolean) {
+  return db.user.update({
+    where: { id: userId },
+    data: { membershipCancelRequestedAt: null, ...(endNow ? { memberUntil: null } : {}) },
+  });
+}

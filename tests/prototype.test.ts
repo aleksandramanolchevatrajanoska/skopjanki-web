@@ -645,3 +645,21 @@ describe("changing an event between Play for fun and Fusion", () => {
     expect(await code(updateEvent(db, ev.id, { ...base, kind: "WEEKLY", pricingMode: "PER_PERSON", priceNonMember: 600 }))).toBe("EVENT_HAS_PAYMENTS");
   });
 });
+
+describe("asking to cancel a membership", () => {
+  it("emails the organiser once; closing keeps or ends the membership", async () => {
+    const { requestMembershipCancel, closeCancelRequest } = await import("@/lib/services/users");
+    const owner = await girl({ owner: true });
+    const m = await girl({ member: true });
+    await requestMembershipCancel(db, m.id, T0);
+    await requestMembershipCancel(db, m.id, T0);
+    const mails = await db.emailLog.findMany({ where: { subject: { startsWith: "Откажување членство" } } });
+    expect(mails.length).toBe(1);
+    expect(mails[0].to).toContain(owner.email);
+    const kept = await closeCancelRequest(db, m.id, false);
+    expect(kept.membershipCancelRequestedAt).toBeNull();
+    expect(kept.memberUntil).not.toBeNull();
+    await requestMembershipCancel(db, m.id, T0);
+    expect((await closeCancelRequest(db, m.id, true)).memberUntil).toBeNull();
+  });
+});

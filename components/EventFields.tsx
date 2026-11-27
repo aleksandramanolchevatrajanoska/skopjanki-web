@@ -78,7 +78,7 @@ export function EventFields({ locale, partners, e, owner }: { locale: Locale; pa
       <div className="two">
         <div><label htmlFor="totalCost">{t.totalCost}</label><input id="totalCost" name="totalCost" type="number" min={0} defaultValue={e?.totalCost ?? ""} /></div>
         <div><label htmlFor="priceNonMember">{t.priceNonMemberLabel}</label><input id="priceNonMember" name="priceNonMember" type="number" min={0} defaultValue={e?.priceNonMember ?? ""} /></div>
-        {owner && <div><label htmlFor="priceMember">{t.priceMemberLabel} (fusion)</label><input id="priceMember" name="priceMember" type="number" min={0} defaultValue={e?.priceMember ?? ""} /></div>}
+        {owner && <div><label htmlFor="priceMember">{t.priceMemberLabel} <span className="meta">({t.priceMemberHint})</span></label><input id="priceMember" name="priceMember" type="number" min={0} defaultValue={e?.priceMember ?? ""} /></div>}
       </div>
     </>
   );

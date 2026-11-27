@@ -33,7 +33,11 @@ export function pricesFor(e: PricedEvent, payingNonMembers: number, payingMember
       return e.totalCost == null ? null : splitPrices(e.totalCost, payingNonMembers, payingMembers, e.memberDiscountPct);
     case "PER_PERSON":
       if (e.priceNonMember == null) return null;
-      return { nonMember: e.priceNonMember, member: ceil10(e.priceNonMember * (1 - e.memberDiscountPct / 100)) };
+      // A member price the organiser typed in is used as it is; otherwise it comes from the discount.
+      return {
+        nonMember: e.priceNonMember,
+        member: e.priceMember != null ? e.priceMember : ceil10(e.priceNonMember * (1 - e.memberDiscountPct / 100)),
+      };
     case "ONLINE":
       if (e.priceNonMember == null) return null;
       return { nonMember: e.priceNonMember, member: e.priceMember ?? e.priceNonMember };

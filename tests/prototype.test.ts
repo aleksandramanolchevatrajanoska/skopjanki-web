@@ -693,3 +693,12 @@ describe("limited member places", () => {
     expect(await memberSpotsLeft(db)).toEqual({ total: 30, taken: 2, left: 28 });
   });
 });
+
+describe("member price typed in by the organiser", () => {
+  it("is used exactly for a price per girl; empty means it comes from the discount", async () => {
+    const { pricesFor } = await import("@/lib/pricing");
+    const base = { kind: "WEEKLY" as const, pricingMode: "PER_PERSON" as const, totalCost: null, priceNonMember: 680, memberDiscountPct: 25, minSpots: 1, maxSpots: 10 };
+    expect(pricesFor({ ...base, priceMember: 500 }, 0, 0)).toEqual({ nonMember: 680, member: 500 });
+    expect(pricesFor({ ...base, priceMember: null }, 0, 0)).toEqual({ nonMember: 680, member: 510 });
+  });
+});

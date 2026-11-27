@@ -48,7 +48,7 @@ export default async function Invitation({ searchParams }: Props) {
       <section>
         <span className="label">Како да се приклучиш</span>
         <ol className="onepager-steps" style={{ marginTop: 12 }}>
-          <li><strong>Пријави се</strong><span>Кажи ни кои спортови ги сакаш, твоите интереси и, ако имаш, твојот мал бизнис.</span><a className="btn sm ghost" href="/?pokana=1">Сакам да се приклучам →</a></li>
+          <li><strong>Пријави се</strong><span>Кажи ни кои спортови ги сакаш, твоите интереси и, ако имаш, твојот мал бизнис.</span><a className="btn sm ghost" href="/?pokana=1">Сакам да се приклучам, но прво да ја видам платформата →</a></li>
           <li><strong>Добиваш мејл</strong><span>Организаторката ја одобрува секоја девојка. Ти стигнува мејл со линк за најава; ако го нема, погледни во Spam или Promotions.</span></li>
           <li><strong>Стани членка</strong><span>Во „Членарина“ притисни „Сакам да станам членка“ и ти праќаме линк за плаќање. Добиваш своја членска картичка.</span></li>
           <li><strong>Дојди на терен</strong><span>Пријави се на неделен спорт, работилница или fusion настан. Членките имаат 48 часа предност и попуст.</span></li>
@@ -69,7 +69,7 @@ export default async function Invitation({ searchParams }: Props) {
       </section>
 
       <section className="invite-cta">
-        <a className="btn pink" href="/?pokana=1">Сакам да се приклучам</a>
+        <a className="btn pink" href="/?pokana=1">Сакам да се приклучам, но прво да ја видам платформата</a>
         <p className="meta">Прво се пријавуваш со име и мејл, организаторката те одобрува, па добиваш линк за најава.</p>
       </section>
     </div>

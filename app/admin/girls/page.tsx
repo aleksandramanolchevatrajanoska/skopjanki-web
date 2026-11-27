@@ -70,6 +70,12 @@ async function debtPaid(form: FormData) {
   await attempt("/admin/girls", () => markDebtPaid(prisma, owner.id, String(form.get("id"))));
 }
 
+/** The message to paste into Viber or Instagram with her card link. */
+function cardMessage(name: string, link: string) {
+  const first = name.split(/\s+/)[0];
+  return `Здраво ${first}! 💛 Добредојде како членка на Скопјанки ♛ Тука е твојата членска картичка и кратко упатство како да го користиш сајтот: ${link}\nЗачувај ја и покажи ја кај партнерите за попуст. Се гледаме на терен!`;
+}
+
 export default async function Girls({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
@@ -111,7 +117,7 @@ export default async function Girls({ searchParams }: { searchParams: Promise<Re
       </details>
       <section className="card" style={{ margin: "12px 0" }}>
         <h2>Member cards</h2>
-        <p className="meta">Each member gets a one-page card with her name, member number and how the site works, at her own secret link. Send it by email, or copy the link from her row below for Viber or Instagram.</p>
+        <p className="meta">Each member gets a one-page card with her name, member number and how the site works, at her own secret link. Send it by email, or in her row below use Copy message (paste it into Instagram or Viber) or Viber (opens Viber with the message, on a phone).</p>
         {noCard.length > 0 ? (
           <form action={sendAllCards} style={{ marginTop: 8 }}>
             <button className="btn sm pink" type="submit">Email cards to the {noCard.length} members who haven&apos;t got one</button>
@@ -199,7 +205,9 @@ export default async function Girls({ searchParams }: { searchParams: Promise<Re
                       <form action={sendCard}><input type="hidden" name="id" value={u.id} /><button className="btn sm" type="submit">{u.memberCardSentAt ? "Resend card" : "Send member card"}</button></form>
                       {u.memberCardToken ? (
                         <>
-                          <CopyButton value={appUrl(`/karticka/${u.memberCardToken}`)} label="Copy card link" done="Copied" />
+                          <CopyButton value={cardMessage(u.name, appUrl(`/karticka/${u.memberCardToken}`))} label="Copy message" done="Copied" />
+                          <a className="btn sm ghost" href={`viber://forward?text=${encodeURIComponent(cardMessage(u.name, appUrl(`/karticka/${u.memberCardToken}`)))}`}>Viber</a>
+                          <CopyButton value={appUrl(`/karticka/${u.memberCardToken}`)} label="Copy link" done="Copied" />
                           <a className="btn sm ghost" href={`/karticka/${u.memberCardToken}`} target="_blank" rel="noopener noreferrer">See ↗</a>
                         </>
                       ) : (

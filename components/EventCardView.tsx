@@ -36,6 +36,7 @@ export function EventCardView({ e, locale, member }: { e: EventCard; locale: Loc
       <p className="meta">{formatDateTime(e.startsAt, locale)}{e.partner ? ` · ${e.partner.name}` : e.place ? ` · ${e.place}` : ""}</p>
       {!past && <div className="bar" aria-hidden="true"><i style={{ width: `${pct}%` }} /></div>}
       {!past && <p className="meta">{e.confirmed} / {e.maxSpots} {t.going}{e.waiting ? ` · ${e.waiting} ${t.waitlist}` : ""}</p>}
+      {!e.range && !past && e.status === "APPROVED" && <p className="meta" style={{ marginTop: 6 }}>{t.priceSoon}</p>}
       {e.range && (
         <p style={{ marginTop: 6 }}>
           <strong>{fmtRange(member ? e.range.member : e.range.nonMember)} MKD</strong>{" "}

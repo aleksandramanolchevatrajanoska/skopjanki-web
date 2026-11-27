@@ -612,3 +612,18 @@ describe("organiser adds girls and captains directly", () => {
     expect((await db.reservation.findUniqueOrThrow({ where: { eventId_userId: { eventId: ev.id, userId: ana.id } } })).status).toBe("CONFIRMED");
   });
 });
+
+describe("events without a price", () => {
+  it("can be created with only a title and a date; sign-ups open once a price is set", async () => {
+    const { createEvent, updateEvent } = await import("@/lib/services/events");
+    const { reserve } = await import("@/lib/services/reservations");
+    const owner = await girl({ owner: true });
+    const m = await girl({ member: true });
+    const base = { kind: "FUSION" as const, title: "Sip & Serve", startsAt: new Date(T0.getTime() + 10 * 86400_000), minSpots: 1, maxSpots: 20, pricingMode: "SPLIT" as const };
+    const ev = await createEvent(db, owner.id, base, T0);
+    expect(ev.pricingMode).toBe("ONLINE");
+    expect(await code(reserve(db, m.id, ev.id, T0))).toBe("PRICE_NOT_SET");
+    await updateEvent(db, ev.id, { ...base, priceNonMember: 1800, priceMember: 1500 });
+    expect((await reserve(db, m.id, ev.id, T0)).status).toBe("PENDING_PAYMENT");
+  });
+});

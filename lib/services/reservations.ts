@@ -1,7 +1,7 @@
 import type { Event } from "@prisma/client";
 import { appUrl } from "../email";
 import { isMember } from "../membership";
-import { pricesFor } from "../pricing";
+import { hasPrice, pricesFor } from "../pricing";
 import { DAY, HOUR, formatDateTime } from "../time";
 import {
   AppError, flush, lockEventRow, lockPrices, lockTime, earlyAccessEnds, seatsTaken,
@@ -32,6 +32,7 @@ export async function reserve(db: Db, userId: string, eventId: string, now = new
     const event = await tx.event.findUnique({ where: { id: eventId } });
     if (!event || event.status !== "APPROVED") throw new AppError("EVENT_NOT_OPEN");
     if (event.startsAt <= now) throw new AppError("EVENT_STARTED");
+    if (!hasPrice(event)) throw new AppError("PRICE_NOT_SET"); // announced, sign-ups open once it has a price
     const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
     if (user.status !== "APPROVED") throw new AppError("NOT_APPROVED");
     const member = isMember(user, now);

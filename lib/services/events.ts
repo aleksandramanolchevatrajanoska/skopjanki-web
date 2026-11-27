@@ -68,8 +68,9 @@ export function normalizeEventInput<T extends EventInput>(i: T, now = new Date()
 function validate(i: EventInput) {
   if (!i.title.trim()) throw new AppError("TITLE_REQUIRED");
   if (i.maxSpots < 1 || i.minSpots < 1 || i.minSpots > i.maxSpots) throw new AppError("BAD_SPOTS");
-  if (i.pricingMode === "SPLIT" && !(i.totalCost && i.totalCost > 0)) throw new AppError("PRICE_MISSING");
-  if (i.pricingMode !== "SPLIT" && (i.priceNonMember == null || i.priceNonMember < 0)) throw new AppError("PRICE_MISSING");
+  // The price is optional: an event without one is shown as "price and sign-ups soon".
+  if (i.totalCost != null && i.totalCost < 0) throw new AppError("PRICE_MISSING");
+  if (i.priceNonMember != null && i.priceNonMember < 0) throw new AppError("PRICE_MISSING");
   if (i.kind === "FUSION" && i.pricingMode !== "ONLINE") throw new AppError("FUSION_IS_ONLINE");
   if (i.kind !== "FUSION" && i.pricingMode === "ONLINE") throw new AppError("ONLINE_ONLY_FUSION");
 }

@@ -1,3 +1,4 @@
+import { hasPrice } from "../pricing";
 import { appUrl } from "../email";
 import { isMember } from "../membership";
 import { DAY, HOUR, formatDateTime } from "../time";
@@ -19,6 +20,7 @@ export async function runLifecycle(db: Db, now = new Date()) {
   });
   for (const e of toLock) {
     if (now < lockTime(e)) continue;
+    if (!hasPrice(e)) continue; // no price yet: nothing to lock or announce
     const out: Outbox = [];
     await db.$transaction(async (tx) => {
       const { prices } = await lockPrices(tx, e, now);

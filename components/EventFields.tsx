@@ -57,8 +57,8 @@ export function EventFields({ locale, partners, e, owner }: { locale: Locale; pa
           </select>
         </div>
         <div><label htmlFor="startsAt">{t.startsAt}</label><input id="startsAt" name="startsAt" type="datetime-local" required defaultValue={e ? dateToSkopjeLocal(e.startsAt) : ""} /></div>
-        <div><label htmlFor="minSpots">{t.minSpots}</label><input id="minSpots" name="minSpots" type="number" min={1} required defaultValue={e?.minSpots ?? 4} /></div>
-        <div><label htmlFor="maxSpots">{t.maxSpots}</label><input id="maxSpots" name="maxSpots" type="number" min={1} required defaultValue={e?.maxSpots ?? 12} /></div>
+        <div><label htmlFor="minSpots">{t.minSpots}</label><input id="minSpots" name="minSpots" type="number" min={1} defaultValue={e?.minSpots ?? 4} /></div>
+        <div><label htmlFor="maxSpots">{t.maxSpots}</label><input id="maxSpots" name="maxSpots" type="number" min={1} defaultValue={e?.maxSpots ?? 12} /></div>
         <div><label htmlFor="durationMin">{t.durationLabel}</label><input id="durationMin" name="durationMin" type="number" min={15} step={15} defaultValue={e?.durationMin ?? ""} placeholder={e?.kind === "FUSION" ? "180" : "90"} /></div>
       </div>
       <label htmlFor="tagline">{t.taglineLabel}</label>
@@ -101,7 +101,7 @@ export function readEventForm(form: FormData): EventInput {
     place: str(form.get("place")),
     startsAt: local ? skopjeLocalToDate(local) : new Date(NaN),
     minSpots: int(form.get("minSpots")) ?? 1,
-    maxSpots: int(form.get("maxSpots")) ?? 0,
+    maxSpots: int(form.get("maxSpots")) ?? 20,
     durationMin: int(form.get("durationMin")),
     pricingMode: (str(form.get("pricingMode")) || "SPLIT") as PricingMode,
     totalCost: int(form.get("totalCost")),

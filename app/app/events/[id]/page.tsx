@@ -332,7 +332,13 @@ export default async function EventPage({ params, searchParams }: Params) {
             </div>
           )}
 
-          {e.status === "APPROVED" && e.startsAt > now && (
+          {e.status === "APPROVED" && e.startsAt > now && !e.range && !mine && (
+            <div className="notice">
+              <strong>{t.priceSoon}</strong>
+              <p className="meta" style={{ margin: "4px 0 0" }}>{t.priceSoonHint}</p>
+            </div>
+          )}
+          {e.status === "APPROVED" && e.startsAt > now && (e.range || mine) && (
             <div className="stack">
               {!mine && (
                 <form action={doReserve}>

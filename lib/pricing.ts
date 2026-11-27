@@ -69,3 +69,8 @@ export function priceRange(e: PricedEvent, payingNonMembers: number, payingMembe
     fixed: false,
   };
 }
+
+/** Whether the organiser has entered a price yet (a split total, or a price per girl). */
+export function hasPrice(e: Pick<PricedEvent, "pricingMode" | "totalCost" | "priceNonMember">) {
+  return e.pricingMode === "SPLIT" ? e.totalCost != null && e.totalCost > 0 : e.priceNonMember != null;
+}

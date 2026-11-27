@@ -83,7 +83,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
             </ol>
           </div>
           <p className="row" style={{ marginTop: 18 }}>
-            <a className="btn" href={joinHref}>{inside ? t.events : t.join}</a>
+            <a className={`btn${!inside && sp.pokana ? " pink glow" : ""}`} href={joinHref}>{inside ? t.events : t.join}</a>
             {!inside && <a className="btn ghost" href="/login">{t.signIn}</a>}
             {inside && !member && <a className="btn ghost" href="/app/membership">{t.becomeMember}</a>}
           </p>

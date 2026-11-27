@@ -32,7 +32,7 @@ const en = {
   memberPerks: [
     "At least 20% off at our partners, 10% off the other weekly activities, for members only",
     "Book 48 hours before everyone else: weekly, fusion events and workshops",
-    "20% off fusion events and workshops",
+    "20% off fusion events and workshops run by Skopjanki and Skopjanki members",
     "Be a captain and take part free: in sport, workshops and talks",
     "Promote your small business to the community, free",
     "Lead a workshop or a talk on a topic you know, free or as a paid workshop",
@@ -549,7 +549,7 @@ const mk: Dict = {
   memberPerks: [
     "Минимум 20% попуст кај партнерите, 10% на другите неделни активности, само за членки",
     "Пријава 48 часа пред другите: неделни термини, fusion настани и работилници",
-    "20% попуст на fusion настани и работилници",
+    "20% попуст на fusion настани и работилници организирани од Скопјанки и членки на Скопјанки",
     "Биди капитенка и учествувај бесплатно: на спорт, работилници и предавања",
     "Бесплатно рекламирање на твојот мал бизнис во заедницата",
     "Држи работилница или предавање на тема според твоите квалификации и интереси, бесплатно или како платен workshop",

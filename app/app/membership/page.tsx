@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireApproved } from "@/lib/auth";
 import { getT } from "@/lib/i18n";
-import { isMember, MEMBERSHIP_MKD } from "@/lib/membership";
+import { isMember, MEMBERSHIP_EUR, MEMBERSHIP_MKD } from "@/lib/membership";
 import { AppError } from "@/lib/services/common";
 import { billingPortal } from "@/lib/stripe";
 import { prisma } from "@/lib/db";
@@ -59,7 +59,7 @@ export default async function Membership({ searchParams }: { searchParams: Promi
         <div className="card" style={{ border: "2.5px solid var(--pink)" }}>
           <span className="tag p">{t.memberLabel}</span>
           <h3>Skopjanki {t.memberLabel}</h3>
-          <p className="price">{MEMBERSHIP_MKD} <small className="meta">MKD / {t.perMonth}</small></p>
+          <p className="price">{MEMBERSHIP_MKD} <small className="meta">MKD ({MEMBERSHIP_EUR} €) / {t.perMonth}</small></p>
           <ul className="ticks"><li>{t.memberEverythingFree}</li>{t.memberPerks.map((p) => <li key={p}>{p}</li>)}</ul>
           {!member && (user.membershipRequestedAt ? (
             <p className="notice ok">{t.membershipRequestedOn.replace("{date}", formatDateTime(user.membershipRequestedAt, locale))}</p>

@@ -1,7 +1,7 @@
 import { currentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getT } from "@/lib/i18n";
-import { isMember, MEMBERSHIP_MKD } from "@/lib/membership";
+import { isMember, MEMBERSHIP_EUR, MEMBERSHIP_MKD } from "@/lib/membership";
 import { formatDateTime } from "@/lib/time";
 import { Queens } from "@/components/Queens";
 import { askEnabled } from "@/lib/ask";
@@ -340,7 +340,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
             <ul className="ticks">{t.memberPerks.map((p) => <li key={p}>{p}</li>)}</ul>
           </div>
           <div className="band-price">
-            <p className="price">{MEMBERSHIP_MKD} <small>MKD</small></p>
+            <p className="price">{MEMBERSHIP_MKD} <small>MKD ({MEMBERSHIP_EUR} €)</small></p>
             <p className="meta">{t.perMonth}</p>
             <p className="row" style={{ marginTop: 12 }}>
               <a className="btn" href={inside ? "/app/membership" : "/join"}>{inside ? (member ? t.memberCard : t.becomeMember) : t.join}</a>

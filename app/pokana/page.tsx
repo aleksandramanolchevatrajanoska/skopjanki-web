@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { dicts } from "@/lib/i18n";
-import { MEMBERSHIP_MKD } from "@/lib/membership";
+import { MEMBERSHIP_EUR, MEMBERSHIP_MKD } from "@/lib/membership";
 import { cleanName, inviteSettings } from "@/lib/services/invites";
 import { Queens } from "@/components/Queens";
 
@@ -47,7 +47,7 @@ export default async function Invitation({ searchParams }: Props) {
       <section className="invite-perks">
         <span className="label">Што добиваш како членка</span>
         <ul>{t.memberPerks.map((perk) => <li key={perk}>{perk}</li>)}</ul>
-        <p className="invite-price"><strong>{MEMBERSHIP_MKD} ден.</strong> месечно · откажуваш кога сакаш</p>
+        <p className="invite-price"><strong>{MEMBERSHIP_MKD} ден. ({MEMBERSHIP_EUR} €)</strong> месечно · откажуваш кога сакаш</p>
       </section>
 
       <section className="invite-cta">

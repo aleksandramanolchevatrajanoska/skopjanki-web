@@ -70,7 +70,6 @@ export default async function Invitation({ searchParams }: Props) {
 
       <section className="invite-cta">
         <a className="btn pink" href="/?pokana=1">Сакам да се приклучам</a>
-        <a className="btn ghost" href="/app/membership">Веќе сум во клубот, сакам членство</a>
         <p className="meta">Прво се пријавуваш со име и мејл, организаторката те одобрува, па добиваш линк за најава.</p>
       </section>
     </div>

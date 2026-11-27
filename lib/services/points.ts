@@ -41,14 +41,24 @@ const BEFORE_THE_SITE = [
 /**
  * Club totals for sponsors: hours of play, hours of friendship (fusion events), roughly how many km
  * that is, and how many events took place. Where the site knows who came, it counts them; for a past
- * event nobody signed up to on the site, it estimates with the event's minimum number of girls.
+ * event nobody signed up to on the site (run over Instagram), it estimates from the event's size.
  */
+/**
+ * Girls at a past event nobody signed up to on the site: about three quarters of its places,
+ * at least its minimum, and at least 8 (10 for a fusion event) when its size was never filled in.
+ */
+export function estimateGirls(e: { kind: string; minSpots: number; maxSpots: number }) {
+  const floor = e.kind === "FUSION" ? 10 : 8;
+  if (e.maxSpots <= 1) return Math.max(e.minSpots, floor);
+  return Math.max(e.minSpots, Math.round(e.maxSpots * 0.75));
+}
+
 export async function clubMovement(db: Db, now = new Date()) {
   const [events, base] = await Promise.all([
     db.event.findMany({
       where: { startsAt: { lt: now }, status: "APPROVED", example: false },
       select: {
-        kind: true, sport: true, title: true, minSpots: true,
+        kind: true, sport: true, title: true, minSpots: true, maxSpots: true,
         _count: {
           select: {
             reservations: { where: { status: "CONFIRMED", attended: { not: false } } },
@@ -60,7 +70,7 @@ export async function clubMovement(db: Db, now = new Date()) {
     statsBase(db),
   ]);
   const list = events.length
-    ? events.map((e) => ({ ...e, girls: e._count.reservations + e._count.guests || Math.max(1, e.minSpots) }))
+    ? events.map((e) => ({ ...e, girls: e._count.reservations + e._count.guests || estimateGirls(e) }))
     : BEFORE_THE_SITE.map((e) => ({ ...e }));
   let play = 0;
   let social = 0;

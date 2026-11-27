@@ -243,7 +243,7 @@ describe("captain's desk: girls added by hand and notes", () => {
     expect((await db.eventGuest.findUniqueOrThrow({ where: { id: g.id } })).attended).toBe(true);
   });
 
-  it("notes are seen by the author, the captain and the organiser only", async () => {
+  it("the event chat is read and written by the girls signed up, the captain and the organiser", async () => {
     const { addNote, notesFor } = await import("@/lib/services/eventdesk");
     const { reserve } = await import("@/lib/services/reservations");
     const owner = await girl({ owner: true });
@@ -257,7 +257,8 @@ describe("captain's desk: girls added by hand and notes", () => {
     await addNote(db, a.id, ev.id, "I'll be 10 minutes late");
     await addNote(db, b.id, ev.id, "Bringing a racket");
     expect((await notesFor(db, owner.id, ev.id)).length).toBe(2);
-    expect((await notesFor(db, a.id, ev.id)).map((n) => n.body)).toEqual(["I'll be 10 minutes late"]);
+    expect((await notesFor(db, a.id, ev.id)).map((n) => n.body)).toEqual(["I'll be 10 minutes late", "Bringing a racket"]);
+    expect(await notesFor(db, stranger.id, ev.id)).toEqual([]);
   });
 });
 
@@ -311,7 +312,7 @@ describe("club numbers never show zero", () => {
     const ev = await weekly(owner.id, { sport: "Football", startsAt: new Date(T0.getTime() - 3 * 86400_000) });
     await db.event.update({ where: { id: ev.id }, data: { minSpots: 10 } });
     const one = await clubMovement(db, T0);
-    expect(one).toMatchObject({ eventsHeld: 1, visits: 10, playHours: 15, socialHours: 0 });
+    expect(one).toMatchObject({ eventsHeld: 1, visits: 11, playHours: 17, socialHours: 0 });
   });
 });
 
@@ -405,5 +406,42 @@ describe("member businesses", () => {
     await submitBusiness(db, m.id, { name: "Two", category: "Cafe" });
     expect(await code(submitBusiness(db, m.id, { name: "Three", category: "Cafe" }))).toBe("BUSINESS_LIMIT");
     expect((await decideBusiness(db, b.id, true)).status).toBe("APPROVED");
+  });
+});
+
+describe("estimating past events run before the site", () => {
+  it("uses the event's size, never one girl", async () => {
+    const { estimateGirls } = await import("@/lib/services/points");
+    expect(estimateGirls({ kind: "FUSION", minSpots: 1, maxSpots: 1 })).toBe(10);
+    expect(estimateGirls({ kind: "FUSION", minSpots: 1, maxSpots: 20 })).toBe(15);
+    expect(estimateGirls({ kind: "WEEKLY", minSpots: 6, maxSpots: 8 })).toBe(6);
+  });
+});
+
+describe("joining with interests, skills and background", () => {
+  it("keeps what she tells us and drops an unknown background", async () => {
+    const { requestJoin } = await import("@/lib/services/users");
+    await requestJoin(db, { name: "Ana", email: "ana@example.com", levels: {}, locale: "mk", topics: ["health"], skills: " фотографија ", background: "creative", businessNote: "Накит @ana.nakit" });
+    await requestJoin(db, { name: "Bea", email: "bea@example.com", levels: {}, locale: "mk", background: "astronaut" });
+    const ana = await db.user.findUniqueOrThrow({ where: { email: "ana@example.com" } });
+    expect(ana).toMatchObject({ topics: ["health"], skills: "фотографија", background: "creative", businessNote: "Накит @ana.nakit" });
+    expect((await db.user.findUniqueOrThrow({ where: { email: "bea@example.com" } })).background).toBeNull();
+  });
+});
+
+describe("participants managed by the captain or organiser", () => {
+  it("adds a girl from the club and removes one without a debt; others cannot", async () => {
+    const { addParticipant, removeParticipant } = await import("@/lib/services/eventdesk");
+    const owner = await girl({ owner: true });
+    const a = await girl({ member: true });
+    const other = await girl();
+    const ev = await weekly(owner.id);
+    expect(await code(addParticipant(db, other.id, ev.id, a.id))).toBe("FORBIDDEN");
+    const r = await addParticipant(db, owner.id, ev.id, a.id);
+    expect(r).toMatchObject({ status: "CONFIRMED", isMember: true });
+    await db.debt.create({ data: { userId: a.id, eventId: ev.id, amount: 300, reason: "NO_SHOW" } });
+    await removeParticipant(db, owner.id, ev.id, a.id);
+    expect((await db.reservation.findUniqueOrThrow({ where: { eventId_userId: { eventId: ev.id, userId: a.id } } })).status).toBe("CANCELLED");
+    expect(await db.debt.count({ where: { userId: a.id, eventId: ev.id } })).toBe(0);
   });
 });

@@ -1,3 +1,4 @@
+import { BACKGROUNDS } from "../i18n";
 import { appUrl } from "../email";
 import { isOwnerEmail } from "../membership";
 import { normalizeEmailPlain } from "./util";
@@ -9,6 +10,10 @@ export type JoinInput = {
   phone?: string;
   instagram?: string;
   howHeard?: string;
+  topics?: string[];
+  skills?: string;
+  background?: string;
+  businessNote?: string;
   levels: Record<string, string>;
   locale?: string;
 };
@@ -31,6 +36,10 @@ export async function requestJoin(db: Db, input: JoinInput) {
       phone: input.phone?.trim() || null,
       instagram: input.instagram?.trim().replace(/^@/, "") || null,
       howHeard: input.howHeard?.trim() || null,
+      topics: input.topics ?? [],
+      skills: input.skills?.trim().slice(0, 200) || null,
+      background: input.background && BACKGROUNDS.includes(input.background) ? input.background : null,
+      businessNote: input.businessNote?.trim().slice(0, 300) || null,
       levels: input.levels,
       locale: input.locale === "mk" ? "mk" : "en",
       status: owner ? "APPROVED" : "PENDING",

@@ -57,6 +57,8 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Re
               <strong>{g.name}</strong> <span className="meta">{g.email}{g.phone ? ` · ${g.phone}` : ""}</span>
               {g.instagram && <> · <a href={`https://instagram.com/${g.instagram}`}>@{g.instagram}</a></>}
               <div className="meta">{Object.entries((g.levels ?? {}) as Record<string, string>).map(([s, l]) => `${s}: ${l}`).join(", ") || "–"}{g.howHeard ? ` · heard via: ${g.howHeard}` : ""}</div>
+              {(g.topics.length > 0 || g.skills || g.background) && <div className="meta">{[g.background && `Background: ${g.background}`, g.skills && `Skills: ${g.skills}`, g.topics.length > 0 && `Interests: ${g.topics.join(", ")}`].filter(Boolean).join(" · ")}</div>}
+              {g.businessNote && <div className="meta">Small business: {g.businessNote}</div>}
             </div>
             <Decide action={userDecision} id={g.id} />
           </div>

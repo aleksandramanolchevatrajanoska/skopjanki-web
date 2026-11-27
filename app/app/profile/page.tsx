@@ -10,6 +10,7 @@ import { EventCardView } from "@/components/EventCardView";
 import { Flash } from "@/components/Flash";
 import { LevelsFields, readLevels } from "@/components/LevelsFields";
 import { TopicsFields, readTopics } from "@/components/Topics";
+import { BackgroundFields, readBackground } from "@/components/BackgroundFields";
 import { MemberCardWithHint as MemberCard } from "@/components/MemberCard";
 import { redirect } from "next/navigation";
 import { signOut } from "@/lib/auth";
@@ -49,6 +50,7 @@ async function saveProfile(form: FormData) {
         bio: str(form.get("bio")).slice(0, 280) || null,
         about: str(form.get("about")).slice(0, 800) || null,
         topics: readTopics(form),
+        ...readBackground(form),
         levels: readLevels(form),
         locale: form.get("locale") === "mk" ? "mk" : "en",
         showInCommunity: form.get("showInCommunity") === "1",
@@ -94,6 +96,7 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
           <p className="meta" style={{ marginTop: 0 }}>{t.aboutMeHint}</p>
           <textarea id="about" name="about" rows={5} maxLength={800} defaultValue={user.about ?? ""} />
           <TopicsFields locale={locale} value={user.topics} />
+          <BackgroundFields locale={locale} skills={user.skills} background={user.background} />
           <LevelsFields locale={locale} value={(user.levels ?? {}) as Record<string, string>} />
           <label htmlFor="locale">{t.language}</label>
           <select id="locale" name="locale" defaultValue={user.locale}><option value="en">English</option><option value="mk">Македонски</option></select>

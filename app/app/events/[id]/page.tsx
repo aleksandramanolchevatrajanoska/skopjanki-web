@@ -22,7 +22,7 @@ import { canAddPhotos, removePhoto } from "@/lib/services/club";
 import { MediaCarousel, PhotoUploader, ShareButton, type MediaSlide } from "@/components/Interactive";
 import { toEmbed } from "@/lib/embeds";
 import { markCommissionPaid, workshopCommission } from "@/lib/services/workshops";
-import { addGuest, removeGuest, addNote, deleteNote, notesFor, canWriteNote, NOTE_MAX } from "@/lib/services/eventdesk";
+import { addGuest, removeGuest, addNote, deleteNote, notesFor, canWriteNote, NOTE_MAX, addParticipant, removeParticipant } from "@/lib/services/eventdesk";
 
 type Params = { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | undefined>> };
 
@@ -126,6 +126,20 @@ async function doCommissionPaid(form: FormData) {
   const id = String(form.get("eventId"));
   if (!user.isOwner) redirect(`/app/events/${id}?err=FORBIDDEN`);
   await attempt(`/app/events/${id}#desk`, () => markCommissionPaid(prisma, id, form.get("paid") === "1"));
+}
+
+async function doAddParticipant(form: FormData) {
+  "use server";
+  const user = await requireApproved();
+  const id = String(form.get("eventId"));
+  await attempt(`/app/events/${id}#desk`, () => addParticipant(prisma, user.id, id, String(form.get("userId"))));
+}
+
+async function doRemoveParticipant(form: FormData) {
+  "use server";
+  const user = await requireApproved();
+  const id = String(form.get("eventId"));
+  await attempt(`/app/events/${id}#desk`, () => removeParticipant(prisma, user.id, id, String(form.get("userId"))));
 }
 
 async function doAddGuest(form: FormData) {
@@ -233,6 +247,13 @@ export default async function EventPage({ params, searchParams }: Params) {
   ];
 
   const money = canManage && e.workshop ? await workshopCommission(prisma, id) : null;
+  const clubGirls = canManage
+    ? await prisma.user.findMany({
+        where: { status: "APPROVED", id: { notIn: confirmed.map((c) => c.userId) } },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      })
+    : [];
   const attendanceOpen = now.getTime() >= e.startsAt.getTime() - 3 * 3600_000 && now.getTime() <= e.startsAt.getTime() + 7 * 86400_000;
   const goingCount = confirmed.length + guests.length;
 
@@ -433,7 +454,32 @@ export default async function EventPage({ params, searchParams }: Params) {
 
           <div className="desk-grid">
             <div>
-              <h3>{t.whoIsGoing} ({goingCount})</h3>
+              <h3>{t.participantsTitle} ({goingCount})</h3>
+              <ul className="desk-list">
+                {confirmed.map((p) => (
+                  <li key={p.id}>
+                    <span>{p.user.name}{p.userId === e.captainId ? " ♛" : ""} <span className="meta">· {p.isMember ? t.member : t.nonMember}</span></span>
+                    {p.userId !== e.captainId && (
+                      <form action={doRemoveParticipant}>
+                        <input type="hidden" name="eventId" value={e.id} />
+                        <input type="hidden" name="userId" value={p.userId} />
+                        <button className="btn sm ghost" type="submit">{t.remove}</button>
+                      </form>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              {clubGirls.length > 0 && (
+                <form action={doAddParticipant} className="row" style={{ margin: "8px 0 16px" }}>
+                  <input type="hidden" name="eventId" value={e.id} />
+                  <label htmlFor="add-girl" className="sr-only">{t.addFromClub}</label>
+                  <select id="add-girl" name="userId" required defaultValue="" aria-label={t.addFromClub}>
+                    <option value="" disabled>{t.addFromClubPick}</option>
+                    {clubGirls.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                  </select>
+                  <button className="btn sm" type="submit">+ {t.addFromClubButton}</button>
+                </form>
+              )}
               {e.kind !== "FUSION" && attendanceOpen ? (
                 <form action={doAttendance}>
                   <input type="hidden" name="eventId" value={e.id} />
@@ -454,17 +500,7 @@ export default async function EventPage({ params, searchParams }: Params) {
                   <p style={{ marginTop: 10 }}><button className="btn sm" type="submit">{t.saveAttendance}</button></p>
                 </form>
               ) : (
-                <>
-                  <ul className="desk-list">
-                    {confirmed.map((p) => (
-                      <li key={p.id}>
-                        <span>{p.user.name}{p.userId === e.captainId ? " ♛" : ""}</span>
-                        <span className="meta">{p.isMember ? t.member : t.nonMember}{p.user.instagram ? ` · @${p.user.instagram.replace(/^@/, "")}` : ""}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  {e.kind !== "FUSION" && <p className="meta">{t.attendanceOpensLater}</p>}
-                </>
+                <>{e.kind !== "FUSION" && <p className="meta">{t.attendanceOpensLater}</p>}</>
               )}
               {guests.length > 0 && (
                 <ul className="desk-list">

@@ -7,6 +7,8 @@ import { AppError } from "@/lib/services/common";
 import { requestJoin } from "@/lib/services/users";
 import { Flash } from "@/components/Flash";
 import { LevelsFields, readLevels } from "@/components/LevelsFields";
+import { TopicsFields, readTopics } from "@/components/Topics";
+import { BackgroundFields, readBackground } from "@/components/BackgroundFields";
 
 async function join(form: FormData) {
   "use server";
@@ -20,6 +22,9 @@ async function join(form: FormData) {
       instagram: str(form.get("instagram")),
       howHeard: str(form.get("howHeard")),
       levels: readLevels(form),
+      topics: readTopics(form),
+      ...(() => { const b = readBackground(form); return { skills: b.skills ?? undefined, background: b.background ?? undefined }; })(),
+      businessNote: str(form.get("businessNote")),
       locale,
     });
     if (r.status === "APPROVED") dest = "/login?ok=joinAlready";
@@ -52,6 +57,11 @@ export default async function Join({ searchParams }: { searchParams: Promise<Rec
           <label htmlFor="howHeard">{t.howHeard}</label>
           <input id="howHeard" name="howHeard" />
           <LevelsFields locale={locale} />
+          <h3 style={{ marginTop: 24 }}>{t.interestsTitle}</h3>
+          <TopicsFields locale={locale} />
+          <BackgroundFields locale={locale} />
+          <label htmlFor="businessNote">{t.businessNoteLabel}</label>
+          <textarea id="businessNote" name="businessNote" rows={2} maxLength={300} placeholder={t.businessNotePlaceholder} />
           <p style={{ marginTop: 16 }}><button className="btn pink" type="submit">{t.send}</button></p>
         </form>
       )}

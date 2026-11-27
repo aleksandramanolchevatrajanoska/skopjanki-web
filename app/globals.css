@@ -457,3 +457,8 @@ code.code{max-width:100%;overflow-wrap:anywhere;white-space:normal;display:inlin
 .pillars li a:hover strong{text-decoration:underline}
 .pillars li strong{font:400 1.2rem/1.2 Newsreader,Georgia,serif;color:var(--plum)}
 .pillars li span{color:var(--muted);font-size:.95rem}
+/* Community cards: long words, handles and links wrap inside the card */
+.girl-card{min-width:0;overflow:hidden}
+.girl-card p,.girl-card a,.girl-card h3{overflow-wrap:anywhere;word-break:break-word}
+.card{min-width:0}
+.card a{overflow-wrap:anywhere}

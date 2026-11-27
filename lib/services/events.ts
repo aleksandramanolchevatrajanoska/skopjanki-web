@@ -265,3 +265,19 @@ export async function cancelEvent(db: Db, eventId: string, reason: string, now =
 }
 
 export type EventWithCounts = Event & { taken: number };
+
+/**
+ * Deletes every event that has not started yet (sport, workshops, plans and fusion), with their
+ * sign-ups, chat, photos and pictures. Events where a girl already paid online are kept, because
+ * she needs a refund first; their titles come back so the organiser can deal with them.
+ */
+export async function deleteUpcomingEvents(db: Db, now = new Date()) {
+  const upcoming = await db.event.findMany({
+    where: { startsAt: { gte: now } },
+    select: { id: true, title: true, reservations: { where: { paidAmount: { gt: 0 }, status: { not: "CANCELLED" } }, select: { id: true } } },
+  });
+  const paid = upcoming.filter((e) => e.reservations.length > 0);
+  const ids = upcoming.filter((e) => e.reservations.length === 0).map((e) => e.id);
+  const { count } = await db.event.deleteMany({ where: { id: { in: ids } } });
+  return { deleted: count, keptPaid: paid.map((e) => e.title) };
+}

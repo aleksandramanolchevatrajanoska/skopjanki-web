@@ -2,12 +2,21 @@ import { redirect } from "next/navigation";
 import { requireOwner } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatDateTime } from "@/lib/time";
-import { createEvent } from "@/lib/services/events";
+import { createEvent, deleteUpcomingEvents } from "@/lib/services/events";
 import { importFromLuma } from "@/lib/services/importer";
 import { AppError } from "@/lib/services/common";
 import { EventFields, readEventForm } from "@/components/EventFields";
 import { Flash } from "@/components/Flash";
 import { ImageUploader } from "@/components/Interactive";
+
+async function deleteUpcoming(form: FormData) {
+  "use server";
+  await requireOwner();
+  if (form.get("sure") !== "on") redirect("/admin/events?err=BAD_INPUT#delete");
+  const r = await deleteUpcomingEvents(prisma);
+  const kept = r.keptPaid.length ? `&kept=${encodeURIComponent(r.keptPaid.join(", "))}` : "";
+  redirect(`/admin/events?deleted=${r.deleted}${kept}#delete`);
+}
 
 async function create(form: FormData) {
   "use server";
@@ -43,18 +52,25 @@ export default async function AdminEvents({ searchParams }: { searchParams: Prom
     imported = null;
   }
   const now = new Date();
-  const [events, partners] = await Promise.all([
+  const past = sp.tab === "past";
+  const [events, partners, upcomingCount] = await Promise.all([
     prisma.event.findMany({
-      where: { startsAt: { gte: new Date(now.getTime() - 14 * 86400_000) } },
-      orderBy: { startsAt: "asc" },
+      where: past ? { startsAt: { lt: now } } : { startsAt: { gte: now } },
+      orderBy: { startsAt: past ? "desc" : "asc" },
       include: { partner: true, captain: true, poster: { select: { updatedAt: true } }, _count: { select: { reservations: { where: { status: "CONFIRMED" } } } } },
     }),
     prisma.partner.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+    prisma.event.count({ where: { startsAt: { gte: now } } }),
   ]);
   return (
     <>
       <h1>Events</h1>
       <Flash sp={sp} locale="en" />
+      <nav className="row" style={{ marginTop: 12 }} aria-label="Upcoming or past">
+        <a className={`btn sm ${past ? "ghost" : ""}`} href="/admin/events">Upcoming ({upcomingCount})</a>
+        <a className={`btn sm ${past ? "" : "ghost"}`} href="/admin/events?tab=past">Past</a>
+      </nav>
+      {events.length === 0 && <p className="meta" style={{ marginTop: 12 }}>{past ? "No past events." : "No upcoming events. Add one below."}</p>}
       <div className="tablewrap" style={{ marginTop: 16 }}>
         <table>
           <thead><tr><th>When</th><th>Event</th><th>Picture</th><th>Girls</th><th>Captain</th><th>Status</th><th></th></tr></thead>
@@ -83,6 +99,17 @@ export default async function AdminEvents({ searchParams }: { searchParams: Prom
           </tbody>
         </table>
       </div>
+      <section id="delete" className="card" style={{ marginTop: 32, maxWidth: 720, borderColor: "var(--warn)" }}>
+        <h2>Delete all upcoming events</h2>
+        {sp.deleted && <p className="notice ok">Deleted {sp.deleted} upcoming events.</p>}
+        {sp.kept && <p className="notice">Kept because a girl already paid online (refund her first, then cancel it): {sp.kept}</p>}
+        <p className="meta">Deletes every event that has not started yet: weekly terms, workshops, member plans and fusion events, with their sign-ups, chat and pictures. Past events stay. Events where someone already paid online are kept. This cannot be undone.</p>
+        <p>Upcoming now: <strong>{upcomingCount}</strong></p>
+        <form action={deleteUpcoming} className="stack">
+          <label className="row check" style={{ fontWeight: 400 }}><input type="checkbox" name="sure" required /> I understand: delete all {upcomingCount} upcoming events for good</label>
+          <p><button className="btn sm" type="submit" style={{ background: "var(--warn)", borderColor: "var(--warn)" }}>Delete upcoming events</button></p>
+        </form>
+      </section>
       <section id="import" className="card" style={{ marginTop: 32, maxWidth: 720 }}>
         <h2>Import from Luma</h2>
         <p className="meta">Paste the links of your Luma events, one per line (open each event on luma.com and copy its link, e.g. https://lu.ma/abc123). The site reads the title, date, place, description and cover picture. Past events with a cover also appear in Moments. The same link is never imported twice.</p>

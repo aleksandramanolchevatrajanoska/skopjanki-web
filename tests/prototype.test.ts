@@ -548,3 +548,19 @@ describe("partner discount can be any amount", () => {
     expect((await db.partner.findUniqueOrThrow({ where: { id: p.id } })).memberDiscountPct).toBe(10);
   });
 });
+
+describe("deleting upcoming events", () => {
+  it("removes events that have not started, keeps past ones and ones already paid online", async () => {
+    const { deleteUpcomingEvents } = await import("@/lib/services/events");
+    const owner = await girl({ owner: true });
+    const a = await girl();
+    const past = await weekly(owner.id, { title: "Past", startsAt: new Date(T0.getTime() - 86400_000) });
+    await weekly(owner.id, { title: "Coming" });
+    const paid = await weekly(owner.id, { title: "Paid fusion" });
+    await db.reservation.create({ data: { eventId: paid.id, userId: a.id, status: "CONFIRMED", isMember: false, paidAmount: 1500 } });
+    const r = await deleteUpcomingEvents(db, T0);
+    expect(r).toEqual({ deleted: 1, keptPaid: ["Paid fusion"] });
+    expect((await db.event.findMany({ select: { title: true }, orderBy: { title: "asc" } })).map((e) => e.title)).toEqual(["Paid fusion", "Past"]);
+    expect(past.id).toBeTruthy();
+  });
+});

@@ -1,6 +1,6 @@
 import { googleCalendarUrl } from "@/lib/calendar";
 import { appUrl } from "@/lib/email";
-import { maybeRunLifecycle } from "@/lib/services/lazy";
+import { scheduleLifecycle } from "@/lib/services/lazy";
 import { requireApproved } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getT } from "@/lib/i18n";
@@ -16,7 +16,7 @@ import { formatDateTime } from "@/lib/time";
 export default async function AppHome({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
   const user = await requireApproved();
-  await maybeRunLifecycle();
+  scheduleLifecycle();
   const { t, locale } = await getT(user.locale);
   const member = isMember(user);
   const now = new Date();

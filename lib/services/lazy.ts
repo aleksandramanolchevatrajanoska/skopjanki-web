@@ -1,4 +1,5 @@
 import { prisma } from "../db";
+import { after } from "next/server";
 import { runLifecycle } from "./lifecycle";
 
 let last = 0;
@@ -16,5 +17,15 @@ export async function maybeRunLifecycle() {
     await runLifecycle(prisma);
   } catch (e) {
     console.error("lifecycle failed", e);
+  }
+}
+
+/** Runs the checks after the page has been sent, so nobody waits for them. */
+export function scheduleLifecycle() {
+  if (process.env.NODE_ENV === "test") return;
+  try {
+    after(() => maybeRunLifecycle());
+  } catch {
+    void maybeRunLifecycle();
   }
 }

@@ -21,7 +21,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   const inside = user?.status === "APPROVED";
   const member = isMember(user);
   const now = new Date();
-  const [partners, nextFusion, nextPlans, moments, quotes] = await Promise.all([
+  const [partners, nextFusion, nextPlans, moments, quotes, stats, move, team] = await Promise.all([
     prisma.partner.findMany({ where: { active: true }, orderBy: { name: "asc" }, include: { logo: { select: { updatedAt: true } } } }),
     prisma.event.findFirst({ where: { kind: "FUSION", status: "APPROVED", startsAt: { gt: now } }, orderBy: { startsAt: "asc" }, include: { partner: true, poster: { select: { eventId: true } }, photos: { select: { id: true }, orderBy: { createdAt: "asc" }, take: 1 } } }),
     prisma.event.findMany({
@@ -38,10 +38,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       include: { partner: true, photos: { where: inside ? {} : { public: true }, select: { id: true }, orderBy: { createdAt: "asc" }, take: 20 } },
     }),
     prisma.quote.findMany({ where: { hidden: false }, include: { user: { select: { name: true, memberUntil: true, isOwner: true } } }, orderBy: { updatedAt: "desc" }, take: 12 }),
+    clubStats(prisma),
+    clubMovement(prisma),
+    prisma.siteImage.findUnique({ where: { key: "team" }, select: { updatedAt: true } }),
   ]);
-  const [stats, move] = await Promise.all([clubStats(prisma), clubMovement(prisma)]);
   // The organiser uploads the core team photo in Admin → Home page; without it the card does not flip.
-  const team = await prisma.siteImage.findUnique({ where: { key: "team" }, select: { updatedAt: true } });
   const teamPhoto = team ? `/site-images/team?v=${team.updatedAt.getTime()}` : null;
   const shownQuotes = quotes.filter((q) => isMember(q.user, now)).slice(0, 6);
   const untilFusion = nextFusion ? nextFusion.startsAt.getTime() - now.getTime() : 0;

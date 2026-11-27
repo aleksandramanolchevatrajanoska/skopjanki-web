@@ -1,4 +1,4 @@
-import { maybeRunLifecycle } from "@/lib/services/lazy";
+import { scheduleLifecycle } from "@/lib/services/lazy";
 import { notFound, redirect } from "next/navigation";
 import { requireApproved } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -179,7 +179,7 @@ export default async function EventPage({ params, searchParams }: Params) {
   const user = await requireApproved();
   const { t, locale } = await getT(user.locale);
   const member = isMember(user);
-  await maybeRunLifecycle();
+  scheduleLifecycle();
   const now = new Date();
   const [card] = await loadEventCards({ id }, user.id);
   if (!card) notFound();
@@ -190,48 +190,53 @@ export default async function EventPage({ params, searchParams }: Params) {
   const late = now >= lockTime(e);
   const mine = e.mine;
   const membersOnlyNow = !member && e.earlyUntil && now < e.earlyUntil;
-  const myApp = await prisma.captainApplication.findUnique({ where: { eventId_userId: { eventId: id, userId: user.id } } });
-
-  const people = await prisma.reservation.findMany({
-    where: { eventId: id, status: { in: ["CONFIRMED", "WAITLIST", "OFFERED"] } },
-    include: { user: { select: { id: true, name: true, instagram: true } } },
-    orderBy: { createdAt: "asc" },
-  });
-  const confirmed = people.filter((p) => p.status === "CONFIRMED");
-  const [guests, mayNote] = await Promise.all([
+  // Everything this page reads, fetched at the same time instead of one after another.
+  const [myApp, people, guests, mayNote, notes, myDebts, photos, mayAddPhotos, partnerLogo, hasPoster, host, money] = await Promise.all([
+    prisma.captainApplication.findUnique({ where: { eventId_userId: { eventId: id, userId: user.id } } }),
+    prisma.reservation.findMany({
+      where: { eventId: id, status: { in: ["CONFIRMED", "WAITLIST", "OFFERED"] } },
+      include: { user: { select: { id: true, name: true, instagram: true } } },
+      orderBy: { createdAt: "asc" },
+    }),
     prisma.eventGuest.findMany({ where: { eventId: id }, orderBy: { createdAt: "asc" } }),
     canWriteNote(prisma, user.id, id),
-  ]);
-  const notes = mayNote || canManage ? await notesFor(prisma, user.id, id) : [];
-
-  // Captain's corner data
-  let debtsToCollect: { id: string; amount: number; user: { name: string } }[] = [];
-  let finalPrices: { nonMember: number; member: number } | null = null;
-  if (canManage && e.kind !== "FUSION") {
-    debtsToCollect = await prisma.debt.findMany({
-      where: { paidAt: null, waivedAt: null, userId: { in: confirmed.map((c) => c.userId) } },
-      include: { user: { select: { name: true } } },
-    });
-    if (e.attendanceClosedAt) {
-      const came = confirmed.filter((c) => c.attended && c.userId !== e.captainId);
-      const g = guests.filter((x) => x.attended);
-      finalPrices = pricesFor(e, came.filter((c) => !c.isMember).length + g.filter((x) => !x.isMember).length, came.filter((c) => c.isMember).length + g.filter((x) => x.isMember).length);
-    }
-  }
-  const myDebts = await prisma.debt.findMany({ where: { userId: user.id, paidAt: null, waivedAt: null } });
-  const owed = myDebts.reduce((s, d) => s + d.amount, 0);
-  const myPrice = e.range ? (mine?.isMember ?? member ? e.range.member : e.range.nonMember) : null;
-  const [photos, mayAddPhotos] = await Promise.all([
+    notesFor(prisma, user.id, id),
+    prisma.debt.findMany({ where: { userId: user.id, paidAt: null, waivedAt: null } }),
     prisma.photo.findMany({ where: { eventId: id }, select: { id: true, userId: true, user: { select: { name: true } } }, orderBy: { createdAt: "asc" } }),
     canAddPhotos(prisma, user.id, id, now),
-  ]);
-  const placeText = [e.partner?.name ?? e.place, e.partner?.address].filter(Boolean).join(", ");
-  const calUrl = googleCalendarUrl({ ...e, place: placeText }, appUrl(`/app/events/${e.id}`));
-  const partnerLogo = e.partner ? await prisma.partnerLogo.findUnique({ where: { partnerId: e.partner.id }, select: { updatedAt: true } }) : null;
-  const [hasPoster, host] = await Promise.all([
+    e.partner ? prisma.partnerLogo.findUnique({ where: { partnerId: e.partner.id }, select: { updatedAt: true } }) : null,
     prisma.eventPoster.count({ where: { eventId: id } }).then((n) => n > 0),
     e.kind === "MEMBER_PLAN" ? prisma.user.findUnique({ where: { id: e.createdById }, select: { name: true } }) : null,
+    canManage && e.workshop ? workshopCommission(prisma, id) : null,
   ]);
+  const confirmed = people.filter((p) => p.status === "CONFIRMED");
+
+  // Captain's corner data (needs the list of girls first)
+  let finalPrices: { nonMember: number; member: number } | null = null;
+  const [debtsToCollect, clubGirls] = await Promise.all([
+    canManage && e.kind !== "FUSION"
+      ? prisma.debt.findMany({
+          where: { paidAt: null, waivedAt: null, userId: { in: confirmed.map((c) => c.userId) } },
+          include: { user: { select: { name: true } } },
+        })
+      : [],
+    canManage
+      ? prisma.user.findMany({
+          where: { status: "APPROVED", id: { notIn: confirmed.map((c) => c.userId) } },
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        })
+      : [],
+  ]);
+  if (canManage && e.kind !== "FUSION" && e.attendanceClosedAt) {
+    const came = confirmed.filter((c) => c.attended && c.userId !== e.captainId);
+    const g = guests.filter((x) => x.attended);
+    finalPrices = pricesFor(e, came.filter((c) => !c.isMember).length + g.filter((x) => !x.isMember).length, came.filter((c) => c.isMember).length + g.filter((x) => x.isMember).length);
+  }
+  const owed = myDebts.reduce((s, d) => s + d.amount, 0);
+  const myPrice = e.range ? (mine?.isMember ?? member ? e.range.member : e.range.nonMember) : null;
+  const placeText = [e.partner?.name ?? e.place, e.partner?.address].filter(Boolean).join(", ");
+  const calUrl = googleCalendarUrl({ ...e, place: placeText }, appUrl(`/app/events/${e.id}`));
   const img = hasPoster
     ? `/posters/${e.id}`
     : e.imageUrl
@@ -247,14 +252,6 @@ export default async function EventPage({ params, searchParams }: Params) {
     ...embeds.map((v) => ({ type: "embed" as const, src: v.embedUrl, title: `${e.title} · ${v.kind}`, portrait: v.portrait })),
   ];
 
-  const money = canManage && e.workshop ? await workshopCommission(prisma, id) : null;
-  const clubGirls = canManage
-    ? await prisma.user.findMany({
-        where: { status: "APPROVED", id: { notIn: confirmed.map((c) => c.userId) } },
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-      })
-    : [];
   const attendanceOpen = now.getTime() >= e.startsAt.getTime() - 3 * 3600_000 && now.getTime() <= e.startsAt.getTime() + 7 * 86400_000;
   const goingCount = confirmed.length + guests.length;
 

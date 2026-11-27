@@ -3,7 +3,7 @@ import { requireOwner } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { str } from "@/lib/act";
 import { appUrl } from "@/lib/email";
-import { inviteSettings, saveInviteSettings } from "@/lib/services/invites";
+import { DEFAULT_LETTER, inviteSettings, saveInviteSettings } from "@/lib/services/invites";
 import { CopyButton } from "@/components/Interactive";
 import { SaveButton } from "@/components/AdminPartnerButtons";
 
@@ -11,6 +11,14 @@ async function save(form: FormData) {
   "use server";
   await requireOwner();
   await saveInviteSettings(prisma, str(form.get("letter")), String(form.get("names") ?? ""));
+  revalidatePath("/admin/invites");
+}
+
+async function useDefaultLetter() {
+  "use server";
+  await requireOwner();
+  const { names } = await inviteSettings(prisma);
+  await saveInviteSettings(prisma, DEFAULT_LETTER, names.join("\n"));
   revalidatePath("/admin/invites");
 }
 
@@ -37,9 +45,17 @@ export default async function Invites() {
         </div>
       </section>
 
+      {letter !== DEFAULT_LETTER && (
+        <details className="card" style={{ marginTop: 16 }}>
+          <summary style={{ cursor: "pointer", fontWeight: 600 }}>A newer letter is ready: see it</summary>
+          <p className="meta" style={{ whiteSpace: "pre-line", marginTop: 8 }}>{DEFAULT_LETTER}</p>
+          <form action={useDefaultLetter}><button className="btn sm pink" type="submit">Use this letter</button></form>
+        </details>
+      )}
       <form action={save} className="card stack" style={{ marginTop: 16 }}>
         <label htmlFor="letter">Your letter: why you are building Skopjanki (paragraphs separated by an empty line)</label>
-        <textarea id="letter" name="letter" rows={10} maxLength={3000} defaultValue={letter} />
+        <textarea id="letter" name="letter" rows={14} maxLength={3000} defaultValue={letter} />
+
         <label htmlFor="names">Names, one per line</label>
         <textarea id="names" name="names" rows={8} defaultValue={names.join("\n")} placeholder={"Ана\nМарија\nТеона"} />
         <p><SaveButton label="Save" /></p>

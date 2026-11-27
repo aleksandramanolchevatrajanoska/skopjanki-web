@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { dicts } from "@/lib/i18n";
 import { MEMBERSHIP_EUR, MEMBERSHIP_MKD } from "@/lib/membership";
-import { cleanName, inviteSettings } from "@/lib/services/invites";
+import { cleanName, inviteSettings, LETTER_SIGNATURE } from "@/lib/services/invites";
 import { Queens } from "@/components/Queens";
 
 type Props = { searchParams: Promise<Record<string, string | undefined>> };
@@ -42,7 +42,7 @@ export default async function Invitation({ searchParams }: Props) {
 
       <section className="invite-letter">
         {letter.split(/\n{2,}/).map((para, i) => <p key={i}>{para}</p>)}
-        <p className="invite-sign">— основачката на Скопјанки ♛</p>
+        <p className="invite-sign">{LETTER_SIGNATURE}</p>
       </section>
 
       <section>

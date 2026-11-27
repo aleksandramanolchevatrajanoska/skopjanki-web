@@ -9,9 +9,13 @@ type Props = { searchParams: Promise<Record<string, string | undefined>> };
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const name = cleanName((await searchParams).za);
+  const title = name ? `Покана за ${name} · Скопјанки` : "Покана за членство · Скопјанки";
+  const description = "Спорт, дружба, работилници и кул настани за девојки во Скопје. Засега само 30 места за членки.";
   return {
-    title: name ? `Покана за ${name} · Скопјанки` : "Покана · Скопјанки",
-    description: "Лична покана да станеш дел од Скопјанки, клуб за активни девојки во Скопје.",
+    title,
+    description,
+    openGraph: { title, description, type: "website", siteName: "Скопјанки", images: [{ url: "/og-pokana.png", width: 1200, height: 630, alt: "Покана за членство · Скопјанки" }] },
+    twitter: { card: "summary_large_image", images: ["/og-pokana.png"] },
   };
 }
 

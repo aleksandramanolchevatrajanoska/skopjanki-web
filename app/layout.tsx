@@ -62,7 +62,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                           { href: "/app/profile", label: t.profile },
                         ]
                       : [
-                          { href: "/partneri", label: t.partnersNav },
                           { href: "/join", label: t.join },
                         ]),
                     ...(user?.isOwner ? [{ href: "/admin", label: t.admin }] : []),

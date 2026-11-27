@@ -46,6 +46,25 @@ export type EventInput = {
   memberDiscountPct?: number;
 };
 
+/**
+ * Fusion events are always paid online, so choosing Fusion sets that by itself. An event that
+ * already happened (added afterwards, for the record) needs no price.
+ */
+export function normalizeEventInput<T extends EventInput>(i: T, now = new Date()): T {
+  const out = { ...i };
+  if (out.kind === "FUSION") out.pricingMode = "ONLINE";
+  if (out.startsAt < now) {
+    const missing = out.pricingMode === "SPLIT" ? !(out.totalCost && out.totalCost > 0) : out.priceNonMember == null;
+    if (missing) {
+      out.pricingMode = out.kind === "FUSION" ? "ONLINE" : "PER_PERSON";
+      out.priceNonMember = 0;
+      out.priceMember = 0;
+      out.totalCost = null;
+    }
+  }
+  return out;
+}
+
 function validate(i: EventInput) {
   if (!i.title.trim()) throw new AppError("TITLE_REQUIRED");
   if (i.maxSpots < 1 || i.minSpots < 1 || i.minSpots > i.maxSpots) throw new AppError("BAD_SPOTS");
@@ -102,7 +121,7 @@ export async function withPartnerDiscount<T extends { partnerId?: string | null;
 
 export async function createEvent(db: Db, ownerId: string, input0: EventInput, now = new Date()) {
   if (input0.kind === "MEMBER_PLAN") throw new AppError("USE_PROPOSE_PLAN");
-  const input = await withPartnerDiscount(db, input0);
+  const input = await withPartnerDiscount(db, normalizeEventInput(input0, now));
   validate(input);
   const out: Outbox = [];
   const event = await db.$transaction(async (tx) => {
@@ -114,8 +133,9 @@ export async function createEvent(db: Db, ownerId: string, input0: EventInput, n
   return event;
 }
 
-export async function updateEvent(db: Db, eventId: string, input0: EventInput) {
+export async function updateEvent(db: Db, eventId: string, input1: EventInput) {
   const e = await db.event.findUniqueOrThrow({ where: { id: eventId } });
+  const input0 = normalizeEventInput({ ...input1, kind: input1.kind ?? e.kind });
   // The members' discount follows the partner: it changes only when the partner changes
   // (a partner's new discount reaches its events through setPartnerDiscount).
   const keep = input0.memberDiscountPct == null && (input0.partnerId ?? null) === e.partnerId;

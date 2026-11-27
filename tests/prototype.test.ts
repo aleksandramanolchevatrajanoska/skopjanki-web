@@ -564,3 +564,18 @@ describe("deleting upcoming events", () => {
     expect(past.id).toBeTruthy();
   });
 });
+
+describe("adding events afterwards", () => {
+  it("a past fusion event needs no price, and choosing Fusion sets online payment by itself", async () => {
+    const { createEvent } = await import("@/lib/services/events");
+    const owner = await girl({ owner: true });
+    const ev = await createEvent(db, owner.id, {
+      kind: "FUSION", title: "Sip & Serve", startsAt: new Date(T0.getTime() - 30 * 86400_000), minSpots: 1, maxSpots: 20, pricingMode: "SPLIT",
+    }, T0);
+    expect(ev).toMatchObject({ kind: "FUSION", pricingMode: "ONLINE", status: "APPROVED" });
+    const future = await createEvent(db, owner.id, {
+      kind: "FUSION", title: "Next", startsAt: new Date(T0.getTime() + 30 * 86400_000), minSpots: 1, maxSpots: 20, pricingMode: "SPLIT", priceNonMember: 1800, priceMember: 1500,
+    }, T0);
+    expect(future.pricingMode).toBe("ONLINE");
+  });
+});

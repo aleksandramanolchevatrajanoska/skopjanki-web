@@ -9,6 +9,7 @@ export async function partnerListMail(tx: Tx, eventId: string, out: Outbox, why:
     include: { partner: true, captain: true, reservations: { where: { status: "CONFIRMED" }, include: { user: true } } },
   });
   if (!e.partner?.email || e.kind === "FUSION") return;
+  if (e.startsAt < new Date()) return; // an event added afterwards, for the record: nothing to tell the partner
   const c = payingCounts(e, e.reservations);
   const prices =
     e.lockedPriceMember != null && e.lockedPriceNonMember != null

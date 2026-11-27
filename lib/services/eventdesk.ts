@@ -41,11 +41,18 @@ export async function canWriteNote(db: Db, userId: string, eventId: string) {
   return Boolean(r && r.status !== "CANCELLED");
 }
 
-export async function addNote(db: Db, userId: string, eventId: string, body: string) {
+/** A message in the event chat, or a reply to one. A reply to a reply joins the same thread. */
+export async function addNote(db: Db, userId: string, eventId: string, body: string, replyTo?: string | null) {
   const text = body.trim();
   if (!text || text.length > NOTE_MAX) throw new AppError("BAD_INPUT");
   if (!(await canWriteNote(db, userId, eventId))) throw new AppError("FORBIDDEN");
-  return db.eventNote.create({ data: { eventId, userId, body: text } });
+  let parentId: string | null = null;
+  if (replyTo) {
+    const parent = await db.eventNote.findUnique({ where: { id: replyTo } });
+    if (!parent || parent.eventId !== eventId) throw new AppError("NOT_FOUND");
+    parentId = parent.parentId ?? parent.id;
+  }
+  return db.eventNote.create({ data: { eventId, userId, body: text, parentId } });
 }
 
 /** The event chat: everyone who may write in it (girls signed up, the captain, the organiser) reads all of it. */

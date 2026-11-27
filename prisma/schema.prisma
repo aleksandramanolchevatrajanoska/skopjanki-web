@@ -399,6 +399,9 @@ model EventNote {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   body      String
+  parentId  String? // a reply: the message it answers (one level of thread)
+  parent    EventNote?  @relation("NoteReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   EventNote[] @relation("NoteReplies")
   createdAt DateTime @default(now())
 
   @@index([eventId, createdAt])

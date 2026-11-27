@@ -162,7 +162,8 @@ async function doAddNote(form: FormData) {
   "use server";
   const user = await requireApproved();
   const id = String(form.get("eventId"));
-  await attempt(`/app/events/${id}#notes`, () => addNote(prisma, user.id, id, str(form.get("body"))));
+  const replyTo = str(form.get("replyTo")) || null;
+  await attempt(`/app/events/${id}#notes`, () => addNote(prisma, user.id, id, str(form.get("body")), replyTo));
 }
 
 async function doDeleteNote(form: FormData) {
@@ -436,22 +437,53 @@ export default async function EventPage({ params, searchParams }: Params) {
             <p className="meta">{t.noNotes}</p>
           ) : (
             <ul className="notes">
-              {notes.map((n) => (
-                <li key={n.id}>
-                  <div className="between">
-                    <strong>{n.user.name}</strong>
-                    <span className="meta">{formatDateTime(n.createdAt, locale)}</span>
-                  </div>
-                  <p>{n.body}</p>
-                  {(n.userId === user.id || user.isOwner) && (
+              {notes.filter((n) => !n.parentId).map((n) => {
+                const replies = notes.filter((r) => r.parentId === n.id);
+                const one = (m: (typeof notes)[number]) => (
+                  <>
+                    <div className="between">
+                      <strong>{m.user.name}</strong>
+                      <span className="meta">{formatDateTime(m.createdAt, locale)}</span>
+                    </div>
+                    <p>{m.body}</p>
+                  </>
+                );
+                const del = (m: (typeof notes)[number]) =>
+                  (m.userId === user.id || user.isOwner) && (
                     <form action={doDeleteNote}>
                       <input type="hidden" name="eventId" value={e.id} />
-                      <input type="hidden" name="noteId" value={n.id} />
+                      <input type="hidden" name="noteId" value={m.id} />
                       <button className="btn sm ghost" type="submit">{t.remove}</button>
                     </form>
-                  )}
-                </li>
-              ))}
+                  );
+                return (
+                  <li key={n.id}>
+                    {one(n)}
+                    <div className="row note-actions">{del(n)}</div>
+                    {replies.length > 0 && (
+                      <ul className="replies">
+                        {replies.map((r) => (
+                          <li key={r.id}>
+                            {one(r)}
+                            <div className="row note-actions">{del(r)}</div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {mayNote && (
+                      <details className="reply-box">
+                        <summary className="btn sm ghost">↩ {t.replyButton}{replies.length > 0 ? ` (${replies.length})` : ""}</summary>
+                        <form action={doAddNote}>
+                          <input type="hidden" name="eventId" value={e.id} />
+                          <input type="hidden" name="replyTo" value={n.id} />
+                          <textarea name="body" rows={2} required maxLength={NOTE_MAX} aria-label={`${t.replyButton}: ${n.user.name}`} placeholder={`${t.replyTo} ${n.user.name}…`} />
+                          <p style={{ marginTop: 6 }}><button className="btn sm" type="submit">{t.sendNote}</button></p>
+                        </form>
+                      </details>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
           {mayNote && (

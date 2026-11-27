@@ -472,3 +472,22 @@ describe("community search", () => {
     expect(matchesQuery("Шпански", "spanski")).toBe(true);
   });
 });
+
+describe("chat replies", () => {
+  it("a reply hangs under its message, a reply to a reply joins the same thread, and deleting the message removes its replies", async () => {
+    const { addNote, deleteNote } = await import("@/lib/services/eventdesk");
+    const owner = await girl({ owner: true });
+    const a = await girl();
+    const ev = await weekly(owner.id);
+    const other = await weekly(owner.id, { title: "Other" });
+    await db.reservation.create({ data: { eventId: ev.id, userId: a.id, status: "CONFIRMED", isMember: false } });
+    const m = await addNote(db, a.id, ev.id, "Кој носи топка?");
+    const r1 = await addNote(db, owner.id, ev.id, "Јас", m.id);
+    const r2 = await addNote(db, a.id, ev.id, "Супер", r1.id);
+    expect(r1.parentId).toBe(m.id);
+    expect(r2.parentId).toBe(m.id);
+    expect(await code(addNote(db, owner.id, other.id, "x", m.id))).toBe("NOT_FOUND");
+    await deleteNote(db, a.id, m.id);
+    expect(await db.eventNote.count({ where: { eventId: ev.id } })).toBe(0);
+  });
+});

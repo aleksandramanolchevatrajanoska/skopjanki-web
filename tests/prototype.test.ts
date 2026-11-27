@@ -663,3 +663,22 @@ describe("asking to cancel a membership", () => {
     expect((await closeCancelRequest(db, m.id, true)).memberUntil).toBeNull();
   });
 });
+
+describe("member card one-pager", () => {
+  it("gives each member a secret link and a member number, emails it, and sends missing cards once", async () => {
+    const { sendMemberCard, sendMissingMemberCards, memberCardLink } = await import("@/lib/services/membercard");
+    await girl({ owner: true });
+    const a = await girl({ member: true });
+    const b = await girl({ member: true });
+    const free = await girl();
+    expect(await code(sendMemberCard(db, free.id))).toBe("MEMBERS_ONLY");
+    const link = await sendMemberCard(db, a.id);
+    expect(link).toMatch(/\/karticka\/[\w-]{20,}$/);
+    expect(await memberCardLink(db, a.id)).toBe(link);
+    const ua = await db.user.findUniqueOrThrow({ where: { id: a.id } });
+    expect(ua.memberNumber).not.toBeNull();
+    expect(await sendMissingMemberCards(db)).toBe(1);
+    expect(await sendMissingMemberCards(db)).toBe(0);
+    expect((await db.user.findUniqueOrThrow({ where: { id: b.id } })).memberCardSentAt).not.toBeNull();
+  });
+});

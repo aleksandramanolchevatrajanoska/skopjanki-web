@@ -8,6 +8,8 @@ import { str } from "@/lib/act";
 import { markDebtPaid } from "@/lib/services/attendance";
 import { Flash } from "@/components/Flash";
 import { CopyButton } from "@/components/Interactive";
+import { memberCardLink, sendMemberCard, sendMissingMemberCards } from "@/lib/services/membercard";
+import { appUrl } from "@/lib/email";
 
 async function decide(form: FormData) {
   "use server";
@@ -44,6 +46,24 @@ async function cancelDone(form: FormData) {
   await attempt("/admin/girls", () => closeCancelRequest(prisma, String(form.get("id")), form.get("endNow") === "1"));
 }
 
+async function sendCard(form: FormData) {
+  "use server";
+  await requireOwner();
+  await attempt("/admin/girls", () => sendMemberCard(prisma, String(form.get("id"))), "cardSent");
+}
+
+async function makeLink(form: FormData) {
+  "use server";
+  await requireOwner();
+  await attempt("/admin/girls", () => memberCardLink(prisma, String(form.get("id"))), "saved");
+}
+
+async function sendAllCards() {
+  "use server";
+  await requireOwner();
+  await attempt("/admin/girls", () => sendMissingMemberCards(prisma), "cardsSent");
+}
+
 async function debtPaid(form: FormData) {
   "use server";
   const owner = await requireOwner();
@@ -61,6 +81,7 @@ export default async function Girls({ searchParams }: { searchParams: Promise<Re
   const members = users.filter((u) => isMember(u)).length;
   const requests = users.filter((u) => u.membershipRequestedAt && !isMember(u));
   const cancels = users.filter((u) => u.membershipCancelRequestedAt);
+  const noCard = users.filter((u) => isMember(u) && !u.isOwner && !u.memberCardSentAt && u.status === "APPROVED");
   return (
     <>
       <div className="between">
@@ -88,6 +109,17 @@ export default async function Girls({ searchParams }: { searchParams: Promise<Re
           <p style={{ marginTop: 10 }}><button className="btn sm pink" type="submit">Add</button></p>
         </form>
       </details>
+      <section className="card" style={{ margin: "12px 0" }}>
+        <h2>Member cards</h2>
+        <p className="meta">Each member gets a one-page card with her name, member number and how the site works, at her own secret link. Send it by email, or copy the link from her row below for Viber or Instagram.</p>
+        {noCard.length > 0 ? (
+          <form action={sendAllCards} style={{ marginTop: 8 }}>
+            <button className="btn sm pink" type="submit">Email cards to the {noCard.length} members who haven&apos;t got one</button>
+          </form>
+        ) : (
+          <p className="meta">Every member has had her card.</p>
+        )}
+      </section>
       {cancels.length > 0 && (
         <section className="card" style={{ margin: "12px 0", borderColor: "var(--warn)" }}>
           <h2>Cancellation requests ({cancels.length})</h2>
@@ -160,6 +192,19 @@ export default async function Girls({ searchParams }: { searchParams: Promise<Re
                     <div className="row">
                       <form action={decide}><input type="hidden" name="id" value={u.id} /><input type="hidden" name="approve" value="1" /><button className="btn sm pink">Approve</button></form>
                       <form action={decide}><input type="hidden" name="id" value={u.id} /><input type="hidden" name="approve" value="0" /><button className="btn sm ghost">Reject</button></form>
+                    </div>
+                  )}
+                  {isMember(u) && !u.isOwner && (
+                    <div className="row" style={{ marginBottom: 6 }}>
+                      <form action={sendCard}><input type="hidden" name="id" value={u.id} /><button className="btn sm" type="submit">{u.memberCardSentAt ? "Resend card" : "Send member card"}</button></form>
+                      {u.memberCardToken ? (
+                        <>
+                          <CopyButton value={appUrl(`/karticka/${u.memberCardToken}`)} label="Copy card link" done="Copied" />
+                          <a className="btn sm ghost" href={`/karticka/${u.memberCardToken}`} target="_blank" rel="noopener noreferrer">See ↗</a>
+                        </>
+                      ) : (
+                        <form action={makeLink}><input type="hidden" name="id" value={u.id} /><button className="btn sm ghost" type="submit">Make card link</button></form>
+                      )}
                     </div>
                   )}
                   {u.status === "APPROVED" && !u.isOwner && (

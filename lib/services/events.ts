@@ -301,3 +301,13 @@ export async function deleteUpcomingEvents(db: Db, now = new Date()) {
   const { count } = await db.event.deleteMany({ where: { id: { in: ids } } });
   return { deleted: count, keptPaid: paid.map((e) => e.title) };
 }
+
+/**
+ * Deletes one event with its sign-ups, chat and pictures. Refused while a girl has paid online
+ * for it, because she needs a refund first.
+ */
+export async function deleteEvent(db: Db, eventId: string) {
+  const paid = await db.reservation.count({ where: { eventId, paidAmount: { gt: 0 }, status: { not: "CANCELLED" } } });
+  if (paid > 0) throw new AppError("EVENT_HAS_PAYMENTS");
+  await db.event.delete({ where: { id: eventId } });
+}

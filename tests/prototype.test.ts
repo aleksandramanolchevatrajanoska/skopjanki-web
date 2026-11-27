@@ -579,3 +579,17 @@ describe("adding events afterwards", () => {
     expect(future.pricingMode).toBe("ONLINE");
   });
 });
+
+describe("deleting one event", () => {
+  it("deletes a past event; refuses while someone has paid online", async () => {
+    const { deleteEvent } = await import("@/lib/services/events");
+    const owner = await girl({ owner: true });
+    const a = await girl();
+    const past = await weekly(owner.id, { startsAt: new Date(T0.getTime() - 86400_000) });
+    await deleteEvent(db, past.id);
+    expect(await db.event.count({ where: { id: past.id } })).toBe(0);
+    const paid = await weekly(owner.id);
+    await db.reservation.create({ data: { eventId: paid.id, userId: a.id, status: "CONFIRMED", isMember: false, paidAmount: 1500 } });
+    expect(await code(deleteEvent(db, paid.id))).toBe("EVENT_HAS_PAYMENTS");
+  });
+});

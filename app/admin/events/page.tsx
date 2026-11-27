@@ -2,12 +2,21 @@ import { redirect } from "next/navigation";
 import { requireOwner } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatDateTime } from "@/lib/time";
-import { createEvent, deleteUpcomingEvents } from "@/lib/services/events";
+import { createEvent, deleteEvent, deleteUpcomingEvents } from "@/lib/services/events";
+import { DeleteButton } from "@/components/AdminPartnerButtons";
+import { attempt } from "@/lib/act";
 import { importFromLuma } from "@/lib/services/importer";
 import { AppError } from "@/lib/services/common";
 import { EventFields, readEventForm } from "@/components/EventFields";
 import { Flash } from "@/components/Flash";
 import { ImageUploader } from "@/components/Interactive";
+
+async function removeOne(form: FormData) {
+  "use server";
+  await requireOwner();
+  const tab = String(form.get("tab") ?? "");
+  await attempt(`/admin/events${tab === "past" ? "?tab=past" : ""}`, () => deleteEvent(prisma, String(form.get("id"))), "eventDeleted");
+}
 
 async function deleteUpcoming(form: FormData) {
   "use server";
@@ -93,7 +102,16 @@ export default async function AdminEvents({ searchParams }: { searchParams: Prom
                 <td>{e._count.reservations} / {e.maxSpots} <span className="meta">(min {e.minSpots})</span></td>
                 <td>{e.kind === "FUSION" ? "–" : e.captain?.name ?? <span className="meta">none yet</span>}</td>
                 <td>{e.status.toLowerCase()}{e.lockedAt ? " · price fixed" : ""}</td>
-                <td><a className="btn sm ghost" href={`/admin/events/${e.id}`}>✎ Edit</a></td>
+                <td>
+                  <div className="row" style={{ gap: 6, flexWrap: "nowrap" }}>
+                    <a className="btn sm ghost" href={`/admin/events/${e.id}`}>✎ Edit</a>
+                    <form action={removeOne}>
+                      <input type="hidden" name="id" value={e.id} />
+                      <input type="hidden" name="tab" value={past ? "past" : ""} />
+                      <DeleteButton name={e.title} />
+                    </form>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>

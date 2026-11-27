@@ -593,3 +593,22 @@ describe("deleting one event", () => {
     expect(await code(deleteEvent(db, paid.id))).toBe("EVENT_HAS_PAYMENTS");
   });
 });
+
+describe("organiser adds girls and captains directly", () => {
+  it("adds an approved member with a welcome email, and makes a girl the captain with a seat", async () => {
+    const { addGirl } = await import("@/lib/services/users");
+    const { assignCaptain } = await import("@/lib/services/captains");
+    const { isMember } = await import("@/lib/membership");
+    const owner = await girl({ owner: true });
+    const ana = await addGirl(db, { name: "Ана", email: "Ana@Example.com", months: 1, welcome: true }, T0);
+    expect(ana).toMatchObject({ email: "ana@example.com", status: "APPROVED" });
+    expect(isMember(ana, T0)).toBe(true);
+    expect(await db.emailLog.count({ where: { to: "ana@example.com" } })).toBe(1);
+    const again = await addGirl(db, { name: "Ана", email: "ana@example.com", months: 1, welcome: false }, T0);
+    expect(again.memberUntil!.getTime()).toBeGreaterThan(ana.memberUntil!.getTime());
+    const ev = await weekly(owner.id);
+    await assignCaptain(db, ev.id, ana.id, T0);
+    expect((await db.event.findUniqueOrThrow({ where: { id: ev.id } })).captainId).toBe(ana.id);
+    expect((await db.reservation.findUniqueOrThrow({ where: { eventId_userId: { eventId: ev.id, userId: ana.id } } })).status).toBe("CONFIRMED");
+  });
+});

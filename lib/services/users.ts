@@ -122,3 +122,38 @@ export async function nextMemberNumber(db: Db) {
   const max = await db.user.aggregate({ _max: { memberNumber: true } });
   return (max._max.memberNumber ?? 100) + 1;
 }
+
+/**
+ * The organiser adds a girl herself: she is approved at once, can get months of membership,
+ * and receives a welcome email with the sign-in link. An existing girl is approved and her
+ * membership extended instead.
+ */
+export async function addGirl(
+  db: Db,
+  input: { name: string; email: string; phone?: string; instagram?: string; months: number; welcome: boolean },
+  now = new Date(),
+) {
+  const email = normalizeEmailPlain(input.email);
+  if (!input.name.trim() || !/^\S+@\S+\.\S+$/.test(email)) throw new AppError("BAD_INPUT");
+  const existing = await db.user.findUnique({ where: { email } });
+  const u = existing
+    ? await db.user.update({ where: { id: existing.id }, data: { status: "APPROVED", approvedAt: existing.approvedAt ?? now } })
+    : await db.user.create({
+        data: {
+          email, name: input.name.trim().slice(0, 80), phone: input.phone?.trim() || null,
+          instagram: input.instagram?.trim().replace(/^@/, "") || null, status: "APPROVED", approvedAt: now, locale: "mk", levels: {},
+        },
+      });
+  if (input.months > 0) {
+    const base = u.memberUntil && u.memberUntil > now ? u.memberUntil : now;
+    await setMembership(db, u.id, new Date(base.getTime() + input.months * 30 * 86_400_000));
+  }
+  if (input.welcome) {
+    await flush([{
+      to: u.email,
+      subject: "Добредојде во Skopjanki!",
+      text: `Здраво ${u.name},\n\nОрганизаторката те додаде во Скопјанки${input.months > 0 ? " како членка" : ""}. Најави се со твојот мејл тука:\n${appUrl("/login")}\n\nПрвиот мејл од нас може да заврши во Spam или Promotions; означи го како „Не е спам“.\n\nSkopjanki`,
+    }]);
+  }
+  return db.user.findUniqueOrThrow({ where: { id: u.id } });
+}

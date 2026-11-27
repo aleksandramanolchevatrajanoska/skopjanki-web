@@ -441,6 +441,8 @@ const en = {
   deleteButton: "Delete my account",
   deleted: "Your account was deleted.",
   eventDeleted: "Event deleted.",
+  girlAdded: "Added. She can sign in with her email.",
+  captainSet: "Captain set. She got an email.",
   privacyLink: "Privacy policy",
   errors: {
     EVENT_NOT_OPEN: "This event is not open for sign-up.",
@@ -768,6 +770,8 @@ const mk: Dict = {
   deleteButton: "Избриши го профилот",
   deleted: "Профилот е избришан.",
   eventDeleted: "Настанот е избришан.",
+  girlAdded: "Додадена. Може да се најави со својот мејл.",
+  captainSet: "Капитенката е поставена. Доби мејл.",
   privacyLink: "Политика за приватност",
   exampleTag: "Пример",
   instagramLink: "Instagram пост од настанот (по избор)",

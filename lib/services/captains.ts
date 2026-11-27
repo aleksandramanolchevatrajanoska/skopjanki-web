@@ -66,3 +66,37 @@ export async function decideCaptain(db: Db, applicationId: string, approve: bool
 export async function removeCaptain(db: Db, eventId: string) {
   await db.event.update({ where: { id: eventId }, data: { captainId: null } });
 }
+
+/**
+ * The organiser makes a girl the captain directly, without an application. She gets a seat and an
+ * email; any other captain requests for the event are closed.
+ */
+export async function assignCaptain(db: Db, eventId: string, userId: string, now = new Date()) {
+  const out: Outbox = [];
+  await db.$transaction(async (tx) => {
+    await lockEventRow(tx, eventId);
+    const [e, girl] = await Promise.all([
+      tx.event.findUniqueOrThrow({ where: { id: eventId } }),
+      tx.user.findUnique({ where: { id: userId } }),
+    ]);
+    if (!girl || girl.status !== "APPROVED") throw new AppError("NOT_FOUND");
+    if (e.status === "CANCELLED") throw new AppError("EVENT_NOT_OPEN");
+    await tx.event.update({ where: { id: e.id }, data: { captainId: userId, captainAlertSentAt: null } });
+    await tx.reservation.upsert({
+      where: { eventId_userId: { eventId: e.id, userId } },
+      create: { eventId: e.id, userId, status: "CONFIRMED", isMember: isMember(girl, now) },
+      update: { status: "CONFIRMED", cancelledAt: null, lateCancel: false, offeredUntil: null },
+    });
+    await tx.captainApplication.updateMany({ where: { eventId: e.id, userId, status: "PENDING" }, data: { status: "APPROVED" } });
+    await tx.captainApplication.updateMany({ where: { eventId: e.id, status: "PENDING" }, data: { status: "REJECTED" } });
+    const mk = girl.locale === "mk";
+    out.push({
+      to: girl.email,
+      subject: mk ? `Ти си капитенката: ${e.title}` : `You're the captain: ${e.title}`,
+      text: mk
+        ? `Здраво ${girl.name}! Организаторката те постави за капитенка на „${e.title}“, ${formatDateTime(e.startsAt, "mk")}. Учествуваш бесплатно. Пречекај ги девојките и означи кој дошол на страната на настанот:\n${appUrl(`/app/events/${e.id}`)}`
+        : `Hi ${girl.name}! The organiser made you the captain of "${e.title}" on ${formatDateTime(e.startsAt, "en")}. You take part free. Welcome the girls and mark who came on the event page:\n${appUrl(`/app/events/${e.id}`)}`,
+    });
+  });
+  await flush(out);
+}

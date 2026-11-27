@@ -3,7 +3,8 @@ import { prisma } from "@/lib/db";
 import { attempt, int } from "@/lib/act";
 import { isMember, MEMBERSHIP_MKD } from "@/lib/membership";
 import { DAY } from "@/lib/time";
-import { decideUser, setMembership } from "@/lib/services/users";
+import { addGirl, decideUser, setMembership } from "@/lib/services/users";
+import { str } from "@/lib/act";
 import { markDebtPaid } from "@/lib/services/attendance";
 import { Flash } from "@/components/Flash";
 import { CopyButton } from "@/components/Interactive";
@@ -25,6 +26,16 @@ async function membership(form: FormData) {
     const base = u.memberUntil && u.memberUntil > new Date() ? u.memberUntil : new Date();
     await setMembership(prisma, id, months > 0 ? new Date(base.getTime() + months * 30 * DAY) : null);
   });
+}
+
+async function add(form: FormData) {
+  "use server";
+  await requireOwner();
+  await attempt("/admin/girls", () =>
+    addGirl(prisma, {
+      name: str(form.get("name")), email: str(form.get("email")), phone: str(form.get("phone")), instagram: str(form.get("instagram")),
+      months: int(form.get("months")) ?? 0, welcome: form.get("welcome") === "on",
+    }), "girlAdded");
 }
 
 async function debtPaid(form: FormData) {
@@ -50,6 +61,26 @@ export default async function Girls({ searchParams }: { searchParams: Promise<Re
         <p className="meta">{users.length} girls · {members} members · {members * MEMBERSHIP_MKD} MKD / month</p>
       </div>
       <Flash sp={sp} locale="en" />
+      <details className="card" style={{ margin: "12px 0" }}>
+        <summary style={{ cursor: "pointer", fontWeight: 600 }}>+ Add a girl</summary>
+        <form action={add} style={{ marginTop: 12 }}>
+          <div className="two">
+            <div><label htmlFor="ag-name">Name *</label><input id="ag-name" name="name" required maxLength={80} /></div>
+            <div><label htmlFor="ag-email">Email *</label><input id="ag-email" name="email" type="email" required /></div>
+            <div><label htmlFor="ag-phone">Phone</label><input id="ag-phone" name="phone" /></div>
+            <div><label htmlFor="ag-ig">Instagram</label><input id="ag-ig" name="instagram" placeholder="@" /></div>
+            <div>
+              <label htmlFor="ag-months">Membership</label>
+              <select id="ag-months" name="months" defaultValue="0">
+                <option value="0">Not a member</option><option value="1">Member, 1 month</option><option value="3">Member, 3 months</option><option value="12">Member, 12 months</option>
+              </select>
+            </div>
+          </div>
+          <label className="row check" style={{ fontWeight: 400, marginTop: 10 }}><input type="checkbox" name="welcome" defaultChecked /> Send her a welcome email with the sign-in link</label>
+          <p className="meta">She is approved at once. If the email is already on the site, she is approved and the membership is added to hers.</p>
+          <p style={{ marginTop: 10 }}><button className="btn sm pink" type="submit">Add</button></p>
+        </form>
+      </details>
       {requests.length > 0 && (
         <section className="card" style={{ margin: "12px 0", borderColor: "var(--pink)" }}>
           <h2>Membership requests ({requests.length})</h2>

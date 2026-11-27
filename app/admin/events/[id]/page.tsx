@@ -4,7 +4,8 @@ import { prisma } from "@/lib/db";
 import { attempt, str } from "@/lib/act";
 import { formatDateTime } from "@/lib/time";
 import { cancelEvent, updateEvent } from "@/lib/services/events";
-import { removeCaptain } from "@/lib/services/captains";
+import { assignCaptain, removeCaptain } from "@/lib/services/captains";
+import { isMember } from "@/lib/membership";
 import { AppError } from "@/lib/services/common";
 import { refund } from "@/lib/stripe";
 import { EventFields, readEventForm } from "@/components/EventFields";
@@ -51,6 +52,13 @@ async function dropPoster(form: FormData) {
   await attempt(`/admin/events/${id}`, () => removePoster(prisma, id));
 }
 
+async function setCaptain(form: FormData) {
+  "use server";
+  await requireOwner();
+  const id = String(form.get("id"));
+  await attempt(`/admin/events/${id}`, () => assignCaptain(prisma, id, String(form.get("userId"))), "captainSet");
+}
+
 async function dropCaptain(form: FormData) {
   "use server";
   await requireOwner();
@@ -73,6 +81,11 @@ export default async function AdminEvent({ params, searchParams }: { params: Pro
   const partners = await prisma.partner.findMany({ orderBy: { name: "asc" } });
   const hasPoster = await prisma.eventPoster.findUnique({ where: { eventId: id }, select: { updatedAt: true } });
   const late = await prisma.reservation.findMany({ where: { eventId: id, lateCancel: true }, include: { user: true } });
+  const girls = (await prisma.user.findMany({
+    where: { status: "APPROVED" },
+    select: { id: true, name: true, isOwner: true, memberUntil: true },
+    orderBy: { name: "asc" },
+  })).sort((a, b) => Number(isMember(b)) - Number(isMember(a)));
   return (
     <>
       <p><a href="/admin/events" className="meta">← Events</a> · <a href={`/app/events/${id}`} className="meta">Open as the girls see it (and mark attendance)</a></p>
@@ -103,6 +116,17 @@ export default async function AdminEvent({ params, searchParams }: { params: Pro
               <input type="hidden" name="id" value={e.id} />
               <span>Captain: <strong>{e.captain.name}</strong> </span>
               <button className="btn sm ghost" type="submit">Remove captain</button>
+            </form>
+          )}
+          {e.status !== "CANCELLED" && e.kind !== "FUSION" && (
+            <form action={setCaptain} className="row" style={{ marginTop: 12 }}>
+              <input type="hidden" name="id" value={e.id} />
+              <label htmlFor="cap-pick">{e.captain ? "Change captain" : "Make a girl the captain"}</label>
+              <select id="cap-pick" name="userId" required defaultValue="" style={{ width: "auto", minWidth: 220 }}>
+                <option value="" disabled>Pick a girl…</option>
+                {girls.map((g) => <option key={g.id} value={g.id}>{g.name}{isMember(g) ? " ♛" : " (not a member)"}</option>)}
+              </select>
+              <button className="btn sm" type="submit">Set captain</button>
             </form>
           )}
         </section>

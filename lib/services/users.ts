@@ -190,3 +190,10 @@ export async function closeCancelRequest(db: Db, userId: string, endNow: boolean
     data: { membershipCancelRequestedAt: null, ...(endNow ? { memberUntil: null } : {}) },
   });
 }
+
+/** Member places left out of MEMBER_SPOTS (the organiser does not take one). */
+export async function memberSpotsLeft(db: Db, now = new Date()) {
+  const { MEMBER_SPOTS } = await import("../membership");
+  const taken = await db.user.count({ where: { isOwner: false, memberUntil: { gt: now } } });
+  return { total: MEMBER_SPOTS, taken, left: Math.max(0, MEMBER_SPOTS - taken) };
+}

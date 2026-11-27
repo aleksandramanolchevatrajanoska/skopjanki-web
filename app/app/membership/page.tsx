@@ -55,6 +55,14 @@ export default async function Membership({ searchParams }: { searchParams: Promi
     <>
       <h1>{t.compareTitle}</h1>
       <p className="meta" style={{ maxWidth: "60ch" }}>{t.compareIntro}</p>
+      <div style={{ maxWidth: 760, marginTop: 16 }}>
+        <section className="spots-box">
+          <p className="label">{t.spotsTitle}</p>
+          <p>{t.spotsText}</p>
+          <p className="label" style={{ marginTop: 14 }}>{t.whyTitle}</p>
+          <p>{t.whyText}</p>
+        </section>
+      </div>
       <Flash sp={sp} locale={locale} />
       {sp.ok === "memberWelcome" && !member && <div className="notice">{t.payPending}</div>}
       <div className="grid">

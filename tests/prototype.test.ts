@@ -682,3 +682,14 @@ describe("member card one-pager", () => {
     expect((await db.user.findUniqueOrThrow({ where: { id: b.id } })).memberCardSentAt).not.toBeNull();
   });
 });
+
+describe("limited member places", () => {
+  it("counts members, not the organiser", async () => {
+    const { memberSpotsLeft } = await import("@/lib/services/users");
+    await girl({ owner: true });
+    await girl({ member: true });
+    await girl({ member: true });
+    await girl();
+    expect(await memberSpotsLeft(db)).toEqual({ total: 30, taken: 2, left: 28 });
+  });
+});

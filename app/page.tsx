@@ -338,6 +338,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
             <h2 className="display-md">{t.bandTitle}</h2>
             <p>{t.bandText}</p>
             <ul className="ticks">{t.memberPerks.map((p) => <li key={p}>{p}</li>)}</ul>
+            <section className="spots-box">
+          <p className="label">{t.spotsTitle}</p>
+          <p>{t.spotsText}</p>
+          <p className="label" style={{ marginTop: 14 }}>{t.whyTitle}</p>
+          <p>{t.whyText}</p>
+        </section>
           </div>
           <div className="band-price">
             <p className="price">{MEMBERSHIP_MKD} <small>MKD ({MEMBERSHIP_EUR} €)</small></p>

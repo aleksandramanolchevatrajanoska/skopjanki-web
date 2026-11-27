@@ -20,6 +20,7 @@ export default async function Invitation({ searchParams }: Props) {
   const name = cleanName((await searchParams).za);
   const { letter } = await inviteSettings(prisma);
   const t = dicts.mk;
+  const tt = t;
   return (
     <div className="standalone invite">
       <header className="standalone-head">
@@ -53,6 +54,13 @@ export default async function Invitation({ searchParams }: Props) {
           <li><strong>Дојди на терен</strong><span>Пријави се на неделен спорт, работилница или fusion настан. Членките имаат 48 часа предност и попуст.</span></li>
         </ol>
       </section>
+
+      <section className="spots-box">
+          <p className="label">{tt.spotsTitle}</p>
+          <p>{tt.spotsText}</p>
+          <p className="label" style={{ marginTop: 14 }}>{tt.whyTitle}</p>
+          <p>{tt.whyText}</p>
+        </section>
 
       <section className="invite-perks">
         <span className="label">Што добиваш како членка</span>

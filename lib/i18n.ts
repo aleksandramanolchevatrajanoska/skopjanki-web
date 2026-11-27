@@ -5,9 +5,9 @@ const en = {
   heroTitle: "Game on, girls.",
   pillarsTitle: "Skopjanki is three things",
   pillars: [
-    ["Sports", "A sport every week with partners in Skopje: tennis, padel, aerial, yoga, volleyball and more."],
+    ["Sports", "A sport every week with partners in Skopje: tennis, padel, aerial, yoga, volleyball, football and more."],
     ["Small businesses of members", "Members show their own brands and give each other discounts."],
-    ["Workshops and topics that matter", "Sessions led by members and guests: health, money, creativity, self-care."],
+    ["Workshops and topics that matter", "Sessions led by members and guests: health, money, tech, career, creativity, self-care and more."],
   ] as [string, string][],
   heroIntro: "A sport and social club for women in Skopje. One activity every week, a fusion event every month or two, and a crew that shows up.",
   mkIntro: "Спортски и социјален клуб за девојки од Скопје.",
@@ -487,9 +487,9 @@ const mk: Dict = {
   heroTitle: "Game on, girls.",
   pillarsTitle: "Скопјанки се три работи",
   pillars: [
-    ["Спортови", "Спорт секоја недела кај партнери во Скопје: тенис, падел, aerial, јога, одбојка и уште."],
+    ["Спортови", "Спорт секоја недела кај партнери во Скопје: тенис, падел, aerial, јога, одбојка, фудбал и уште."],
     ["Мали бизниси на членки", "Членките ги покажуваат своите брендови и си даваат попусти една на друга."],
-    ["Работилници и теми од интерес", "Сесии што ги водат членки и гости: здравје, финансии, креативност, грижа за себе."],
+    ["Работилници и теми од интерес", "Сесии што ги водат членки и гости: здравје, финансии, tech, кариера, креативност, грижа за себе и уште."],
   ] as [string, string][],
   heroIntro: "Спортски и социјален клуб за девојки од Скопје. Една активност секоја недела, fusion настан на секој месец или два, и екипа што доаѓа.",
   join: "Сакам да се приклучам",

@@ -85,9 +85,9 @@ export default async function Partneri({ searchParams }: { searchParams: Promise
         <div className="pillars">
           <p className="label">Скопјанки се три работи</p>
           <ol>
-            <li><strong>Спортови</strong><span>Спорт секоја недела кај партнери: тенис, падел, aerial, јога, одбојка и уште.</span></li>
+            <li><strong>Спортови</strong><span>Спорт секоја недела кај партнери: тенис, падел, aerial, јога, одбојка, фудбал и уште.</span></li>
             <li><strong>Мали бизниси на членки</strong><span>Членките ги покажуваат своите брендови и си даваат попусти една на друга.</span></li>
-            <li><strong>Работилници и теми од интерес</strong><span>Сесии за здравје, финансии, креативност и грижа за себе. Простор за нив исто така бараме.</span></li>
+            <li><strong>Работилници и теми од интерес</strong><span>Сесии за здравје, финансии, tech, кариера, креативност, грижа за себе и уште. Простор за нив исто така бараме.</span></li>
           </ol>
         </div>
       </section>

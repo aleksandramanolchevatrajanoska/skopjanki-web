@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { getT } from "@/lib/i18n";
 import { isMember } from "@/lib/membership";
 import { attempt, str } from "@/lib/act";
-import { fmtRange, loadEventCards } from "@/lib/views";
+import { fmtRange, loadEventCards, posterUrl } from "@/lib/views";
 import { formatDateTime } from "@/lib/time";
 import { lockTime, AppError } from "@/lib/services/common";
 import { reserve, cancelReservation, acceptOffer } from "@/lib/services/reservations";
@@ -205,7 +205,7 @@ export default async function EventPage({ params, searchParams }: Params) {
     prisma.photo.findMany({ where: { eventId: id }, select: { id: true, userId: true, user: { select: { name: true } } }, orderBy: { createdAt: "asc" } }),
     canAddPhotos(prisma, user.id, id, now),
     e.partner ? prisma.partnerLogo.findUnique({ where: { partnerId: e.partner.id }, select: { updatedAt: true } }) : null,
-    prisma.eventPoster.count({ where: { eventId: id } }).then((n) => n > 0),
+    prisma.eventPoster.findUnique({ where: { eventId: id }, select: { updatedAt: true } }),
     e.kind === "MEMBER_PLAN" ? prisma.user.findUnique({ where: { id: e.createdById }, select: { name: true } }) : null,
     canManage && e.workshop ? workshopCommission(prisma, id) : null,
   ]);
@@ -238,7 +238,7 @@ export default async function EventPage({ params, searchParams }: Params) {
   const placeText = [e.partner?.name ?? e.place, e.partner?.address].filter(Boolean).join(", ");
   const calUrl = googleCalendarUrl({ ...e, place: placeText }, appUrl(`/app/events/${e.id}`));
   const img = hasPoster
-    ? `/posters/${e.id}`
+    ? posterUrl(e.id, hasPoster.updatedAt)
     : e.imageUrl
     ? e.imageUrl
     : e.kind === "FUSION" ? (/yoga|asana|brunch/i.test(e.title) ? "/img/asanas.jpg" : /tennis|sip|wine/i.test(e.title) ? "/img/sip.jpg" : null) : null;

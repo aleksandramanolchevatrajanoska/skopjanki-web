@@ -6,6 +6,7 @@ import { AppError } from "@/lib/services/common";
 import { canEditEvent, editEvent } from "@/lib/services/events";
 import { EventFields, readEventForm } from "@/components/EventFields";
 import { ImageUploader } from "@/components/Interactive";
+import { posterUrl } from "@/lib/views";
 import { Flash } from "@/components/Flash";
 
 async function save(form: FormData) {
@@ -33,7 +34,7 @@ export default async function EditEvent({ params, searchParams }: { params: Prom
   if (!canEditEvent(user, e)) redirect(`/app/events/${id}`);
   const [partners, hasPoster] = await Promise.all([
     prisma.partner.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
-    prisma.eventPoster.count({ where: { eventId: id } }).then((n) => n > 0),
+    prisma.eventPoster.findUnique({ where: { eventId: id }, select: { updatedAt: true } }),
   ]);
   return (
     <div style={{ maxWidth: 720 }}>
@@ -45,7 +46,7 @@ export default async function EditEvent({ params, searchParams }: { params: Prom
         <h3>{t.planPhoto}</h3>
         {hasPoster && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={`/posters/${id}`} alt="" style={{ maxWidth: 180, borderRadius: 4, display: "block", marginBottom: 12 }} />
+          <img src={posterUrl(id, hasPoster?.updatedAt)} alt="" style={{ maxWidth: 180, borderRadius: 4, display: "block", marginBottom: 12 }} />
         )}
         {user.isOwner ? (
           <ImageUploader endpoint="/api/admin/poster" fields={{ eventId: id }} label={hasPoster ? t.replacePicture : t.uploadPicture} uploading={t.uploading} failed={t.uploadFailed} />

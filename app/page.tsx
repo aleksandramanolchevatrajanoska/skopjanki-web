@@ -23,12 +23,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   const now = new Date();
   const [partners, nextFusion, nextPlans, moments, quotes, stats, move, team] = await Promise.all([
     prisma.partner.findMany({ where: { active: true }, orderBy: { name: "asc" }, include: { logo: { select: { updatedAt: true } } } }),
-    prisma.event.findFirst({ where: { kind: "FUSION", status: "APPROVED", startsAt: { gt: now } }, orderBy: { startsAt: "asc" }, include: { partner: true, poster: { select: { eventId: true } }, photos: { select: { id: true }, orderBy: { createdAt: "asc" }, take: 1 } } }),
+    prisma.event.findFirst({ where: { kind: "FUSION", status: "APPROVED", startsAt: { gt: now } }, orderBy: { startsAt: "asc" }, include: { partner: true, poster: { select: { eventId: true, updatedAt: true } }, photos: { select: { id: true }, orderBy: { createdAt: "asc" }, take: 1 } } }),
     prisma.event.findMany({
       where: { kind: { not: "FUSION" }, status: "APPROVED", startsAt: { gt: now } },
       orderBy: { startsAt: "asc" },
       take: 4,
-      include: { partner: true, poster: { select: { eventId: true } }, photos: { select: { id: true }, orderBy: { createdAt: "asc" }, take: 1 } },
+      include: { partner: true, poster: { select: { eventId: true, updatedAt: true } }, photos: { select: { id: true }, orderBy: { createdAt: "asc" }, take: 1 } },
     }),
     // Moments: past events with photos. Visitors see only photos the organiser made public.
     prisma.event.findMany({
@@ -47,8 +47,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   const shownQuotes = quotes.filter((q) => isMember(q.user, now)).slice(0, 6);
   const untilFusion = nextFusion ? nextFusion.startsAt.getTime() - now.getTime() : 0;
   const firstName = (n: string) => n.split(/\s+/)[0];
-  const cover = (e: { id: string; imageUrl: string | null; poster: { eventId: string } | null; photos: { id: string }[] }) =>
-    coverOf({ id: e.id, imageUrl: e.imageUrl, hasPoster: e.poster != null, firstPhotoId: e.photos[0]?.id });
+  const cover = (e: { id: string; imageUrl: string | null; poster: { eventId: string; updatedAt: Date } | null; photos: { id: string }[] }) =>
+    coverOf({ id: e.id, imageUrl: e.imageUrl, hasPoster: e.poster != null, posterVersion: e.poster?.updatedAt.getTime(), firstPhotoId: e.photos[0]?.id });
   const fusionCover = nextFusion ? cover(nextFusion) : null;
   const joinHref = inside ? "/app" : "/join";
   const eventsHref = (kind: string) => (inside ? `/app?kind=${kind}` : "/join");

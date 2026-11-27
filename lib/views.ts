@@ -12,13 +12,20 @@ export type EventCard = Event & {
   mine: Reservation | null;
   earlyUntil: Date | null;
   hasPoster: boolean;
+  posterVersion: number | null;
   /** Picture for cards: poster, picture link, first photo, or null (cards then draw a coloured cover). */
   cover: string | null;
 };
 
 /** The cover picture of an event, in the same order the event page uses. */
-export function coverOf(e: { id: string; imageUrl: string | null; hasPoster: boolean; firstPhotoId?: string | null }) {
-  if (e.hasPoster) return `/posters/${e.id}`;
+/** Link to an event's poster; the version makes a replaced picture show at once instead of a cached one. */
+export function posterUrl(id: string, updatedAt?: Date | number | null) {
+  const v = updatedAt == null ? "" : `?v=${typeof updatedAt === "number" ? updatedAt : updatedAt.getTime()}`;
+  return `/posters/${id}${v}`;
+}
+
+export function coverOf(e: { id: string; imageUrl: string | null; hasPoster: boolean; posterVersion?: number | null; firstPhotoId?: string | null }) {
+  if (e.hasPoster) return posterUrl(e.id, e.posterVersion);
   if (e.imageUrl) return e.imageUrl;
   if (e.firstPhotoId) return `/photos/${e.firstPhotoId}`;
   return null;
@@ -32,7 +39,7 @@ export async function loadEventCards(where: Prisma.EventWhereInput, userId: stri
       partner: true,
       captain: true,
       reservations: true,
-      poster: { select: { eventId: true } },
+      poster: { select: { eventId: true, updatedAt: true } },
       photos: { select: { id: true }, orderBy: { createdAt: "asc" }, take: 1 },
     },
     take: 60,
@@ -52,7 +59,8 @@ export async function loadEventCards(where: Prisma.EventWhereInput, userId: stri
       mine: userId ? reservations.find((r) => r.userId === userId && r.status !== "CANCELLED") ?? null : null,
       earlyUntil: earlyAccessEnds(e),
       hasPoster: poster != null,
-      cover: coverOf({ id: e.id, imageUrl: e.imageUrl, hasPoster: poster != null, firstPhotoId: photos[0]?.id }),
+      posterVersion: poster?.updatedAt.getTime() ?? null,
+      cover: coverOf({ id: e.id, imageUrl: e.imageUrl, hasPoster: poster != null, posterVersion: poster?.updatedAt.getTime(), firstPhotoId: photos[0]?.id }),
     };
   });
 }

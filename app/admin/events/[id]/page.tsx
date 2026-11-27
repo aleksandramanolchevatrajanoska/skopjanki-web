@@ -10,6 +10,7 @@ import { refund } from "@/lib/stripe";
 import { EventFields, readEventForm } from "@/components/EventFields";
 import { removePoster } from "@/lib/services/club";
 import { ImageUploader } from "@/components/Interactive";
+import { posterUrl } from "@/lib/views";
 import { Flash } from "@/components/Flash";
 
 async function save(form: FormData) {
@@ -70,7 +71,7 @@ export default async function AdminEvent({ params, searchParams }: { params: Pro
   });
   if (!e) notFound();
   const partners = await prisma.partner.findMany({ orderBy: { name: "asc" } });
-  const hasPoster = (await prisma.eventPoster.count({ where: { eventId: id } })) > 0;
+  const hasPoster = await prisma.eventPoster.findUnique({ where: { eventId: id }, select: { updatedAt: true } });
   const late = await prisma.reservation.findMany({ where: { eventId: id, lateCancel: true }, include: { user: true } });
   return (
     <>
@@ -132,7 +133,7 @@ export default async function AdminEvent({ params, searchParams }: { params: Pro
             <form action={dropPoster} className="row" style={{ margin: "8px 0" }}>
               <input type="hidden" name="id" value={e.id} />
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`/posters/${e.id}`} alt="Poster" style={{ height: 120, borderRadius: 4 }} />
+              <img src={posterUrl(e.id, hasPoster?.updatedAt)} alt="Poster" style={{ height: 120, borderRadius: 4 }} />
               <button className="btn sm ghost" type="submit">Remove poster</button>
             </form>
           )}

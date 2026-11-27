@@ -467,7 +467,8 @@ describe("community search", () => {
     expect(matchesQuery(text, "smetkovodstvo zdravje")).toBe(true);
     expect(matchesQuery(text, "HEALTH")).toBe(true);
     expect(matchesQuery(text, "јога")).toBe(false);
-    expect(matchesQuery("Ana Čolić", "colic")).toBe(false);
-    expect(matchesQuery("Ana Čolić", "cholikj")).toBe(true);
+    expect(matchesQuery("Ana Čolić", "colik")).toBe(true);
+    expect(matchesQuery("Ана Чолиќ", "cholikj")).toBe(true);
+    expect(matchesQuery("Шпански", "spanski")).toBe(true);
   });
 });

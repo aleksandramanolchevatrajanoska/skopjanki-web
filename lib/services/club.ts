@@ -322,7 +322,7 @@ const CYR: Record<string, string> = {
   м: "m", н: "n", њ: "nj", о: "o", п: "p", р: "r", с: "s", т: "t", ќ: "kj", у: "u", ф: "f", х: "h", ц: "c", ч: "ch", џ: "dz", ш: "sh",
   й: "j", я: "ja", ю: "ju", ё: "e", э: "e", ы: "i", щ: "sht", ъ: "", ь: "",
 };
-const LAT: Record<string, string> = { č: "ch", ć: "kj", š: "sh", ž: "zh", đ: "gj", ǵ: "gj", ḱ: "kj" };
+const LAT: Record<string, string> = { č: "ch", ć: "k", š: "sh", ž: "zh", đ: "gj", ǵ: "gj", ḱ: "kj" };
 
 /** Lower case, Cyrillic written in Latin letters, accents dropped: "Фотографија" and "fotografija" match. */
 export function foldText(s: string) {
@@ -331,7 +331,9 @@ export function foldText(s: string) {
     .replace(/[а-яѓѕјљњќџйёэыщъь]/g, (c) => CYR[c] ?? c)
     .replace(/[čćšžđǵḱ]/g, (c) => LAT[c] ?? c)
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
+    // People spell these sounds many ways in Latin (č, ch, c; ќ, kj, k): keep one letter for each.
+    .replace(/ch|sh|zh|kj|gj|dz|lj|nj/g, (d) => d.charAt(0))
     .replace(/\s+/g, " ")
     .trim();
 }

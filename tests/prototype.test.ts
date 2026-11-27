@@ -514,12 +514,28 @@ describe("member discount per partner", () => {
     const { pricesFor } = await import("@/lib/pricing");
     const owner = await girl({ owner: true });
     const p = await db.partner.create({ data: { name: "Aerial", activity: "Aerial", memberDiscountPct: 30 } });
-    const ev = await weekly(owner.id, { partnerId: p.id, pricingMode: "PER_PERSON", priceNonMember: 1000, totalCost: null });
+    const ev = await weekly(owner.id, { partnerId: p.id, pricingMode: "PER_PERSON", priceNonMember: 1000, totalCost: null, memberDiscountPct: undefined });
     expect(ev.memberDiscountPct).toBe(30);
     expect(pricesFor(ev, 0, 0)).toEqual({ nonMember: 1000, member: 700 });
-    const other = await weekly(owner.id, { title: "No partner" });
-    expect(other.memberDiscountPct).toBe(20);
+    const other = await weekly(owner.id, { title: "No partner", memberDiscountPct: undefined });
+    expect(other.memberDiscountPct).toBe(10);
+    const plain = await db.partner.create({ data: { name: "Plain", activity: "Tennis" } });
+    expect((await weekly(owner.id, { title: "Plain partner", partnerId: plain.id, memberDiscountPct: undefined })).memberDiscountPct).toBe(20);
     await setPartnerDiscount(db, p.id, 25, T0);
     expect((await db.event.findUniqueOrThrow({ where: { id: ev.id } })).memberDiscountPct).toBe(25);
+  });
+});
+
+describe("discount when an event moves to another partner", () => {
+  it("follows the new partner, and stays put on a text edit", async () => {
+    const { updateEvent } = await import("@/lib/services/events");
+    const owner = await girl({ owner: true });
+    const p = await db.partner.create({ data: { name: "Aerial", activity: "Aerial", memberDiscountPct: 30 } });
+    const ev = await weekly(owner.id, { memberDiscountPct: undefined });
+    expect(ev.memberDiscountPct).toBe(10);
+    const base = { kind: "WEEKLY" as const, title: ev.title, startsAt: ev.startsAt, minSpots: 10, maxSpots: 14, pricingMode: "SPLIT" as const, totalCost: 2400 };
+    expect((await updateEvent(db, ev.id, { ...base, partnerId: p.id })).memberDiscountPct).toBe(30);
+    expect((await updateEvent(db, ev.id, { ...base, partnerId: p.id, description: "Bring water" })).memberDiscountPct).toBe(30);
+    expect((await updateEvent(db, ev.id, { ...base, partnerId: null })).memberDiscountPct).toBe(10);
   });
 });

@@ -86,11 +86,18 @@ function data(i: EventInput) {
 /** Default members' discount when the partner has none of its own. */
 export const DEFAULT_MEMBER_DISCOUNT = 20;
 
-/** An event at a partner takes that partner's member discount; elsewhere the default. */
+/** Members' discount on an event with no partner. */
+export const NO_PARTNER_MEMBER_DISCOUNT = 10;
+
+/**
+ * Members' discount: at a partner, the partner's own (or 20 % when it has none);
+ * with no partner, 10 %. A discount set on the input itself wins.
+ */
 export async function withPartnerDiscount<T extends { partnerId?: string | null; memberDiscountPct?: number }>(db: Db, input: T): Promise<T> {
-  if (!input.partnerId) return input;
+  if (input.memberDiscountPct != null) return input;
+  if (!input.partnerId) return { ...input, memberDiscountPct: NO_PARTNER_MEMBER_DISCOUNT };
   const p = await db.partner.findUnique({ where: { id: input.partnerId }, select: { memberDiscountPct: true } });
-  return p?.memberDiscountPct != null ? { ...input, memberDiscountPct: p.memberDiscountPct } : input;
+  return { ...input, memberDiscountPct: p?.memberDiscountPct ?? DEFAULT_MEMBER_DISCOUNT };
 }
 
 export async function createEvent(db: Db, ownerId: string, input0: EventInput, now = new Date()) {
@@ -108,9 +115,12 @@ export async function createEvent(db: Db, ownerId: string, input0: EventInput, n
 }
 
 export async function updateEvent(db: Db, eventId: string, input0: EventInput) {
-  const input = await withPartnerDiscount(db, input0);
-  validate(input);
   const e = await db.event.findUniqueOrThrow({ where: { id: eventId } });
+  // The members' discount follows the partner: it changes only when the partner changes
+  // (a partner's new discount reaches its events through setPartnerDiscount).
+  const keep = input0.memberDiscountPct == null && (input0.partnerId ?? null) === e.partnerId;
+  const input = keep ? { ...input0, memberDiscountPct: e.memberDiscountPct } : await withPartnerDiscount(db, input0);
+  validate(input);
   if (e.kind !== input.kind && (e.kind === "FUSION" || input.kind === "FUSION")) throw new AppError("CANNOT_CHANGE_KIND");
   const taken = await db.reservation.count({ where: { eventId, status: "CONFIRMED" } });
   if (input.maxSpots < taken) throw new AppError("BAD_SPOTS");
@@ -140,7 +150,7 @@ export async function editEvent(db: Db, actorId: string, eventId: string, input:
   if (before.status === "CANCELLED") throw new AppError("EVENT_NOT_OPEN");
   const safe: EventInput = actor.isOwner
     ? input
-    : { ...input, kind: before.kind, pricingMode: input.pricingMode === "ONLINE" ? before.pricingMode : input.pricingMode, memberDiscountPct: before.memberDiscountPct };
+    : { ...input, kind: before.kind, pricingMode: input.pricingMode === "ONLINE" ? before.pricingMode : input.pricingMode, memberDiscountPct: undefined };
   const after = await updateEvent(db, eventId, safe);
   const out: Outbox = [];
   const moved = after.startsAt.getTime() !== before.startsAt.getTime() || after.place !== before.place || after.partnerId !== before.partnerId;

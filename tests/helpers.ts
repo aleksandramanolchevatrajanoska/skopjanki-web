@@ -40,6 +40,7 @@ export async function weekly(ownerId: string, over: Partial<EventInput> = {}, pu
       maxSpots: 14,
       pricingMode: "SPLIT",
       totalCost: 2400,
+      memberDiscountPct: 20, // the price rules are tested at 20 %; partner and no-partner discounts have their own test
       ...over,
     },
     publishedAt,

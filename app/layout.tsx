@@ -58,7 +58,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                           { href: "/app/community", label: t.community },
                           { href: "/app/partners", label: t.partners },
                           { href: "/app/biznisi", label: t.businessesNav },
-                          { href: "/app/postcard", label: t.postcard },
                           { href: "/app/membership", label: t.membership },
                           { href: "/app/profile", label: t.profile },
                         ]

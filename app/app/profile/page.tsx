@@ -15,7 +15,7 @@ import { MemberCardWithHint as MemberCard } from "@/components/MemberCard";
 import { redirect } from "next/navigation";
 import { signOut } from "@/lib/auth";
 import { AppError } from "@/lib/services/common";
-import { deleteAccount, saveQuote, QUOTE_MAX } from "@/lib/services/club";
+import { deleteAccount, saveQuote, QUOTE_MAX, stampsThisMonth, STAMPS_FOR_SURPRISE } from "@/lib/services/club";
 
 async function doSaveQuote(form: FormData) {
   "use server";
@@ -66,10 +66,11 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
   const { t, locale } = await getT(user.locale);
   const member = isMember(user);
   const quote = await prisma.quote.findUnique({ where: { userId: user.id } });
-  const [cards, debts, pts] = await Promise.all([
+  const [cards, debts, pts, stamps] = await Promise.all([
     loadEventCards({ startsAt: { gte: new Date() }, reservations: { some: { userId: user.id, status: { not: "CANCELLED" } } } }, user.id),
     openDebts(prisma, user.id),
     myPoints(prisma, user.id),
+    stampsThisMonth(prisma, user.id),
   ]);
   return (
     <>
@@ -83,6 +84,12 @@ export default async function Profile({ searchParams }: { searchParams: Promise<
           <div><b>{pts.km}</b><span>{t.kmMoved}</span></div>
         </div>
         <p className="meta">{t.pointsHint}</p>
+        <div className="stamps" aria-label={t.stampsTitle}>
+          <div className="stamp-row" aria-hidden="true">
+            {Array.from({ length: STAMPS_FOR_SURPRISE }, (_, i) => <span key={i} className={`stamp${i < stamps ? " on" : ""}`}>♛</span>)}
+          </div>
+          <p><strong>{t.stampsTitle}: {Math.min(stamps, STAMPS_FOR_SURPRISE)} / {STAMPS_FOR_SURPRISE}</strong> · {t.stampsHint}</p>
+        </div>
       </section>
       <div className="two" style={{ alignItems: "start", marginTop: 16 }}>
         <form action={saveProfile} className="card">

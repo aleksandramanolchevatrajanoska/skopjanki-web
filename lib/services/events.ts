@@ -97,7 +97,7 @@ export async function withPartnerDiscount<T extends { partnerId?: string | null;
   if (input.memberDiscountPct != null) return input;
   if (!input.partnerId) return { ...input, memberDiscountPct: NO_PARTNER_MEMBER_DISCOUNT };
   const p = await db.partner.findUnique({ where: { id: input.partnerId }, select: { memberDiscountPct: true } });
-  return { ...input, memberDiscountPct: p?.memberDiscountPct ?? DEFAULT_MEMBER_DISCOUNT };
+  return { ...input, memberDiscountPct: Math.max(DEFAULT_MEMBER_DISCOUNT, p?.memberDiscountPct ?? DEFAULT_MEMBER_DISCOUNT) };
 }
 
 export async function createEvent(db: Db, ownerId: string, input0: EventInput, now = new Date()) {

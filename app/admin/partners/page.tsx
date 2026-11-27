@@ -132,7 +132,7 @@ function PartnerForm({ p }: { p?: Partner & { logo?: { updatedAt: Date } | null 
         <div><label>Address</label><input name="address" defaultValue={p?.address ?? ""} /></div>
         <div><label>Google Maps link</label><input name="mapsUrl" defaultValue={p?.mapsUrl ?? ""} /></div>
         <div><label>Instagram</label><input name="instagram" defaultValue={p?.instagram ?? ""} placeholder="pointer.tennis" /></div>
-        <div><label htmlFor={`disc-${p?.id ?? "new"}`}>Member discount on our terms (%)</label><input id={`disc-${p?.id ?? "new"}`} name="memberDiscountPct" type="number" min={0} max={90} step={1} defaultValue={p?.memberDiscountPct ?? ""} placeholder="20" /></div>
+        <div><label htmlFor={`disc-${p?.id ?? "new"}`}>Member discount on our terms (%, at least 20)</label><input id={`disc-${p?.id ?? "new"}`} name="memberDiscountPct" type="number" min={20} max={90} step={1} defaultValue={p?.memberDiscountPct ?? ""} placeholder="20" /></div>
         <div><label>Website (clicking the partner opens it; else Instagram)</label><input name="website" defaultValue={p?.website ?? ""} placeholder="https://…" /></div>
         <div><label>Contact shown on the site (phone or email)</label><input name="contact" defaultValue={p?.contact ?? ""} placeholder="070 123 456" /></div>
         <div><label>What members get (shown on the site)</label><input name="offer" defaultValue={p?.offer ?? ""} placeholder="15% off court rental" /></div>

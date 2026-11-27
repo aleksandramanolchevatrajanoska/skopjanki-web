@@ -539,3 +539,12 @@ describe("discount when an event moves to another partner", () => {
     expect((await updateEvent(db, ev.id, { ...base, partnerId: null })).memberDiscountPct).toBe(10);
   });
 });
+
+describe("partners give at least 20%", () => {
+  it("a lower discount is raised to 20%", async () => {
+    const { setPartnerDiscount } = await import("@/lib/services/partners");
+    const p = await db.partner.create({ data: { name: "Low", activity: "Yoga" } });
+    await setPartnerDiscount(db, p.id, 10, T0);
+    expect((await db.partner.findUniqueOrThrow({ where: { id: p.id } })).memberDiscountPct).toBe(20);
+  });
+});

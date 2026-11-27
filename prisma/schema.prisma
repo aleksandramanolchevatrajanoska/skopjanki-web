@@ -146,6 +146,7 @@ model Event {
   agenda            Json? // [["11:00","Yoga"],["12:30","Brunch & mimosas"]]
   poster            EventPoster?
   example           Boolean     @default(false) // created by "Add example events"; removed in one click
+  membersOnly       Boolean     @default(false) // only members can sign up (fusion events always are)
   chatAlertAt       DateTime? // last time the captain was emailed about new chat messages
   durationMin       Int? // how long it lasts; empty = 90 min (fusion: 180)
   workshop          Boolean     @default(false) // a member plan that is a paid workshop or session led by the member

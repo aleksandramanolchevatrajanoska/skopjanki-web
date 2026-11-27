@@ -62,6 +62,9 @@ export default async function Invitation({ searchParams }: Props) {
       <section className="spots-box">
           <p className="label">{tt.spotsTitle}</p>
           <p>{tt.spotsText}</p>
+          <p><strong>♛ {tt.priceLockText}</strong></p>
+          <p className="label" style={{ marginTop: 14 }}>{tt.paysOffTitle}</p>
+          <p>{tt.paysOffText}</p>
           <p className="label" style={{ marginTop: 14 }}>{tt.whyTitle}</p>
           <p>{tt.whyText}</p>
         </section>

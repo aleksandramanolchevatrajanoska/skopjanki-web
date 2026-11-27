@@ -1,5 +1,6 @@
+import { isMembersOnly } from "@/lib/membership";
 import type { EventCard } from "@/lib/views";
-import { fmtRange } from "@/lib/views";
+import { fmtRange, isFree } from "@/lib/views";
 import { dicts, type Locale } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/time";
 
@@ -24,7 +25,8 @@ export function EventCardView({ e, locale, member }: { e: EventCard; locale: Loc
           {e.sport && <span className="tag c">{e.sport}{e.level ? ` · ${t.levels[e.level] ?? e.level}` : ""}</span>}
           {e.vibe && <span className="tag">{t.vibes[e.vibe]}</span>}
           {e.example && <span className="tag">{t.exampleTag}</span>}
-          {!past && e.earlyUntil && new Date() < e.earlyUntil && <span className="tag cap">♛ {t.membersFirstTag}</span>}
+          {!past && isMembersOnly(e) && <span className="tag cap">♛ {t.membersOnlyTag}</span>}
+          {!past && !isMembersOnly(e) && e.earlyUntil && new Date() < e.earlyUntil && <span className="tag cap">♛ {t.membersFirstTag}</span>}
           {!past && e.status === "APPROVED" && (e.kind === "WEEKLY" || e.kind === "SPECIAL") && !e.captainId && <span className="tag cap">{t.needsCaptain}</span>}
           {e.status === "PENDING" && <span className="tag">{t.pendingApproval}</span>}
           {e.status === "CANCELLED" && <span className="tag">✕</span>}
@@ -39,8 +41,14 @@ export function EventCardView({ e, locale, member }: { e: EventCard; locale: Loc
       {!e.range && !past && e.status === "APPROVED" && <p className="meta" style={{ marginTop: 6 }}>{t.priceSoon}</p>}
       {e.range && (
         <p style={{ marginTop: 6 }}>
-          <strong>{fmtRange(member ? e.range.member : e.range.nonMember)} MKD</strong>{" "}
-          <span className="meta">{member ? t.member : t.nonMember}{!member ? ` · ${t.member}: ${fmtRange(e.range.member)}` : ""}</span>
+          {isFree(e.range) ? (
+            <strong>{t.freeEvent}</strong>
+          ) : (
+            <>
+              <strong>{fmtRange(member ? e.range.member : e.range.nonMember)} MKD</strong>{" "}
+              <span className="meta">{member ? t.member : t.nonMember}{!member ? ` · ${t.member}: ${fmtRange(e.range.member)}` : ""}</span>
+            </>
+          )}
         </p>
       )}
     </a>

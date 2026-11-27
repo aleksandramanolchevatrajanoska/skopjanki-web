@@ -59,6 +59,9 @@ export default async function Membership({ searchParams }: { searchParams: Promi
         <section className="spots-box">
           <p className="label">{t.spotsTitle}</p>
           <p>{t.spotsText}</p>
+          <p><strong>♛ {t.priceLockText}</strong></p>
+          <p className="label" style={{ marginTop: 14 }}>{t.paysOffTitle}</p>
+          <p>{t.paysOffText}</p>
           <p className="label" style={{ marginTop: 14 }}>{t.whyTitle}</p>
           <p>{t.whyText}</p>
         </section>

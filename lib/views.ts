@@ -68,3 +68,8 @@ export async function loadEventCards(where: Prisma.EventWhereInput, userId: stri
 export function fmtRange(r: [number, number]) {
   return r[0] === r[1] ? `${r[0]}` : `${r[0]}–${r[1]}`;
 }
+
+/** An event is free when nobody pays anything for it. */
+export function isFree(r: { nonMember: [number, number]; member: [number, number] } | null) {
+  return Boolean(r && r.nonMember[1] === 0 && r.member[1] === 0);
+}

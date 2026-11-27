@@ -1,6 +1,6 @@
 import type { Event } from "@prisma/client";
 import { appUrl } from "../email";
-import { isMember } from "../membership";
+import { isMember, isMembersOnly } from "../membership";
 import { hasPrice, pricesFor } from "../pricing";
 import { DAY, HOUR, formatDateTime } from "../time";
 import {
@@ -37,6 +37,7 @@ export async function reserve(db: Db, userId: string, eventId: string, now = new
     if (user.status !== "APPROVED") throw new AppError("NOT_APPROVED");
     const member = isMember(user, now);
     const early = earlyAccessEnds(event);
+    if (!member && isMembersOnly(event)) throw new AppError("MEMBERS_ONLY_EVENT");
     if (!member && early && now < early) throw new AppError("MEMBERS_FIRST");
 
     const existing = await tx.reservation.findUnique({ where: { eventId_userId: { eventId, userId } } });

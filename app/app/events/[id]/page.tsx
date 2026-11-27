@@ -3,9 +3,9 @@ import { notFound, redirect } from "next/navigation";
 import { requireApproved } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getT } from "@/lib/i18n";
-import { isMember } from "@/lib/membership";
+import { isMember, isMembersOnly } from "@/lib/membership";
 import { attempt, str } from "@/lib/act";
-import { fmtRange, loadEventCards, posterUrl } from "@/lib/views";
+import { fmtRange, isFree, loadEventCards, posterUrl } from "@/lib/views";
 import { formatDateTime } from "@/lib/time";
 import { lockTime, AppError } from "@/lib/services/common";
 import { reserve, cancelReservation, acceptOffer } from "@/lib/services/reservations";
@@ -189,7 +189,8 @@ export default async function EventPage({ params, searchParams }: Params) {
   const canManage = isCaptain || user.isOwner;
   const late = now >= lockTime(e);
   const mine = e.mine;
-  const membersOnlyNow = !member && e.earlyUntil && now < e.earlyUntil;
+  const onlyMembers = isMembersOnly(e);
+  const membersOnlyNow = !member && (onlyMembers || (e.earlyUntil && now < e.earlyUntil));
   // Everything this page reads, fetched at the same time instead of one after another.
   const [myApp, people, guests, mayNote, notes, myDebts, photos, mayAddPhotos, partnerLogo, hasPoster, host, money] = await Promise.all([
     prisma.captainApplication.findUnique({ where: { eventId_userId: { eventId: id, userId: user.id } } }),
@@ -266,6 +267,7 @@ export default async function EventPage({ params, searchParams }: Params) {
           <span className={`tag ${e.kind === "FUSION" ? "p" : e.workshop ? "c" : ""}`}>{e.workshop ? t.workshopTag : t.kinds[e.kind]}</span>
           {e.sport && <span className="tag c">{e.sport} · {e.level ? t.levels[e.level] ?? e.level : t.allLevels}</span>}
           {e.vibe && <span className="tag">{t.vibes[e.vibe]}</span>}
+          {onlyMembers && <span className="tag cap">♛ {t.membersOnlyTag}</span>}
           {e.status === "PENDING" && <span className="tag">{t.pendingApproval}</span>}
           {e.status === "CANCELLED" && <span className="tag">✕ {e.cancelReason}</span>}
         </div>
@@ -318,9 +320,9 @@ export default async function EventPage({ params, searchParams }: Params) {
           {e.range && (
             <div>
               <p className="label">{e.lockedAt ? t.priceLocked : t.price}</p>
-              <p className="price">{fmtRange(myPrice!)} <small className="meta">MKD</small></p>
+              <p className="price">{isFree(e.range) ? t.freeEvent : <>{fmtRange(myPrice!)} <small className="meta">MKD</small></>}</p>
               <p className="meta">
-                {t.nonMember}: {fmtRange(e.range.nonMember)} · {t.member}: {fmtRange(e.range.member)}
+                {isFree(e.range) ? t.freeEventHint : `${t.nonMember}: ${fmtRange(e.range.nonMember)} · ${t.member}: ${fmtRange(e.range.member)}`}
               </p>
               <p className="meta">
                 {e.kind === "FUSION" ? "Stripe" : t.priceCash}
@@ -345,7 +347,7 @@ export default async function EventPage({ params, searchParams }: Params) {
                   <input type="hidden" name="eventId" value={e.id} />
                   {membersOnlyNow ? (
                     <>
-                      <p className="notice">{t.membersFirstUntil} {formatDateTime(e.earlyUntil!, locale)}.</p>
+                      <p className="notice">{onlyMembers ? t.membersOnlyEventText : `${t.membersFirstUntil} ${formatDateTime(e.earlyUntil!, locale)}.`}</p>
                       <a className="btn pink" href="/app/membership">{t.becomeMember}</a>
                     </>
                   ) : (

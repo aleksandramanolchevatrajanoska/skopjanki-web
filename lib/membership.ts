@@ -22,3 +22,8 @@ export const MEMBERSHIP_EUR = 10;
 
 /** For now the club opens a limited number of member places. */
 export const MEMBER_SPOTS = 30;
+
+/** Fusion events, and any event the organiser marks so, are for members only. */
+export function isMembersOnly(e: { kind: string; membersOnly?: boolean | null }) {
+  return e.kind === "FUSION" || Boolean(e.membersOnly);
+}

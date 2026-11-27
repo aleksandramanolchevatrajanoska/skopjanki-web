@@ -735,3 +735,30 @@ describe("chat emails the captain", () => {
     expect(await sent()).toBe(2);
   });
 });
+
+describe("members-only events", () => {
+  it("a weekly event marked members only takes members; non-members are refused", async () => {
+    const { reserve } = await import("@/lib/services/reservations");
+    const owner = await girl({ owner: true });
+    const m = await girl({ member: true });
+    const g = await girl();
+    const ev = await weekly(owner.id, { membersOnly: true });
+    expect(ev.membersOnly).toBe(true);
+    expect(await code(reserve(db, g.id, ev.id, new Date(T0.getTime() + 3 * 86400_000)))).toBe("MEMBERS_ONLY_EVENT");
+    expect(await code(reserve(db, m.id, ev.id, T0))).toBe("OK");
+  });
+});
+
+describe("free events", () => {
+  it("a free fusion event confirms a member's seat without payment", async () => {
+    const { createEvent } = await import("@/lib/services/events");
+    const { reserve } = await import("@/lib/services/reservations");
+    const { isFree } = await import("@/lib/views");
+    const { priceRange } = await import("@/lib/pricing");
+    const owner = await girl({ owner: true });
+    const m = await girl({ member: true });
+    const ev = await createEvent(db, owner.id, { kind: "FUSION", title: "Members picnic", startsAt: new Date(T0.getTime() + 10 * 86400_000), minSpots: 1, maxSpots: 20, pricingMode: "ONLINE", priceNonMember: 0, priceMember: 0 }, new Date(T0.getTime() - 3 * 86400_000));
+    expect(isFree(priceRange(ev, 0, 0))).toBe(true);
+    expect((await reserve(db, m.id, ev.id, T0)).status).toBe("CONFIRMED");
+  });
+});

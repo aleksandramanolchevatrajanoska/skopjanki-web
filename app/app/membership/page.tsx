@@ -1,3 +1,4 @@
+import { TrialBanner } from "@/components/TrialBanner";
 import { PaysOff } from "@/components/PaysOff";
 import { redirect } from "next/navigation";
 import { requireApproved } from "@/lib/auth";
@@ -58,7 +59,9 @@ export default async function Membership({ searchParams }: { searchParams: Promi
       <p className="meta" style={{ maxWidth: "60ch" }}>{t.compareIntro}</p>
       <div style={{ maxWidth: 760, marginTop: 16 }}>
         <section className="spots-box">
-          <p className="label">{t.spotsTitle}</p>
+          <p className="label">{t.trialTitle}</p>
+          <p>{t.trialText}</p>
+          <p className="label" style={{ marginTop: 14 }}>{t.spotsTitle}</p>
           <p>{t.spotsText}</p>
           <p><strong>♛ {t.priceLockText}</strong></p>
           <PaysOff locale={locale} />
@@ -67,6 +70,7 @@ export default async function Membership({ searchParams }: { searchParams: Promi
         </section>
       </div>
       <Flash sp={sp} locale={locale} />
+      <TrialBanner user={user} locale={locale} />
       {sp.ok === "memberWelcome" && !member && <div className="notice">{t.payPending}</div>}
       <div className="grid">
         <div className="card">

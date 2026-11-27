@@ -55,13 +55,15 @@ export default async function Invitation({ searchParams }: Props) {
         <ol className="onepager-steps" style={{ marginTop: 12 }}>
           <li><strong>Пријави се</strong><span>Кажи ни кои спортови ги сакаш, твоите интереси и, ако имаш, твојот мал бизнис.</span><a className="btn sm ghost" href="/?pokana=1">Сакам да се приклучам, но прво да ја видам платформата →</a></li>
           <li><strong>Добиваш мејл</strong><span>Организаторката ја одобрува секоја девојка. Ти стигнува мејл со линк за најава; ако го нема, погледни во Spam или Promotions.</span></li>
-          <li><strong>Стани членка</strong><span>Во „Членарина“ притисни „Сакам да станам членка“ и ти праќаме линк за плаќање. Добиваш своја членска картичка.</span></li>
+          <li><strong>Пробај еден месец, па стани членка</strong><span>Првиот месец доаѓаш на неделните активности без членарина. Потоа, за да продолжиш, треба да станеш членка: во „Членарина“ притисни „Сакам да станам членка“, ти праќаме линк за плаќање и добиваш своја членска картичка.</span></li>
           <li><strong>Дојди на терен</strong><span>Пријави се на неделен спорт, работилница или fusion настан. Членките имаат 48 часа предност и попуст.</span></li>
         </ol>
       </section>
 
       <section className="spots-box">
-          <p className="label">{tt.spotsTitle}</p>
+          <p className="label">{tt.trialTitle}</p>
+          <p>{tt.trialText}</p>
+          <p className="label" style={{ marginTop: 14 }}>{tt.spotsTitle}</p>
           <p>{tt.spotsText}</p>
           <p><strong>♛ {tt.priceLockText}</strong></p>
           <PaysOff locale={"mk"} />

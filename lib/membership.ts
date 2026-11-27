@@ -27,3 +27,17 @@ export const MEMBER_SPOTS = 30;
 export function isMembersOnly(e: { kind: string; membersOnly?: boolean | null }) {
   return e.kind === "FUSION" || Boolean(e.membersOnly);
 }
+
+/** A newly approved girl can try the club for this long without a membership. */
+export const TRIAL_DAYS = 30;
+
+/** When her free trial month ends (null when there is no approval date to count from). */
+export function trialEndsAt(u: { approvedAt: Date | null }) {
+  return u.approvedAt ? new Date(u.approvedAt.getTime() + TRIAL_DAYS * 86_400_000) : null;
+}
+
+/** A non-member may still sign up while her trial month lasts. */
+export function inTrial(u: { approvedAt: Date | null }, now = new Date()) {
+  const end = trialEndsAt(u);
+  return end == null || now < end;
+}

@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireApproved } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getT } from "@/lib/i18n";
-import { isMember, isMembersOnly } from "@/lib/membership";
+import { inTrial, isMember, isMembersOnly } from "@/lib/membership";
 import { attempt, str } from "@/lib/act";
 import { fmtRange, isFree, loadEventCards, posterUrl } from "@/lib/views";
 import { formatDateTime } from "@/lib/time";
@@ -190,7 +190,8 @@ export default async function EventPage({ params, searchParams }: Params) {
   const late = now >= lockTime(e);
   const mine = e.mine;
   const onlyMembers = isMembersOnly(e);
-  const membersOnlyNow = !member && (onlyMembers || (e.earlyUntil && now < e.earlyUntil));
+  const trialOver = !member && !inTrial(user, now);
+  const membersOnlyNow = !member && (onlyMembers || trialOver || (e.earlyUntil && now < e.earlyUntil));
   // Everything this page reads, fetched at the same time instead of one after another.
   const [myApp, people, guests, mayNote, notes, myDebts, photos, mayAddPhotos, partnerLogo, hasPoster, host, money] = await Promise.all([
     prisma.captainApplication.findUnique({ where: { eventId_userId: { eventId: id, userId: user.id } } }),
@@ -347,7 +348,7 @@ export default async function EventPage({ params, searchParams }: Params) {
                   <input type="hidden" name="eventId" value={e.id} />
                   {membersOnlyNow ? (
                     <>
-                      <p className="notice">{onlyMembers ? t.membersOnlyEventText : `${t.membersFirstUntil} ${formatDateTime(e.earlyUntil!, locale)}.`}</p>
+                      <p className="notice">{onlyMembers ? t.membersOnlyEventText : trialOver ? t.trialOver : `${t.membersFirstUntil} ${formatDateTime(e.earlyUntil!, locale)}.`}</p>
                       <a className="btn pink" href="/app/membership">{t.becomeMember}</a>
                     </>
                   ) : (

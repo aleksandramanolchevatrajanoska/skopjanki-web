@@ -1,3 +1,4 @@
+import { TrialBanner } from "@/components/TrialBanner";
 import { googleCalendarUrl } from "@/lib/calendar";
 import { appUrl } from "@/lib/email";
 import { scheduleLifecycle } from "@/lib/services/lazy";
@@ -53,6 +54,7 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
       </div>
       {kind === "fusion" && <p className="meta" style={{ maxWidth: "60ch" }}>{t.fusionIntro}</p>}
       <Flash sp={sp} locale={locale} />
+      <TrialBanner user={user} locale={locale} />
       {owed > 0 && <div className="notice">{t.yourDebt}: <strong>{owed} MKD</strong>. {t.bringCash}.</div>}
       {soon.length > 0 && (
         <div className="notice ok" role="status">

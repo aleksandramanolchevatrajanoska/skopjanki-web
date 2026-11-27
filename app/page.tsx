@@ -342,7 +342,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
             <p>{t.bandText}</p>
             <ul className="ticks">{t.memberPerks.map((p) => <li key={p}>{p}</li>)}</ul>
             <section className="spots-box">
-          <p className="label">{t.spotsTitle}</p>
+          <p className="label">{t.trialTitle}</p>
+          <p>{t.trialText}</p>
+          <p className="label" style={{ marginTop: 14 }}>{t.spotsTitle}</p>
           <p>{t.spotsText}</p>
           <p><strong>♛ {t.priceLockText}</strong></p>
           <PaysOff locale={locale} />

@@ -762,3 +762,21 @@ describe("free events", () => {
     expect((await reserve(db, m.id, ev.id, T0)).status).toBe("CONFIRMED");
   });
 });
+
+describe("trial month", () => {
+  it("a non-member can sign up during her first month after approval, then must become a member", async () => {
+    const { reserve } = await import("@/lib/services/reservations");
+    const owner = await girl({ owner: true });
+    const g = await girl();
+    const m = await girl({ member: true });
+    const ev = await weekly(owner.id, { startsAt: new Date(T0.getTime() + 40 * 86400_000), maxSpots: 20 });
+    const open = new Date(T0.getTime() + 3 * 86400_000);
+    await db.user.update({ where: { id: g.id }, data: { approvedAt: new Date(T0.getTime() - 10 * 86400_000) } });
+    expect(await code(reserve(db, g.id, ev.id, open))).toBe("OK");
+    await db.reservation.deleteMany({ where: { userId: g.id } });
+    await db.user.update({ where: { id: g.id }, data: { approvedAt: new Date(T0.getTime() - 40 * 86400_000) } });
+    expect(await code(reserve(db, g.id, ev.id, open))).toBe("TRIAL_OVER");
+    await db.user.update({ where: { id: m.id }, data: { approvedAt: new Date(T0.getTime() - 400 * 86400_000) } });
+    expect(await code(reserve(db, m.id, ev.id, open))).toBe("OK");
+  });
+});

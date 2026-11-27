@@ -702,3 +702,15 @@ describe("member price typed in by the organiser", () => {
     expect(pricesFor({ ...base, priceMember: null }, 0, 0)).toEqual({ nonMember: 680, member: 510 });
   });
 });
+
+describe("saving a member price per girl", () => {
+  it("keeps the typed member price when the event is saved", async () => {
+    const { updateEvent } = await import("@/lib/services/events");
+    const { pricesFor } = await import("@/lib/pricing");
+    const owner = await girl({ owner: true });
+    const ev = await weekly(owner.id, { title: "Feel Good", pricingMode: "PER_PERSON", totalCost: null, priceNonMember: 700, priceMember: 500 });
+    expect(pricesFor(ev, 0, 0)).toEqual({ nonMember: 700, member: 500 });
+    const again = await updateEvent(db, ev.id, { kind: "WEEKLY", title: "Feel Good", startsAt: ev.startsAt, minSpots: 6, maxSpots: 15, pricingMode: "PER_PERSON", priceNonMember: 700, priceMember: 500 });
+    expect(again.priceMember).toBe(500);
+  });
+});

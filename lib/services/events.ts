@@ -98,7 +98,8 @@ function data(i: EventInput) {
     pricingMode: i.pricingMode,
     totalCost: i.pricingMode === "SPLIT" ? i.totalCost ?? null : null,
     priceNonMember: i.pricingMode === "SPLIT" ? null : i.priceNonMember ?? null,
-    priceMember: i.pricingMode === "ONLINE" ? i.priceMember ?? i.priceNonMember ?? null : null,
+    // Fusion: the member price, or the full one. Price per girl: the member price if typed in, else from the discount.
+    priceMember: i.pricingMode === "ONLINE" ? i.priceMember ?? i.priceNonMember ?? null : i.pricingMode === "PER_PERSON" ? i.priceMember ?? null : null,
     memberDiscountPct: i.memberDiscountPct ?? DEFAULT_MEMBER_DISCOUNT,
   };
 }

@@ -1,3 +1,4 @@
+import { PaysOff } from "@/components/PaysOff";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { dicts } from "@/lib/i18n";
@@ -63,8 +64,7 @@ export default async function Invitation({ searchParams }: Props) {
           <p className="label">{tt.spotsTitle}</p>
           <p>{tt.spotsText}</p>
           <p><strong>♛ {tt.priceLockText}</strong></p>
-          <p className="label" style={{ marginTop: 14 }}>{tt.paysOffTitle}</p>
-          <p>{tt.paysOffText}</p>
+          <PaysOff locale={"mk"} />
           <p className="label" style={{ marginTop: 14 }}>{tt.whyTitle}</p>
           <p>{tt.whyText}</p>
         </section>

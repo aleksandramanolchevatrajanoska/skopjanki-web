@@ -1,3 +1,4 @@
+import { PaysOff } from "@/components/PaysOff";
 import { redirect } from "next/navigation";
 import { requireApproved } from "@/lib/auth";
 import { getT } from "@/lib/i18n";
@@ -60,8 +61,7 @@ export default async function Membership({ searchParams }: { searchParams: Promi
           <p className="label">{t.spotsTitle}</p>
           <p>{t.spotsText}</p>
           <p><strong>♛ {t.priceLockText}</strong></p>
-          <p className="label" style={{ marginTop: 14 }}>{t.paysOffTitle}</p>
-          <p>{t.paysOffText}</p>
+          <PaysOff locale={locale} />
           <p className="label" style={{ marginTop: 14 }}>{t.whyTitle}</p>
           <p>{t.whyText}</p>
         </section>

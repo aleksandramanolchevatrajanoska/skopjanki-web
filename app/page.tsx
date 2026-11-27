@@ -1,3 +1,4 @@
+import { PaysOff } from "@/components/PaysOff";
 import { currentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getT } from "@/lib/i18n";
@@ -344,8 +345,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
           <p className="label">{t.spotsTitle}</p>
           <p>{t.spotsText}</p>
           <p><strong>♛ {t.priceLockText}</strong></p>
-          <p className="label" style={{ marginTop: 14 }}>{t.paysOffTitle}</p>
-          <p>{t.paysOffText}</p>
+          <PaysOff locale={locale} />
           <p className="label" style={{ marginTop: 14 }}>{t.whyTitle}</p>
           <p>{t.whyText}</p>
         </section>

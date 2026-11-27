@@ -524,3 +524,9 @@ nav.tabs{display:block;overflow:visible}
 .tabs-arrow.left{left:0}
 .tabs-slider{position:relative;height:4px;border-radius:99px;background:var(--soft);margin:2px 0 6px}
 .tabs-slider i{position:absolute;top:0;height:100%;border-radius:99px;background:var(--pink);transition:left .15s}
+/* How membership pays for itself: a small bill */
+.paysoff table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.paysoff td{padding:6px 0;border-bottom:1px dashed var(--line);vertical-align:baseline}
+.paysoff td.num{text-align:right;white-space:nowrap;padding-left:12px}
+.paysoff tr.sum td{font-weight:700;color:var(--plum);border-bottom:1px solid var(--plum)}
+.paysoff-result{font-weight:600;color:var(--ok);margin-top:8px}

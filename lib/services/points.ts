@@ -17,15 +17,27 @@ function cameWhere(now: Date) {
 export async function myPoints(db: Db, userId: string, now = new Date()) {
   const rs = await db.reservation.findMany({
     where: { userId, ...cameWhere(now) },
-    select: { event: { select: { captainId: true, sport: true, title: true } } },
+    select: { event: { select: { captainId: true, kind: true, durationMin: true } } },
   });
   const captained = rs.filter((r) => r.event.captainId === userId).length;
-  const hours = (rs.length * MINUTES_PER_EVENT) / 60;
-  const km = hours * KM_PER_HOUR;
+  const hours = round1(rs.reduce((s, r) => s + eventMinutes(r.event) / 60, 0));
+  const km = rs.reduce((s, r) => s + (playMinutes(r.event) / 60) * KM_PER_HOUR, 0);
   return { events: rs.length, captained, points: rs.length * POINTS_PER_EVENT + captained * POINTS_CAPTAIN_BONUS, hours, km: Math.round(km) };
 }
 
-/** A fusion event (sport + hanging out) counts as three hours of friendship. */
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/** How long an event lasts: what the organiser entered, else 90 minutes (a fusion event 180). */
+export function eventMinutes(e: { kind: string; durationMin?: number | null }) {
+  return e.durationMin && e.durationMin > 0 ? e.durationMin : e.kind === "FUSION" ? MINUTES_PER_FUSION : MINUTES_PER_EVENT;
+}
+
+/** The part spent playing: all of a sport event; the sport part of a fusion event (up to 90 minutes). */
+export function playMinutes(e: { kind: string; durationMin?: number | null }) {
+  return e.kind === "FUSION" ? Math.min(MINUTES_PER_EVENT, eventMinutes(e)) : eventMinutes(e);
+}
+
+/** A fusion event (sport + hanging out) lasts three hours unless the organiser enters another length. */
 export const MINUTES_PER_FUSION = 180;
 
 /**
@@ -34,8 +46,8 @@ export const MINUTES_PER_FUSION = 180;
  * so the home page never shows zeros.
  */
 const BEFORE_THE_SITE = [
-  { kind: "FUSION", sport: "Tennis", title: "Sip & Serve", girls: 10 },
-  { kind: "FUSION", sport: "Yoga", title: "Asanas & Mimosas", girls: 16 },
+  { kind: "FUSION", sport: "Tennis", title: "Sip & Serve", girls: 10, durationMin: 180 },
+  { kind: "FUSION", sport: "Yoga", title: "Asanas & Mimosas", girls: 16, durationMin: 180 },
 ] as const;
 
 /**
@@ -58,7 +70,7 @@ export async function clubMovement(db: Db, now = new Date()) {
     db.event.findMany({
       where: { startsAt: { lt: now }, status: "APPROVED", example: false },
       select: {
-        kind: true, sport: true, title: true, minSpots: true, maxSpots: true,
+        kind: true, sport: true, title: true, minSpots: true, maxSpots: true, durationMin: true,
         _count: {
           select: {
             reservations: { where: { status: "CONFIRMED", attended: { not: false } } },
@@ -72,17 +84,18 @@ export async function clubMovement(db: Db, now = new Date()) {
   const list = events.length
     ? events.map((e) => ({ ...e, girls: e._count.reservations + e._count.guests || estimateGirls(e) }))
     : BEFORE_THE_SITE.map((e) => ({ ...e }));
+  // Hours are the events' own length, not multiplied by the girls; km are per girl.
   let play = 0;
   let social = 0;
   let km = 0;
   for (const e of list) {
-    const hoursEach = MINUTES_PER_EVENT / 60;
-    play += e.girls * hoursEach;
-    if (e.kind === "FUSION") social += e.girls * (MINUTES_PER_FUSION / 60);
-    km += e.girls * hoursEach * KM_PER_HOUR;
+    const p = playMinutes(e) / 60;
+    play += p;
+    if (e.kind === "FUSION") social += eventMinutes(e) / 60;
+    km += e.girls * p * KM_PER_HOUR;
   }
-  const playHours = Math.round(play) + base.playHours;
-  const socialHours = Math.round(social) + base.socialHours;
+  const playHours = round1(play) + base.playHours;
+  const socialHours = round1(social) + base.socialHours;
   return {
     visits: list.reduce((s, e) => s + e.girls, 0),
     hours: playHours + socialHours,

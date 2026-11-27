@@ -38,6 +38,7 @@ export type EventInput = {
   startsAt: Date;
   minSpots: number;
   maxSpots: number;
+  durationMin?: number | null;
   pricingMode: PricingMode;
   totalCost?: number | null;
   priceNonMember?: number | null;
@@ -71,6 +72,7 @@ function data(i: EventInput) {
     startsAt: i.startsAt,
     weekKey: weekKey(i.startsAt),
     minSpots: i.minSpots,
+    durationMin: i.durationMin && i.durationMin > 0 ? Math.min(i.durationMin, 24 * 60) : null,
     maxSpots: i.maxSpots,
     pricingMode: i.pricingMode,
     totalCost: i.pricingMode === "SPLIT" ? i.totalCost ?? null : null,

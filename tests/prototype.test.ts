@@ -312,7 +312,7 @@ describe("club numbers never show zero", () => {
     const ev = await weekly(owner.id, { sport: "Football", startsAt: new Date(T0.getTime() - 3 * 86400_000) });
     await db.event.update({ where: { id: ev.id }, data: { minSpots: 10 } });
     const one = await clubMovement(db, T0);
-    expect(one).toMatchObject({ eventsHeld: 1, visits: 11, playHours: 17, socialHours: 0 });
+    expect(one).toMatchObject({ eventsHeld: 1, visits: 11, playHours: 1.5, socialHours: 0, km: 50 });
   });
 });
 
@@ -443,5 +443,17 @@ describe("participants managed by the captain or organiser", () => {
     await removeParticipant(db, owner.id, ev.id, a.id);
     expect((await db.reservation.findUniqueOrThrow({ where: { eventId_userId: { eventId: ev.id, userId: a.id } } })).status).toBe("CANCELLED");
     expect(await db.debt.count({ where: { userId: a.id, eventId: ev.id } })).toBe(0);
+  });
+});
+
+describe("hours are the length of the events", () => {
+  it("does not multiply hours by the girls; km are per girl", async () => {
+    const { clubMovement } = await import("@/lib/services/points");
+    const empty = await clubMovement(db, T0);
+    expect(empty).toMatchObject({ eventsHeld: 2, playHours: 3, socialHours: 6, km: 117 });
+    const owner = await girl({ owner: true });
+    const ev = await weekly(owner.id, { startsAt: new Date(T0.getTime() - 86400_000), durationMin: 60 });
+    await db.event.update({ where: { id: ev.id }, data: { minSpots: 8, maxSpots: 8 } });
+    expect(await clubMovement(db, T0)).toMatchObject({ eventsHeld: 1, playHours: 1, socialHours: 0, km: 24 });
   });
 });

@@ -1,4 +1,12 @@
 {
   "buildCommand": "prisma migrate deploy && prisma generate && next build",
-  "crons": [{ "path": "/api/cron", "schedule": "0 7 * * *" }]
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "0 7 * * *"
+    }
+  ],
+  "regions": [
+    "arn1"
+  ]
 }

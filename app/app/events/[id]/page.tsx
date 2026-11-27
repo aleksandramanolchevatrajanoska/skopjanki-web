@@ -428,6 +428,47 @@ export default async function EventPage({ params, searchParams }: Params) {
         )}
       </section>
 
+      {mayNote || notes.length > 0 ? (
+        <section className="ev-section" id="notes">
+          <h2>{t.notesTitle}</h2>
+          <p className="meta">{t.notesHint}</p>
+          {notes.length === 0 ? (
+            <p className="meta">{t.noNotes}</p>
+          ) : (
+            <ul className="notes">
+              {notes.map((n) => (
+                <li key={n.id}>
+                  <div className="between">
+                    <strong>{n.user.name}</strong>
+                    <span className="meta">{formatDateTime(n.createdAt, locale)}</span>
+                  </div>
+                  <p>{n.body}</p>
+                  {(n.userId === user.id || user.isOwner) && (
+                    <form action={doDeleteNote}>
+                      <input type="hidden" name="eventId" value={e.id} />
+                      <input type="hidden" name="noteId" value={n.id} />
+                      <button className="btn sm ghost" type="submit">{t.remove}</button>
+                    </form>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {mayNote && (
+            <form action={doAddNote} className="note-form">
+              <input type="hidden" name="eventId" value={e.id} />
+              <textarea name="body" rows={3} required maxLength={NOTE_MAX} placeholder={t.notePlaceholder} aria-label={t.notesTitle} />
+              <p style={{ marginTop: 8 }}><button className="btn sm" type="submit">{t.sendNote}</button></p>
+            </form>
+          )}
+        </section>
+      ) : e.status === "APPROVED" ? (
+        <section className="ev-section" id="notes">
+          <h2>{t.notesTitle}</h2>
+          <p className="meta">{t.chatLocked}</p>
+        </section>
+      ) : null}
+
       {canManage && e.status === "APPROVED" && (
         <section className="card ev-section desk" id="desk">
           <h2>♛ {t.captainBox}</h2>
@@ -549,41 +590,6 @@ export default async function EventPage({ params, searchParams }: Params) {
         </section>
       )}
 
-      {(mayNote || notes.length > 0) && (
-        <section className="ev-section" id="notes">
-          <h2>{t.notesTitle}</h2>
-          <p className="meta">{t.notesHint}</p>
-          {notes.length === 0 ? (
-            <p className="meta">{t.noNotes}</p>
-          ) : (
-            <ul className="notes">
-              {notes.map((n) => (
-                <li key={n.id}>
-                  <div className="between">
-                    <strong>{n.user.name}</strong>
-                    <span className="meta">{formatDateTime(n.createdAt, locale)}</span>
-                  </div>
-                  <p>{n.body}</p>
-                  {(n.userId === user.id || user.isOwner) && (
-                    <form action={doDeleteNote}>
-                      <input type="hidden" name="eventId" value={e.id} />
-                      <input type="hidden" name="noteId" value={n.id} />
-                      <button className="btn sm ghost" type="submit">{t.remove}</button>
-                    </form>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-          {mayNote && (
-            <form action={doAddNote} className="note-form">
-              <input type="hidden" name="eventId" value={e.id} />
-              <textarea name="body" rows={3} required maxLength={NOTE_MAX} placeholder={t.notePlaceholder} aria-label={t.notesTitle} />
-              <p style={{ marginTop: 8 }}><button className="btn sm" type="submit">{t.sendNote}</button></p>
-            </form>
-          )}
-        </section>
-      )}
 
       {(photos.length > 0 || mayAddPhotos) && (
         <section id="moments" className="ev-section">

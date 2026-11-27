@@ -1,4 +1,5 @@
-import { AppError, type Db } from "./common";
+import { appUrl } from "../email";
+import { AppError, flush, type Db } from "./common";
 
 export const NOTE_MAX = 1000;
 
@@ -52,7 +53,30 @@ export async function addNote(db: Db, userId: string, eventId: string, body: str
     if (!parent || parent.eventId !== eventId) throw new AppError("NOT_FOUND");
     parentId = parent.parentId ?? parent.id;
   }
-  return db.eventNote.create({ data: { eventId, userId, body: text, parentId } });
+  const note = await db.eventNote.create({ data: { eventId, userId, body: text, parentId } });
+  await alertCaptain(db, eventId, userId);
+  return note;
+}
+
+export const CHAT_ALERT_EVERY_MS = 60 * 60 * 1000;
+
+/**
+ * Tells the captain there are new messages in her event's chat: at most one email an hour per
+ * event, with a link; she opens the chat and reads the whole thread there.
+ */
+async function alertCaptain(db: Db, eventId: string, authorId: string, now = new Date()) {
+  const e = await db.event.findUnique({ where: { id: eventId }, include: { captain: true } });
+  if (!e?.captain || e.captainId === authorId) return;
+  if (e.chatAlertAt && now.getTime() - e.chatAlertAt.getTime() < CHAT_ALERT_EVERY_MS) return;
+  await db.event.update({ where: { id: eventId }, data: { chatAlertAt: now } });
+  const mk = e.captain.locale !== "en";
+  await flush([{
+    to: e.captain.email,
+    subject: mk ? `Нова порака во чатот: ${e.title}` : `New message in the chat: ${e.title}`,
+    text: mk
+      ? `Здраво ${e.captain.name}! Има нова порака во чатот за „${e.title}“. Отвори го чатот и прочитај ја нишката:\n${appUrl(`/app/events/${e.id}#notes`)}\n\n(Ти праќаме најмногу еден мејл на час за овој чат.)`
+      : `Hi ${e.captain.name}! There is a new message in the chat for "${e.title}". Open the chat to read the thread:\n${appUrl(`/app/events/${e.id}#notes`)}\n\n(You get at most one email an hour about this chat.)`,
+  }]);
 }
 
 /** The event chat: everyone who may write in it (girls signed up, the captain, the organiser) reads all of it. */

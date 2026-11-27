@@ -714,3 +714,24 @@ describe("saving a member price per girl", () => {
     expect(again.priceMember).toBe(500);
   });
 });
+
+describe("chat emails the captain", () => {
+  it("once an hour at most, never for her own messages", async () => {
+    const { addNote } = await import("@/lib/services/eventdesk");
+    const owner = await girl({ owner: true });
+    const cap = await girl({ member: true });
+    const a = await girl();
+    const ev = await weekly(owner.id);
+    await db.event.update({ where: { id: ev.id }, data: { captainId: cap.id } });
+    await db.reservation.create({ data: { eventId: ev.id, userId: a.id, status: "CONFIRMED", isMember: false } });
+    const sent = () => db.emailLog.count({ where: { to: cap.email, OR: [{ subject: { contains: "чатот" } }, { subject: { contains: "chat" } }] } });
+    await addNote(db, cap.id, ev.id, "Ќе донесам топка");
+    expect(await sent()).toBe(0);
+    await addNote(db, a.id, ev.id, "Супер!");
+    await addNote(db, a.id, ev.id, "Уште нешто");
+    expect(await sent()).toBe(1);
+    await db.event.update({ where: { id: ev.id }, data: { chatAlertAt: new Date(Date.now() - 61 * 60_000) } });
+    await addNote(db, a.id, ev.id, "После час");
+    expect(await sent()).toBe(2);
+  });
+});

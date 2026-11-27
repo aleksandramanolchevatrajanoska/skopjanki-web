@@ -17,6 +17,7 @@ async function save(form: FormData) {
 export default async function Invites() {
   const { letter, names } = await inviteSettings(prisma);
   const link = (n: string) => appUrl(`/pokana?za=${encodeURIComponent(n)}`);
+  const general = `Здраво! 💛 Те каниме во Скопјанки, клуб за девојки што сакаат да спортуваат, да се дружат и да растат заедно. Тука е поканата и како да се приклучиш: ${appUrl("/pokana")}`;
   const message = (n: string) => `Здраво ${n}! 💛 Ти подготвив лична покана за Скопјанки, клубот што го градам за девојки што сакаат да спортуваат заедно. Погледни ја тука: ${link(n)}`;
   return (
     <>
@@ -24,6 +25,17 @@ export default async function Invites() {
       <p className="meta" style={{ maxWidth: "64ch" }}>
         Write your letter once and list the girls you want to invite. Each girl gets her own card at a personal link, with her name, your letter, the member benefits and a button to join. Copy the link or the whole message and send it on Instagram or Viber.
       </p>
+
+      <section className="card" style={{ marginTop: 16 }}>
+        <h2>Invitation without a name</h2>
+        <p className="meta">The same card, letter, steps and benefits, for anyone. Send it on Viber or Instagram, or post it in a story.</p>
+        <p style={{ margin: "8px 0" }}><a href="/pokana" target="_blank" rel="noopener noreferrer">{appUrl("/pokana")} ↗</a></p>
+        <div className="row">
+          <CopyButton value={general} label="Copy message" done="Copied" />
+          <a className="btn sm ghost" href={`viber://forward?text=${encodeURIComponent(general)}`}>Viber</a>
+          <CopyButton value={appUrl("/pokana")} label="Copy link" done="Copied" />
+        </div>
+      </section>
 
       <form action={save} className="card stack" style={{ marginTop: 16 }}>
         <label htmlFor="letter">Your letter: why you are building Skopjanki (paragraphs separated by an empty line)</label>

@@ -29,7 +29,7 @@ export default async function Invitation({ searchParams }: Props) {
 
       <section className="invite-card" aria-label={name ? `Покана за ${name}` : "Покана"}>
         <div className="between">
-          <span className="label">Лична покана</span>
+          <span className="label">{name ? "Лична покана" : "Покана за членство"}</span>
           <span className="badge" style={{ width: 48, height: 48 }}><Queens /></span>
         </div>
         <div>
@@ -42,6 +42,16 @@ export default async function Invitation({ searchParams }: Props) {
       <section className="invite-letter">
         {letter.split(/\n{2,}/).map((para, i) => <p key={i}>{para}</p>)}
         <p className="invite-sign">— основачката на Скопјанки ♛</p>
+      </section>
+
+      <section>
+        <span className="label">Како да се приклучиш</span>
+        <ol className="onepager-steps" style={{ marginTop: 12 }}>
+          <li><strong>Пријави се</strong><span>Кажи ни кои спортови ги сакаш, твоите интереси и, ако имаш, твојот мал бизнис.</span><a className="btn sm ghost" href="/join">Сакам да се приклучам →</a></li>
+          <li><strong>Добиваш мејл</strong><span>Организаторката ја одобрува секоја девојка. Ти стигнува мејл со линк за најава; ако го нема, погледни во Spam или Promotions.</span></li>
+          <li><strong>Стани членка</strong><span>Во „Членарина“ притисни „Сакам да станам членка“ и ти праќаме линк за плаќање. Добиваш своја членска картичка.</span></li>
+          <li><strong>Дојди на терен</strong><span>Пријави се на неделен спорт, работилница или fusion настан. Членките имаат 48 часа предност и попуст.</span></li>
+        </ol>
       </section>
 
       <section className="invite-perks">

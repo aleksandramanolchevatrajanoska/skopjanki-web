@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 
 const en = {
-  tagline: "For ambitious girls",
+  tagline: "For ambitious girls who move, on the court and in life",
   heroTitle: "Game on, girls.",
   pillarsTitle: "Skopjanki is three things",
   pillars: [
@@ -536,7 +536,7 @@ type Dict = typeof en;
 
 const mk: Dict = {
   ...en,
-  tagline: "За амбициозни девојки",
+  tagline: "За амбициозни девојки што се движат, на терен и во животот",
   heroTitle: "Game on, girls.",
   pillarsTitle: "Скопјанки се три работи",
   pillars: [

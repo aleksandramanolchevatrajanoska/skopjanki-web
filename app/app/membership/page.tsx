@@ -3,23 +3,25 @@ import { requireApproved } from "@/lib/auth";
 import { getT } from "@/lib/i18n";
 import { isMember, MEMBERSHIP_MKD } from "@/lib/membership";
 import { AppError } from "@/lib/services/common";
-import { billingPortal, membershipCheckout } from "@/lib/stripe";
+import { billingPortal } from "@/lib/stripe";
+import { prisma } from "@/lib/db";
+import { requestMembership } from "@/lib/services/users";
 import { Flash } from "@/components/Flash";
 import { MemberCardWithHint as MemberCard } from "@/components/MemberCard";
 import { fmtRange, loadEventCards } from "@/lib/views";
 import { formatDateTime } from "@/lib/time";
 
-async function subscribe() {
+/** For now the organiser sends each girl a payment link by hand: this tells her someone wants to join. */
+async function askToJoin() {
   "use server";
   const user = await requireApproved();
-  let url: string;
   try {
-    url = await membershipCheckout(user);
+    await requestMembership(prisma, user.id);
   } catch (e) {
     if (e instanceof AppError) redirect(`/app/membership?err=${e.code}`);
     throw e;
   }
-  redirect(url);
+  redirect("/app/membership?ok=membershipRequested");
 }
 
 async function portal() {
@@ -59,7 +61,11 @@ export default async function Membership({ searchParams }: { searchParams: Promi
           <h3>Skopjanki {t.memberLabel}</h3>
           <p className="price">{MEMBERSHIP_MKD} <small className="meta">MKD / {t.perMonth}</small></p>
           <ul className="ticks"><li>{t.memberEverythingFree}</li>{t.memberPerks.map((p) => <li key={p}>{p}</li>)}</ul>
-          {!member && <form action={subscribe}><button className="btn pink" type="submit">{t.subscribe}</button></form>}
+          {!member && (user.membershipRequestedAt ? (
+            <p className="notice ok">{t.membershipRequestedOn.replace("{date}", formatDateTime(user.membershipRequestedAt, locale))}</p>
+          ) : (
+            <form action={askToJoin}><button className="btn pink" type="submit">{t.requestMembership}</button></form>
+          ))}
           {member && <MemberCard user={user} locale={locale} />}
           {member && user.stripeSubscriptionId && <form action={portal} style={{ marginTop: 10 }}><button className="btn ghost sm" type="submit">{t.manageSub}</button></form>}
         </div>

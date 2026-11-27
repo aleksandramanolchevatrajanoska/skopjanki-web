@@ -491,3 +491,19 @@ describe("chat replies", () => {
     expect(await db.eventNote.count({ where: { eventId: ev.id } })).toBe(0);
   });
 });
+
+describe("asking to become a member", () => {
+  it("emails the organiser once a day and clears when she becomes a member", async () => {
+    const { requestMembership, setMembership } = await import("@/lib/services/users");
+    const owner = await girl({ owner: true });
+    const a = await girl();
+    await requestMembership(db, a.id, T0);
+    await requestMembership(db, a.id, new Date(T0.getTime() + 3600_000));
+    const mails = await db.emailLog.findMany({ where: { subject: { contains: "сака членство" } } });
+    expect(mails.length).toBe(1);
+    expect(mails[0].to).toContain(owner.email);
+    expect(mails[0].body).toContain(a.email);
+    await setMembership(db, a.id, new Date(T0.getTime() + 30 * 86400_000));
+    expect((await db.user.findUniqueOrThrow({ where: { id: a.id } })).membershipRequestedAt).toBeNull();
+  });
+});

@@ -80,6 +80,7 @@ model User {
   createdEvents       Event[]              @relation("EventCreator")
   captainOf           Event[]              @relation("EventCaptain")
   photos              Photo[]
+  membershipRequestedAt DateTime? // she asked to become a member; the organiser sends a payment link
   skills              String? // what she is good at, in her words (shown in Community)
   background          String? // one of BACKGROUNDS: student, employed, entrepreneur, …
   businessNote        String? // at sign-up: a small business she would like to share

@@ -83,7 +83,39 @@ export async function setMembership(db: Db, userId: string, until: Date | null) 
   const u = await db.user.findUniqueOrThrow({ where: { id: userId } });
   let memberNumber = u.memberNumber;
   if (until && memberNumber == null) memberNumber = await nextMemberNumber(db);
-  return db.user.update({ where: { id: userId }, data: { memberUntil: until, memberNumber } });
+  return db.user.update({
+    where: { id: userId },
+    data: { memberUntil: until, memberNumber, ...(until ? { membershipRequestedAt: null } : {}) },
+  });
+}
+
+/**
+ * She asks to become a member. The organiser gets an email with her contact details and sends
+ * her a payment link by hand; asking again within a day sends no second email.
+ */
+export async function requestMembership(db: Db, userId: string, now = new Date()) {
+  const u = await db.user.findUniqueOrThrow({ where: { id: userId } });
+  if (u.status !== "APPROVED") throw new AppError("NOT_APPROVED");
+  if (u.isOwner || (u.memberUntil && u.memberUntil > now)) return u;
+  const recent = u.membershipRequestedAt && now.getTime() - u.membershipRequestedAt.getTime() < 86_400_000;
+  const updated = await db.user.update({ where: { id: userId }, data: { membershipRequestedAt: now } });
+  if (!recent) {
+    await flush([{
+      to: await ownerEmailsFromDb(db),
+      subject: `Нова членка: ${u.name} сака членство`,
+      text: [
+        `${u.name} сака да стане членка на Скопјанки.`,
+        "",
+        `Мејл: ${u.email}`,
+        u.phone ? `Телефон: ${u.phone}` : "",
+        u.instagram ? `Instagram: @${u.instagram}` : "",
+        "",
+        "Прати ѝ Stripe линк за плаќање. Кога ќе плати, означи ја како членка тука:",
+        appUrl("/admin/girls?requests=1"),
+      ].filter((l) => l !== "").join("\n"),
+    }]);
+  }
+  return updated;
 }
 
 export async function nextMemberNumber(db: Db) {

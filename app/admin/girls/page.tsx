@@ -6,6 +6,7 @@ import { DAY } from "@/lib/time";
 import { decideUser, setMembership } from "@/lib/services/users";
 import { markDebtPaid } from "@/lib/services/attendance";
 import { Flash } from "@/components/Flash";
+import { CopyButton } from "@/components/Interactive";
 
 async function decide(form: FormData) {
   "use server";
@@ -41,6 +42,7 @@ export default async function Girls({ searchParams }: { searchParams: Promise<Re
     orderBy: [{ status: "asc" }, { name: "asc" }],
   });
   const members = users.filter((u) => isMember(u)).length;
+  const requests = users.filter((u) => u.membershipRequestedAt && !isMember(u));
   return (
     <>
       <div className="between">
@@ -48,6 +50,30 @@ export default async function Girls({ searchParams }: { searchParams: Promise<Re
         <p className="meta">{users.length} girls · {members} members · {members * MEMBERSHIP_MKD} MKD / month</p>
       </div>
       <Flash sp={sp} locale="en" />
+      {requests.length > 0 && (
+        <section className="card" style={{ margin: "12px 0", borderColor: "var(--pink)" }}>
+          <h2>Membership requests ({requests.length})</h2>
+          <p className="meta">Send each one a Stripe payment link. When she has paid, give her membership here.</p>
+          <ul className="desk-list">
+            {requests.map((u) => (
+              <li key={u.id}>
+                <span>
+                  <strong>{u.name}</strong> <span className="meta">· asked {u.membershipRequestedAt!.toLocaleDateString("en-GB")}</span>
+                  <br /><span className="meta">{u.email}{u.phone ? ` · ${u.phone}` : ""}</span>
+                </span>
+                <span className="row">
+                  <CopyButton value={u.email} label="Copy email" done="Copied" />
+                  <form action={membership} className="row">
+                    <input type="hidden" name="id" value={u.id} />
+                    <input type="hidden" name="months" value="1" />
+                    <button className="btn sm pink" type="submit">Paid: member for 1 month</button>
+                  </form>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <form className="row" style={{ margin: "12px 0" }}><input name="q" defaultValue={q} placeholder="Search name or email" style={{ maxWidth: 320 }} /><button className="btn sm" type="submit">Search</button></form>
       <div className="tablewrap">
         <table>
@@ -58,7 +84,7 @@ export default async function Girls({ searchParams }: { searchParams: Promise<Re
                 <td><strong>{u.name}</strong><div className="meta">{u.email}{u.phone ? ` · ${u.phone}` : ""}{u.instagram ? ` · @${u.instagram}` : ""}</div></td>
                 <td>{u.isOwner ? "organiser" : u.status.toLowerCase()}</td>
                 <td>
-                  {isMember(u) ? `until ${u.memberUntil?.toLocaleDateString("en-GB") ?? "–"}` : "no"}
+                  {isMember(u) ? `until ${u.memberUntil?.toLocaleDateString("en-GB") ?? "–"}` : u.membershipRequestedAt ? <span className="tag p">requested</span> : "no"}
                   {u.stripeSubscriptionId && <div className="meta">Stripe</div>}
                 </td>
                 <td>

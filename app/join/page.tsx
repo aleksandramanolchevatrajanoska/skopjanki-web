@@ -46,6 +46,7 @@ export default async function Join({ searchParams }: { searchParams: Promise<Rec
       <h1>{t.joinTitle}</h1>
       <p className="meta">{t.joinIntro}</p>
       <Flash sp={sp} locale={locale} />
+      <div className="notice spam-note" role="note"><strong>{t.spamTitle}</strong> {t.spamText}</div>
       {sp.ok ? null : (
         <form action={join} className="card" style={{ marginTop: 16 }}>
           <div className="two">

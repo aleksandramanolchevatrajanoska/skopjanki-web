@@ -20,6 +20,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<Re
       <p className="meta">{t.loginIntro}</p>
       {sp.bad && <div className="notice err">{t.loginBad}</div>}
       <Flash sp={sp} locale={locale} />
+      <div className="notice spam-note" role="note"><strong>{t.spamTitle}</strong> {t.spamText}</div>
       <form action={login} className="card" style={{ marginTop: 16 }}>
         <label htmlFor="email">{t.email}</label>
         <input id="email" name="email" type="email" required autoComplete="email" />

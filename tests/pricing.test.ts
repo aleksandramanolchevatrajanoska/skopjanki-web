@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { captainShareFor, ceil10, priceRange, pricesFor, splitPrices } from "@/lib/pricing";
+import { canHaveCaptain, ceil10, priceRange, splitPrices } from "@/lib/pricing";
 import { skopjeLocalToDate, weekKey, dateToSkopjeLocal } from "@/lib/time";
 
 describe("splitPrices (examples agreed in the business requirements)", () => {
@@ -59,26 +59,10 @@ describe("time", () => {
   });
 });
 
-describe("captain on a fixed-price term", () => {
-  const feelGood = {
-    kind: "WEEKLY", pricingMode: "PER_PERSON", totalCost: null, priceNonMember: 700, priceMember: 500,
-    memberDiscountPct: 30, minSpots: 4, maxSpots: 8,
-  } as const;
-
-  it("her price (member 500) is shared by the girls who pay", () => {
-    const share = captainShareFor(feelGood, { isOwner: false, member: true });
-    expect(share).toBe(500);
-    expect(pricesFor({ ...feelGood, captainShare: share }, 1, 2)).toEqual({ nonMember: 870, member: 670 });
-  });
-
-  it("shows a range down to the price when the term is full", () => {
-    const r = priceRange({ ...feelGood, captainShare: 500 }, 0, 0)!;
-    expect(r.fixed).toBe(false);
-    expect(r.member).toEqual([580, 670]); // 7 paying at most: +80; 3 paying at the minimum: +170
-  });
-
-  it("nothing is shared when the organiser is the captain", () => {
-    expect(captainShareFor(feelGood, { isOwner: true, member: true })).toBeNull();
-    expect(pricesFor({ ...feelGood, captainShare: null }, 1, 2)).toEqual({ nonMember: 700, member: 500 });
+describe("captains", () => {
+  it("only terms with one price for the whole court have a captain", () => {
+    expect(canHaveCaptain({ kind: "WEEKLY", pricingMode: "SPLIT" })).toBe(true);
+    expect(canHaveCaptain({ kind: "WEEKLY", pricingMode: "PER_PERSON" })).toBe(false);
+    expect(canHaveCaptain({ kind: "FUSION", pricingMode: "ONLINE" })).toBe(false);
   });
 });

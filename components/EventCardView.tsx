@@ -1,4 +1,5 @@
 import { isMembersOnly } from "@/lib/membership";
+import { canHaveCaptain } from "@/lib/pricing";
 import type { EventCard } from "@/lib/views";
 import { fmtRange, isFree } from "@/lib/views";
 import { dicts, type Locale } from "@/lib/i18n";
@@ -27,7 +28,7 @@ export function EventCardView({ e, locale, member }: { e: EventCard; locale: Loc
           {e.example && <span className="tag">{t.exampleTag}</span>}
           {!past && isMembersOnly(e) && <span className="tag cap">♛ {t.membersOnlyTag}</span>}
           {!past && !isMembersOnly(e) && e.earlyUntil && new Date() < e.earlyUntil && <span className="tag cap">♛ {t.membersFirstTag}</span>}
-          {!past && e.status === "APPROVED" && (e.kind === "WEEKLY" || e.kind === "SPECIAL") && !e.captainId && <span className="tag cap">{t.needsCaptain}</span>}
+          {!past && e.status === "APPROVED" && canHaveCaptain(e) && !e.captainId && <span className="tag cap">{t.needsCaptain}</span>}
           {e.status === "PENDING" && <span className="tag">{t.pendingApproval}</span>}
           {e.status === "CANCELLED" && <span className="tag">✕</span>}
         </span>

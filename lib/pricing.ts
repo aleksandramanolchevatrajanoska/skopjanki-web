@@ -19,7 +19,7 @@ export function splitPrices(totalCost: number, nonMembers: number, members: numb
   return { nonMember: ceil10(p), member: ceil10(p * f) };
 }
 
-type PricedEvent = Pick<Event, "kind" | "pricingMode" | "totalCost" | "priceNonMember" | "priceMember" | "memberDiscountPct" | "minSpots" | "maxSpots"> & { captainShare?: number | null };
+type PricedEvent = Pick<Event, "kind" | "pricingMode" | "totalCost" | "priceNonMember" | "priceMember" | "memberDiscountPct" | "minSpots" | "maxSpots">;
 
 /** Weekly / special / member plans have a captain who plays free and takes one of the spots. */
 export function hasCaptainSeat(e: Pick<Event, "kind">) {
@@ -31,19 +31,13 @@ export function pricesFor(e: PricedEvent, payingNonMembers: number, payingMember
   switch (e.pricingMode) {
     case "SPLIT":
       return e.totalCost == null ? null : splitPrices(e.totalCost, payingNonMembers, payingMembers, e.memberDiscountPct);
-    case "PER_PERSON": {
+    case "PER_PERSON":
       if (e.priceNonMember == null) return null;
       // A member price the organiser typed in is used as it is; otherwise it comes from the discount.
-      const base = {
+      return {
         nonMember: e.priceNonMember,
         member: e.priceMember != null ? e.priceMember : ceil10(e.priceNonMember * (1 - e.memberDiscountPct / 100)),
       };
-      // The captain plays free: her price is shared by the girls who pay.
-      const paying = payingNonMembers + payingMembers;
-      if (!e.captainShare || paying <= 0) return base;
-      const extra = ceil10(e.captainShare / paying);
-      return { nonMember: base.nonMember + extra, member: base.member + extra };
-    }
     case "ONLINE":
       if (e.priceNonMember == null) return null;
       return { nonMember: e.priceNonMember, member: e.priceMember ?? e.priceNonMember };
@@ -57,7 +51,7 @@ export type PriceRange = { nonMember: [number, number]; member: [number, number]
  * (or at the minimum), the low end is the price if the term fills up, keeping the current member ratio.
  */
 export function priceRange(e: PricedEvent, payingNonMembers: number, payingMembers: number): PriceRange | null {
-  if (e.pricingMode !== "SPLIT" && !(e.pricingMode === "PER_PERSON" && e.captainShare)) {
+  if (e.pricingMode !== "SPLIT") {
     const p = pricesFor(e, 0, 0);
     return p && { nonMember: [p.nonMember, p.nonMember], member: [p.member, p.member], fixed: true };
   }
@@ -85,16 +79,7 @@ export function hasPrice(e: Pick<PricedEvent, "pricingMode" | "totalCost" | "pri
   return e.pricingMode === "SPLIT" ? e.totalCost != null && e.totalCost > 0 : e.priceNonMember != null;
 }
 
-/**
- * What the captain would have paid on a fixed-price term: shared by the others, since she plays free.
- * Nothing when the organiser herself is the captain, on split-cost terms (already shared) and on fusion events.
- */
-export function captainShareFor(
-  e: Pick<Event, "kind" | "pricingMode" | "priceNonMember" | "priceMember" | "memberDiscountPct">,
-  captain: { isOwner: boolean; member: boolean } | null,
-): number | null {
-  if (!captain || captain.isOwner || e.kind === "FUSION" || e.pricingMode !== "PER_PERSON" || e.priceNonMember == null) return null;
-  const member = e.priceMember != null ? e.priceMember : ceil10(e.priceNonMember * (1 - e.memberDiscountPct / 100));
-  const share = captain.member ? member : e.priceNonMember;
-  return share > 0 ? share : null;
+/** Only terms with one price for the whole court have a captain; a price per girl has none (simpler maths). */
+export function canHaveCaptain(e: Pick<Event, "kind" | "pricingMode">) {
+  return (e.kind === "WEEKLY" || e.kind === "SPECIAL") && e.pricingMode === "SPLIT";
 }

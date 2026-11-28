@@ -11,7 +11,7 @@ import { lockTime, AppError } from "@/lib/services/common";
 import { reserve, cancelReservation, acceptOffer } from "@/lib/services/reservations";
 import { applyCaptain } from "@/lib/services/captains";
 import { saveAttendance, markDebtPaid } from "@/lib/services/attendance";
-import { pricesFor } from "@/lib/pricing";
+import { canHaveCaptain, pricesFor } from "@/lib/pricing";
 import { fusionCheckout } from "@/lib/stripe";
 import { Flash } from "@/components/Flash";
 import { PartnerCard } from "@/components/PartnerCard";
@@ -335,7 +335,6 @@ export default async function EventPage({ params, searchParams }: Params) {
               {!member && !captainFreeNow && !isFree(e.range) ? (
                 <p className="meta">♛ {t.asMemberYouPay} <strong>{fmtRange(e.range.member)} MKD</strong> · <a href="/app/membership">{t.becomeMember}</a></p>
               ) : null}
-              {!captainFreeNow && e.captainShare ? <p className="meta">♛ {t.captainShareNote}</p> : null}
               {e.kind !== "FUSION" && owed > 0 && (
                 <p className="notice">{t.yourDebt}: <strong>{owed} MKD</strong></p>
               )}
@@ -399,7 +398,7 @@ export default async function EventPage({ params, searchParams }: Params) {
                   <button className="btn ghost sm" type="submit">{t.cancel}</button>
                 </form>
               )}
-              {(e.kind === "WEEKLY" || e.kind === "SPECIAL") && !e.captainId && (
+              {canHaveCaptain(e) && !e.captainId && (
                 <div className="captain-box">
                   <p className="label">♛ {t.captainTitle}</p>
                   <p className="meta">{t.captainPitch}</p>

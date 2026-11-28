@@ -5,6 +5,7 @@ import { attempt, str } from "@/lib/act";
 import { formatDateTime } from "@/lib/time";
 import { cancelEvent, updateEvent } from "@/lib/services/events";
 import { assignCaptain, removeCaptain } from "@/lib/services/captains";
+import { canHaveCaptain } from "@/lib/pricing";
 import { isMember } from "@/lib/membership";
 import { AppError } from "@/lib/services/common";
 import { refund } from "@/lib/stripe";
@@ -118,7 +119,7 @@ export default async function AdminEvent({ params, searchParams }: { params: Pro
               <button className="btn sm ghost" type="submit">Remove captain</button>
             </form>
           )}
-          {e.status !== "CANCELLED" && e.kind !== "FUSION" && (
+          {e.status !== "CANCELLED" && canHaveCaptain(e) && (
             <form action={setCaptain} className="row" style={{ marginTop: 12 }}>
               <input type="hidden" name="id" value={e.id} />
               <label htmlFor="cap-pick">{e.captain ? "Change captain" : "Make a girl the captain"}</label>

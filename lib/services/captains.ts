@@ -1,7 +1,8 @@
 import { appUrl } from "../email";
 import { isMember } from "../membership";
 import { formatDateTime } from "../time";
-import { AppError, flush, lockEventRow, ownerEmailsFromDb, syncCaptainShare, type Db, type Outbox } from "./common";
+import { canHaveCaptain } from "../pricing";
+import { AppError, flush, lockEventRow, ownerEmailsFromDb, type Db, type Outbox } from "./common";
 
 /** Only a paying member can apply to be the captain of a weekly / week-4 term. */
 export async function applyCaptain(db: Db, userId: string, eventId: string, now = new Date()) {
@@ -9,7 +10,7 @@ export async function applyCaptain(db: Db, userId: string, eventId: string, now 
   await db.$transaction(async (tx) => {
     const e = await tx.event.findUniqueOrThrow({ where: { id: eventId } });
     if (e.status !== "APPROVED" || e.startsAt <= now) throw new AppError("EVENT_NOT_OPEN");
-    if (e.kind !== "WEEKLY" && e.kind !== "SPECIAL") throw new AppError("NO_CAPTAIN_FOR_EVENT");
+    if (!canHaveCaptain(e)) throw new AppError("NO_CAPTAIN_FOR_EVENT");
     if (e.captainId) throw new AppError("CAPTAIN_TAKEN");
     const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
     if (!isMember(user, now)) throw new AppError("MEMBERS_ONLY");
@@ -44,7 +45,6 @@ export async function decideCaptain(db: Db, applicationId: string, approve: bool
     if (!isMember(app.user, now)) throw new AppError("CAPTAIN_NOT_MEMBER");
     await tx.captainApplication.update({ where: { id: app.id }, data: { status: "APPROVED" } });
     await tx.event.update({ where: { id: e.id }, data: { captainId: app.userId, captainAlertSentAt: null } });
-    await syncCaptainShare(tx, e.id, now);
     // The captain always has a seat, even if the term filled up meanwhile.
     await tx.reservation.upsert({
       where: { eventId_userId: { eventId: e.id, userId: app.userId } },
@@ -65,7 +65,7 @@ export async function decideCaptain(db: Db, applicationId: string, approve: bool
 }
 
 export async function removeCaptain(db: Db, eventId: string) {
-  await db.event.update({ where: { id: eventId }, data: { captainId: null, captainShare: null } });
+  await db.event.update({ where: { id: eventId }, data: { captainId: null } });
 }
 
 /**
@@ -82,8 +82,8 @@ export async function assignCaptain(db: Db, eventId: string, userId: string, now
     ]);
     if (!girl || girl.status !== "APPROVED") throw new AppError("NOT_FOUND");
     if (e.status === "CANCELLED") throw new AppError("EVENT_NOT_OPEN");
+    if (!canHaveCaptain(e)) throw new AppError("NO_CAPTAIN_FOR_EVENT");
     await tx.event.update({ where: { id: e.id }, data: { captainId: userId, captainAlertSentAt: null } });
-    await syncCaptainShare(tx, e.id, now);
     await tx.reservation.upsert({
       where: { eventId_userId: { eventId: e.id, userId } },
       create: { eventId: e.id, userId, status: "CONFIRMED", isMember: isMember(girl, now) },

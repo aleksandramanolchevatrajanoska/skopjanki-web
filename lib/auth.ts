@@ -41,7 +41,8 @@ export async function sendLoginLink(rawEmail: string, locale = "en"): Promise<bo
 /** Consumes a sign-in token and returns the session token to put in the cookie. */
 export async function consumeLoginToken(token: string): Promise<string | null> {
   const row = await prisma.loginToken.findUnique({ where: { tokenHash: sha(token) } });
-  if (!row || row.usedAt || row.expiresAt < new Date()) return null;
+  // The link works for its whole 30 minutes, so it can be opened again in another browser (e.g. after Gmail's in-app browser).
+  if (!row || row.expiresAt < new Date()) return null;
   await prisma.loginToken.update({ where: { id: row.id }, data: { usedAt: new Date() } });
   const user = await prisma.user.findUnique({ where: { email: row.email } });
   if (!user) return null;

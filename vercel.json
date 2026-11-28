@@ -8,5 +8,18 @@
   ],
   "regions": [
     "arn1"
+  ],
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "skopjanki-web.vercel.app"
+        }
+      ],
+      "destination": "https://skopjanki.com/:path*",
+      "permanent": false
+    }
   ]
 }

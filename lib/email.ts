@@ -39,5 +39,7 @@ export async function sendMail(mail: Mail): Promise<void> {
 }
 
 export function appUrl(path = "") {
-  return (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "") + path;
+  // Production links always use the real domain, so the sign-in cookie and shared links live on the same site.
+  const base = process.env.VERCEL_ENV === "production" ? "https://skopjanki.com" : process.env.APP_URL ?? "http://localhost:3000";
+  return base.replace(/\/$/, "") + path;
 }

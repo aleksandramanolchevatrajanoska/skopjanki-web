@@ -45,9 +45,16 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
         </div>
         <div className="row">
           <ShareButton url={`/app/biznisi/${b.id}`} title={`Skopjanki: ${b.name}`} labels={{ share: t.share, copyLink: t.copyLink, copied: t.copied }} />
-          {mine && <a className="btn sm" href={`/app/biznisi/${b.id}/uredi`}>✎ {t.businessEdit}</a>}
+
         </div>
       </div>
+
+      {mine && (
+        <div className="notice" style={{ marginTop: 18, borderLeft: "4px solid var(--pink)" }}>
+          <p style={{ margin: 0 }}>{t.businessYours}</p>
+          <p style={{ margin: "10px 0 0" }}><a className="btn pink" href={`/app/biznisi/${b.id}/uredi`}>✎ {t.businessEditMine}</a></p>
+        </div>
+      )}
 
       {poster && (
         // eslint-disable-next-line @next/next/no-img-element

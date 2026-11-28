@@ -48,6 +48,17 @@ export default async function Businesses({ searchParams }: { searchParams: Promi
       <h1>{t.businessesTitle}</h1>
       <p className="meta" style={{ maxWidth: "62ch" }}>{t.businessesIntro}</p>
       <Flash sp={sp} locale={locale} />
+      {mine.length > 0 && (
+        <div className="notice" style={{ marginTop: 16, borderLeft: "4px solid var(--pink)" }}>
+          <p className="label" style={{ marginTop: 0 }}>{t.businessMine}</p>
+          {mine.map((b) => (
+            <p key={b.id} className="row" style={{ margin: "8px 0 0", justifyContent: "space-between" }}>
+              <span><strong>{b.name}</strong> {b.status === "PENDING" && <span className="tag">{t.businessPending}</span>}</span>
+              <a className="btn sm pink" href={`/app/biznisi/${b.id}/uredi`}>✎ {t.businessEditMine}</a>
+            </p>
+          ))}
+        </div>
+      )}
 
       {list.length === 0 ? (
         <p className="meta" style={{ marginTop: 16 }}>{t.businessesEmpty}</p>
@@ -78,7 +89,10 @@ export default async function Businesses({ searchParams }: { searchParams: Promi
                   {site && <a className="btn sm ghost" href={site} {...ext}>{t.website}</a>}
                   {ig && <a className="btn sm ghost" href={ig} {...ext}>@{b.instagram}</a>}
                 </p>
-                <p style={{ margin: 0 }}><a className="btn sm" href={`/app/biznisi/${b.id}`}>{t.businessMore} →</a></p>
+                <p className="row" style={{ margin: 0 }}>
+                  <a className="btn sm" href={`/app/biznisi/${b.id}`}>{t.businessMore} →</a>
+                  {(b.userId === user.id || user.isOwner) && <a className="btn sm pink" href={`/app/biznisi/${b.id}/uredi`}>✎ {t.businessEdit}</a>}
+                </p>
                 {b.offer && (
                   <div className="offer">
                     <p className="label">{t.partnerOffer}</p>
@@ -102,7 +116,7 @@ export default async function Businesses({ searchParams }: { searchParams: Promi
                 <li key={b.id}>
                   <span><a href={`/app/biznisi/${b.id}`}>{b.name}</a> {b.status === "PENDING" && <span className="tag">{t.businessPending}</span>}</span>
                   <span className="row">
-                  <a className="btn sm" href={`/app/biznisi/${b.id}/uredi`}>✎ {t.businessEdit}</a>
+                  <a className="btn sm pink" href={`/app/biznisi/${b.id}/uredi`}>✎ {t.businessEdit}</a>
                   <form action={remove}><input type="hidden" name="id" value={b.id} /><button className="btn sm ghost" type="submit">{t.remove}</button></form>
                   </span>
                 </li>

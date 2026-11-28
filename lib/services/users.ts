@@ -89,6 +89,31 @@ export async function setMembership(db: Db, userId: string, until: Date | null) 
   });
 }
 
+/** The organiser corrects a girl's profile: name, email, phone, Instagram, short bio, skills, background. */
+export async function adminUpdateProfile(
+  db: Db,
+  id: string,
+  input: { name: string; email: string; phone?: string; instagram?: string; bio?: string; skills?: string; background?: string; showInCommunity: boolean },
+) {
+  const email = normalizeEmailPlain(input.email);
+  const name = input.name.trim().replace(/\s+/g, " ");
+  if (!name || !/^\S+@\S+\.\S+$/.test(email)) throw new AppError("BAD_INPUT");
+  const clash = await db.user.findUnique({ where: { email } });
+  if (clash && clash.id !== id) throw new AppError("EMAIL_TAKEN");
+  return db.user.update({
+    where: { id },
+    data: {
+      name: name.slice(0, 80), email,
+      phone: input.phone?.trim() || null,
+      instagram: input.instagram?.trim().replace(/^@/, "") || null,
+      bio: input.bio?.trim().slice(0, 300) || null,
+      skills: input.skills?.trim().slice(0, 300) || null,
+      background: BACKGROUNDS.includes(input.background?.trim() ?? "") ? input.background!.trim() : null,
+      showInCommunity: input.showInCommunity,
+    },
+  });
+}
+
 /**
  * She asks to become a member. The organiser gets an email with her contact details and sends
  * her a payment link by hand; asking again within a day sends no second email.

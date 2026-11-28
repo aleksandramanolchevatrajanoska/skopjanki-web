@@ -3,7 +3,8 @@ import { prisma } from "@/lib/db";
 import { attempt, int } from "@/lib/act";
 import { isMember, MEMBERSHIP_MKD } from "@/lib/membership";
 import { DAY } from "@/lib/time";
-import { addGirl, closeCancelRequest, decideUser, setMembership } from "@/lib/services/users";
+import { addGirl, adminUpdateProfile, closeCancelRequest, decideUser, setMembership } from "@/lib/services/users";
+import { BACKGROUNDS, dicts } from "@/lib/i18n";
 import { str } from "@/lib/act";
 import { markDebtPaid } from "@/lib/services/attendance";
 import { Flash } from "@/components/Flash";
@@ -38,6 +39,17 @@ async function add(form: FormData) {
       name: str(form.get("name")), email: str(form.get("email")), phone: str(form.get("phone")), instagram: str(form.get("instagram")),
       months: int(form.get("months")) ?? 0, welcome: form.get("welcome") === "on",
     }), "girlAdded");
+}
+
+async function editProfile(form: FormData) {
+  "use server";
+  await requireOwner();
+  await attempt("/admin/girls", () =>
+    adminUpdateProfile(prisma, String(form.get("id")), {
+      name: str(form.get("name")), email: str(form.get("email")), phone: str(form.get("phone")), instagram: str(form.get("instagram")),
+      bio: str(form.get("bio")), skills: str(form.get("skills")), background: str(form.get("background")),
+      showInCommunity: form.get("showInCommunity") === "on",
+    }));
 }
 
 async function cancelDone(form: FormData) {
@@ -178,7 +190,28 @@ export default async function Girls({ searchParams }: { searchParams: Promise<Re
           <tbody>
             {users.map((u) => (
               <tr key={u.id}>
-                <td><strong>{u.name}</strong><div className="meta">{u.email}{u.phone ? ` · ${u.phone}` : ""}{u.instagram ? ` · @${u.instagram}` : ""}</div></td>
+                <td>
+                  <strong>{u.name}</strong><div className="meta">{u.email}{u.phone ? ` · ${u.phone}` : ""}{u.instagram ? ` · @${u.instagram}` : ""}</div>
+                  <details style={{ marginTop: 6 }}>
+                    <summary className="meta" style={{ cursor: "pointer" }}>✎ Edit profile</summary>
+                    <form action={editProfile} style={{ marginTop: 8, minWidth: 260 }}>
+                      <input type="hidden" name="id" value={u.id} />
+                      <label htmlFor={`n-${u.id}`}>Name and surname</label><input id={`n-${u.id}`} name="name" required maxLength={80} defaultValue={u.name} />
+                      <label htmlFor={`e-${u.id}`}>Email</label><input id={`e-${u.id}`} name="email" type="email" required defaultValue={u.email} />
+                      <label htmlFor={`p-${u.id}`}>Phone</label><input id={`p-${u.id}`} name="phone" defaultValue={u.phone ?? ""} />
+                      <label htmlFor={`i-${u.id}`}>Instagram</label><input id={`i-${u.id}`} name="instagram" placeholder="@" defaultValue={u.instagram ?? ""} />
+                      <label htmlFor={`b-${u.id}`}>Short bio</label><input id={`b-${u.id}`} name="bio" maxLength={300} defaultValue={u.bio ?? ""} />
+                      <label htmlFor={`s-${u.id}`}>Skills</label><input id={`s-${u.id}`} name="skills" maxLength={300} defaultValue={u.skills ?? ""} />
+                      <label htmlFor={`bg-${u.id}`}>Background</label>
+                      <select id={`bg-${u.id}`} name="background" defaultValue={u.background ?? ""}>
+                        <option value="">–</option>
+                        {BACKGROUNDS.map((b) => <option key={b} value={b}>{dicts.en.backgroundNames[b] ?? b}</option>)}
+                      </select>
+                      <label className="row check" style={{ fontWeight: 400, marginTop: 8 }}><input type="checkbox" name="showInCommunity" defaultChecked={u.showInCommunity} /> Show in Community</label>
+                      <p style={{ marginTop: 8 }}><button className="btn sm pink" type="submit">Save</button></p>
+                    </form>
+                  </details>
+                </td>
                 <td>{u.isOwner ? "organiser" : u.status.toLowerCase()}</td>
                 <td>
                   {isMember(u) ? `until ${u.memberUntil?.toLocaleDateString("en-GB") ?? "–"}` : u.membershipRequestedAt ? <span className="tag p">requested</span> : "no"}

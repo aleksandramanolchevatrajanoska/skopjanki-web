@@ -437,7 +437,23 @@ model MemberBusiness {
   website     String?
   contact     String?
   status      String   @default("PENDING") // PENDING | APPROVED | DECLINED
+  links       String[] @default([]) // extra links: menu, booking, TikTok…
   createdAt   DateTime @default(now())
+  files       BusinessFile[]
 
   @@index([status])
+}
+
+/** Photos (up to 5) and PDFs (menu, catalogue, price list) on a member business's page. */
+model BusinessFile {
+  id         String         @id @default(cuid())
+  businessId String
+  business   MemberBusiness @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  kind       String // IMAGE | PDF
+  name       String
+  mime       String
+  data       Bytes
+  createdAt  DateTime       @default(now())
+
+  @@index([businessId])
 }

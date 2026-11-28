@@ -280,6 +280,42 @@ export function ImageUploader({ endpoint, fields = {}, label, uploading, failed,
   );
 }
 
+/** Uploads a PDF as it is (no shrinking) and reloads the page. */
+export function PdfUploader({ endpoint, fields = {}, label, uploading, failed }: { endpoint: string; fields?: Record<string, string>; label: string; uploading: string; failed: string }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  async function onChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const fd = new FormData();
+      for (const [k, v] of Object.entries(fields)) fd.append(k, v);
+      fd.append("file", f, f.name);
+      const res = await fetch(endpoint, { method: "POST", body: fd });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.message ?? failed);
+      }
+      window.location.reload();
+    } catch (x) {
+      setErr(x instanceof Error ? x.message : failed);
+      setBusy(false);
+      e.target.value = "";
+    }
+  }
+  return (
+    <div>
+      <label className="btn ghost sm" style={{ display: "inline-block", margin: 0 }}>
+        {busy ? uploading : label}
+        <input type="file" accept="application/pdf" hidden disabled={busy} onChange={onChange} />
+      </label>
+      {err && <p className="notice err" role="alert">{err}</p>}
+    </div>
+  );
+}
+
 /**
  * A file field that shrinks the chosen photo in the browser (max 1600 px JPEG) and puts the small file
  * back into the form, so the form can be sent with any phone photo.

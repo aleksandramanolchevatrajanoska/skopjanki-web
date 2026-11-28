@@ -39,7 +39,7 @@ export default async function Businesses({ searchParams }: { searchParams: Promi
   const { t, locale } = await getT(user.locale);
   const member = isMember(user);
   const [list, mine] = await Promise.all([
-    prisma.memberBusiness.findMany({ where: { status: "APPROVED" }, include: { user: { select: { name: true } } }, orderBy: { createdAt: "desc" } }),
+    prisma.memberBusiness.findMany({ where: { status: "APPROVED" }, include: { user: { select: { name: true } }, files: { where: { kind: "IMAGE" }, select: { id: true }, orderBy: { createdAt: "asc" }, take: 1 } }, orderBy: { createdAt: "desc" } }),
     prisma.memberBusiness.findMany({ where: { userId: user.id, status: { in: ["PENDING", "APPROVED"] } }, orderBy: { createdAt: "asc" } }),
   ]);
   const ext = { target: "_blank", rel: "noopener noreferrer" } as const;
@@ -59,18 +59,26 @@ export default async function Businesses({ searchParams }: { searchParams: Promi
             return (
               <div className="card partner" key={b.id}>
                 <div className="partner-head">
-                  <span className="partner-logo"><span aria-hidden="true">{b.name.slice(0, 1).toUpperCase()}</span></span>
+                  <span className="partner-logo">
+                    {b.files[0] ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={`/biznis-files/${b.files[0].id}`} alt="" loading="lazy" />
+                    ) : (
+                      <span aria-hidden="true">{b.name.slice(0, 1).toUpperCase()}</span>
+                    )}
+                  </span>
                   <div>
-                    <h3>{site ?? ig ? <a href={(site ?? ig)!} {...ext}>{b.name} <span aria-hidden="true">↗</span></a> : b.name}</h3>
+                    <h3><a href={`/app/biznisi/${b.id}`}>{b.name}</a></h3>
                     <p className="meta" style={{ margin: 0 }}>{b.category} · {b.user.name}</p>
                   </div>
                 </div>
-                {b.description && <p style={{ margin: 0 }}>{b.description}</p>}
+                {b.description && <p style={{ margin: 0 }}>{b.description.length > 180 ? `${b.description.slice(0, 180)}…` : b.description}</p>}
                 {b.contact && <p className="meta" style={{ margin: 0 }}>☏ {b.contact}</p>}
                 <p className="row" style={{ marginTop: 4 }}>
                   {site && <a className="btn sm ghost" href={site} {...ext}>{t.website}</a>}
                   {ig && <a className="btn sm ghost" href={ig} {...ext}>@{b.instagram}</a>}
                 </p>
+                <p style={{ margin: 0 }}><a className="btn sm" href={`/app/biznisi/${b.id}`}>{t.businessMore} →</a></p>
                 {b.offer && (
                   <div className="offer">
                     <p className="label">{t.partnerOffer}</p>
@@ -92,8 +100,11 @@ export default async function Businesses({ searchParams }: { searchParams: Promi
             <ul className="desk-list">
               {mine.map((b) => (
                 <li key={b.id}>
-                  <span>{b.name} {b.status === "PENDING" && <span className="tag">{t.businessPending}</span>}</span>
+                  <span><a href={`/app/biznisi/${b.id}`}>{b.name}</a> {b.status === "PENDING" && <span className="tag">{t.businessPending}</span>}</span>
+                  <span className="row">
+                  <a className="btn sm" href={`/app/biznisi/${b.id}/uredi`}>✎ {t.businessEdit}</a>
                   <form action={remove}><input type="hidden" name="id" value={b.id} /><button className="btn sm ghost" type="submit">{t.remove}</button></form>
+                  </span>
                 </li>
               ))}
             </ul>

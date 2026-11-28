@@ -40,6 +40,8 @@ export default async function BusinessesAdmin() {
                 {b.status !== "APPROVED" && <form action={decide}><input type="hidden" name="id" value={b.id} /><input type="hidden" name="approve" value="1" /><button className="btn sm pink" type="submit">Approve</button></form>}
                 {b.status === "PENDING" && <form action={decide}><input type="hidden" name="id" value={b.id} /><input type="hidden" name="approve" value="0" /><button className="btn sm ghost" type="submit">Decline</button></form>}
                 {b.status === "APPROVED" && <form action={decide}><input type="hidden" name="id" value={b.id} /><input type="hidden" name="approve" value="0" /><button className="btn sm ghost" type="submit">Hide</button></form>}
+                <a className="btn sm ghost" href={`/app/biznisi/${b.id}`}>Page</a>
+                <a className="btn sm ghost" href={`/app/biznisi/${b.id}/uredi`}>Edit</a>
                 <form action={remove}><input type="hidden" name="id" value={b.id} /><button className="btn sm ghost" type="submit">Delete</button></form>
               </div>
             </div>

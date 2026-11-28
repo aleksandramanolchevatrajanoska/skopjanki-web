@@ -21,6 +21,8 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
   const site = safeUrl(b.website);
   const ig = b.instagram ? `https://instagram.com/${b.instagram}` : null;
   const photos = b.files.filter((f) => f.kind === "IMAGE");
+  const logo = b.files.find((f) => f.kind === "LOGO");
+  const poster = b.files.find((f) => f.kind === "POSTER");
   const pdfs = b.files.filter((f) => f.kind === "PDF");
   const links = b.links.map((l) => ({ raw: l, url: safeUrl(l) })).filter((l) => l.url);
   const ext = { target: "_blank", rel: "noopener noreferrer" } as const;
@@ -28,16 +30,29 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
     <div style={{ maxWidth: 760, margin: "0 auto" }}>
       <p><a href="/app/biznisi" className="meta">← {t.businessBack}</a></p>
       <div className="between" style={{ alignItems: "flex-start" }}>
-        <div>
+        <div className="partner-head">
+          {logo && (
+            <span className="partner-logo" style={{ width: 84, height: 84 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`/biznis-files/${logo.id}`} alt={`${b.name} logo`} />
+            </span>
+          )}
+          <div>
           <h1 style={{ marginBottom: 4 }}>{b.name}</h1>
           <p className="meta" style={{ margin: 0 }}>{b.category} · {b.user.name}</p>
           {b.status === "PENDING" && <span className="tag" style={{ marginTop: 6, display: "inline-block" }}>{t.businessPending}</span>}
+          </div>
         </div>
         <div className="row">
           <ShareButton url={`/app/biznisi/${b.id}`} title={`Skopjanki: ${b.name}`} labels={{ share: t.share, copyLink: t.copyLink, copied: t.copied }} />
           {mine && <a className="btn sm" href={`/app/biznisi/${b.id}/uredi`}>✎ {t.businessEdit}</a>}
         </div>
       </div>
+
+      {poster && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={`/biznis-files/${poster.id}`} alt={`${b.name} poster`} style={{ width: "100%", borderRadius: 8, marginTop: 18, display: "block" }} />
+      )}
 
       {photos.length > 0 && (
         <div style={{ marginTop: 18 }}>

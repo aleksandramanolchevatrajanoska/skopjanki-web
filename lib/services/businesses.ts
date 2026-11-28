@@ -75,8 +75,8 @@ export async function updateBusiness(db: Db, actorId: string, id: string, i: Bus
 
 const looksLikePdf = (b: Buffer) => b.subarray(0, 5).toString("latin1") === "%PDF-";
 
-/** A photo (shrunk in the browser) or a PDF for her business page. */
-export async function addBusinessFile(db: Db, actorId: string, id: string, f: { name: string; mime: string; data: Buffer }) {
+/** A photo (shrunk in the browser), her logo, a poster, or a PDF for her business page. */
+export async function addBusinessFile(db: Db, actorId: string, id: string, f: { name: string; mime: string; data: Buffer; slot?: string }) {
   await manageableBusiness(db, actorId, id);
   const pdf = f.mime === "application/pdf";
   if (pdf) {
@@ -85,6 +85,11 @@ export async function addBusinessFile(db: Db, actorId: string, id: string, f: { 
   } else {
     if (!PHOTO_TYPES.includes(f.mime) || !looksLikeImage(f.data, f.mime)) throw new AppError("PHOTO_TYPE");
     if (f.data.length === 0 || f.data.length > POSTER_MAX_BYTES) throw new AppError("PHOTO_TOO_BIG");
+  }
+  // One logo and one poster: a new one replaces the old.
+  if (!pdf && (f.slot === "LOGO" || f.slot === "POSTER")) {
+    await db.businessFile.deleteMany({ where: { businessId: id, kind: f.slot } });
+    return db.businessFile.create({ data: { businessId: id, kind: f.slot, name: f.slot.toLowerCase(), mime: f.mime, data: new Uint8Array(f.data) } });
   }
   const kind = pdf ? "PDF" : "IMAGE";
   const count = await db.businessFile.count({ where: { businessId: id, kind } });

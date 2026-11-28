@@ -39,7 +39,7 @@ export default async function Businesses({ searchParams }: { searchParams: Promi
   const { t, locale } = await getT(user.locale);
   const member = isMember(user);
   const [list, mine] = await Promise.all([
-    prisma.memberBusiness.findMany({ where: { status: "APPROVED" }, include: { user: { select: { name: true } }, files: { where: { kind: "IMAGE" }, select: { id: true }, orderBy: { createdAt: "asc" }, take: 1 } }, orderBy: { createdAt: "desc" } }),
+    prisma.memberBusiness.findMany({ where: { status: "APPROVED" }, include: { user: { select: { name: true } }, files: { where: { kind: { in: ["LOGO", "IMAGE"] } }, select: { id: true, kind: true }, orderBy: { createdAt: "asc" } } }, orderBy: { createdAt: "desc" } }),
     prisma.memberBusiness.findMany({ where: { userId: user.id, status: { in: ["PENDING", "APPROVED"] } }, orderBy: { createdAt: "asc" } }),
   ]);
   const ext = { target: "_blank", rel: "noopener noreferrer" } as const;
@@ -60,9 +60,9 @@ export default async function Businesses({ searchParams }: { searchParams: Promi
               <div className="card partner" key={b.id}>
                 <div className="partner-head">
                   <span className="partner-logo">
-                    {b.files[0] ? (
+                    {(b.files.find((f) => f.kind === "LOGO") ?? b.files[0]) ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={`/biznis-files/${b.files[0].id}`} alt="" loading="lazy" />
+                      <img src={`/biznis-files/${(b.files.find((f) => f.kind === "LOGO") ?? b.files[0]).id}`} alt="" loading="lazy" />
                     ) : (
                       <span aria-hidden="true">{b.name.slice(0, 1).toUpperCase()}</span>
                     )}

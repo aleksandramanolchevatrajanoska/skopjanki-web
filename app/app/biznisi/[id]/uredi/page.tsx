@@ -44,6 +44,22 @@ export default async function EditBusiness({ params, searchParams }: { params: P
   if (!b || (b.userId !== user.id && !user.isOwner)) notFound();
   const photos = b.files.filter((f) => f.kind === "IMAGE");
   const pdfs = b.files.filter((f) => f.kind === "PDF");
+  const logo = b.files.find((f) => f.kind === "LOGO");
+  const poster = b.files.find((f) => f.kind === "POSTER");
+  const slot = (title: string, f: typeof logo, slotName: string, add: string, png: boolean) => (
+    <section className="card" style={{ marginTop: 18 }}>
+      <h2>{title}</h2>
+      {f && (
+        <form action={removeFile} style={{ margin: "10px 0" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/biznis-files/${f.id}`} alt="" style={{ maxWidth: slotName === "LOGO" ? 120 : "100%", maxHeight: 360, borderRadius: 6, display: "block", background: "#fff" }} />
+          <input type="hidden" name="businessId" value={b.id} /><input type="hidden" name="fileId" value={f.id} />
+          <button className="btn sm ghost" type="submit" style={{ marginTop: 4 }}>{t.remove}</button>
+        </form>
+      )}
+      <ImageUploader endpoint="/api/business-file" fields={{ businessId: b.id, slot: slotName }} label={f ? t.businessReplace : add} uploading={t.uploading} failed={t.uploadFailed} png={png} />
+    </section>
+  );
   return (
     <div style={{ maxWidth: 680, margin: "0 auto" }}>
       <p><a href={`/app/biznisi/${b.id}`} className="meta">← {t.businessView}</a></p>
@@ -70,6 +86,9 @@ export default async function EditBusiness({ params, searchParams }: { params: P
         <input id="b-contact" name="contact" maxLength={80} defaultValue={b.contact ?? ""} />
         <p style={{ marginTop: 14 }}><button className="btn pink" type="submit">{t.save}</button></p>
       </form>
+
+      {slot(t.businessLogo, logo, "LOGO", t.businessAddLogo, true)}
+      {slot(t.businessPoster, poster, "POSTER", t.businessAddPoster, false)}
 
       <section className="card" style={{ marginTop: 18 }}>
         <h2>{t.businessPhotos}</h2>

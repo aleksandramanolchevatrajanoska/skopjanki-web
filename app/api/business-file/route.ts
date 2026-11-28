@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   if (!(file instanceof File)) return NextResponse.json({ message: t.errors.BAD_INPUT }, { status: 400 });
   try {
     await addBusinessFile(prisma, user.id, String(form.get("businessId") ?? ""), {
-      name: file.name, mime: file.type, data: Buffer.from(await file.arrayBuffer()),
+      name: file.name, mime: file.type, data: Buffer.from(await file.arrayBuffer()), slot: String(form.get("slot") ?? ""),
     });
     return NextResponse.json({ ok: true });
   } catch (err) {

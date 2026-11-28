@@ -83,6 +83,7 @@ export default async function Membership({ searchParams }: { searchParams: Promi
           <h3>Skopjanki {t.memberLabel}</h3>
           <p className="price">{MEMBERSHIP_MKD} <small className="meta">MKD ({MEMBERSHIP_EUR} €) / {t.perMonth}</small></p>
           <ul className="ticks"><li>{t.memberEverythingFree}</li>{t.memberPerks.map((p) => <li key={p}>{p}</li>)}</ul>
+          <p className="meta">🔒 {t.membershipTermsLine} · <a href="/privacy">{t.privacyLink}</a></p>
           {!member && (user.membershipRequestedAt ? (
             <p className="notice ok">{t.membershipRequestedOn.replace("{date}", formatDateTime(user.membershipRequestedAt, locale))}</p>
           ) : (

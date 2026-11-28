@@ -1,4 +1,5 @@
 import { appUrl } from "../email";
+import { formatDateTime } from "../time";
 import { AppError, flush, type Db } from "./common";
 
 export const NOTE_MAX = 1000;
@@ -106,11 +107,25 @@ export async function addParticipant(db: Db, actorId: string, eventId: string, u
   const girl = await db.user.findUnique({ where: { id: userId } });
   if (!girl || girl.status !== "APPROVED") throw new AppError("NOT_FOUND");
   const member = girl.isOwner || (girl.memberUntil != null && girl.memberUntil > now);
-  return db.reservation.upsert({
+  const before = await db.reservation.findUnique({ where: { eventId_userId: { eventId, userId } } });
+  const r = await db.reservation.upsert({
     where: { eventId_userId: { eventId, userId } },
     create: { eventId, userId, status: "CONFIRMED", isMember: member },
     update: { status: "CONFIRMED", isMember: member, cancelledAt: null, lateCancel: false, offeredUntil: null, holdUntil: null },
   });
+  // Tell her she was added (not when she was already in).
+  if (before?.status !== "CONFIRMED" && userId !== actorId) {
+    const e = await db.event.findUniqueOrThrow({ where: { id: eventId } });
+    const mk = girl.locale !== "en";
+    await flush([{
+      to: girl.email,
+      subject: mk ? `Те додадовме: ${e.title}` : `You've been added: ${e.title}`,
+      text: mk
+        ? `Здраво ${girl.name}! Те додадовме на „${e.title}“, ${formatDateTime(e.startsAt, "mk")}${e.place ? `, ${e.place}` : ""}.\nДетали, цена и чат:\n${appUrl(`/app/events/${e.id}`)}\n\nСкопјанки`
+        : `Hi ${girl.name}! You've been added to "${e.title}", ${formatDateTime(e.startsAt, "en")}${e.place ? `, ${e.place}` : ""}.\nDetails, price and chat:\n${appUrl(`/app/events/${e.id}`)}\n\nSkopjanki`,
+    }]);
+  }
+  return r;
 }
 
 /** Takes a girl off the event without any debt. The captain herself stays. */

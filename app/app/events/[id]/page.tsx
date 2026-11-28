@@ -332,6 +332,9 @@ export default async function EventPage({ params, searchParams }: Params) {
                 {!e.range.fixed && !e.lockedAt ? ` · ${t.priceRange}` : ""}
               </p>
               {captainFreeNow && <p className="meta">♛ {t.captainPaysNothing}</p>}
+              {!member && !captainFreeNow && !isFree(e.range) ? (
+                <p className="meta">♛ {t.asMemberYouPay} <strong>{fmtRange(e.range.member)} MKD</strong> · <a href="/app/membership">{t.becomeMember}</a></p>
+              ) : null}
               {!captainFreeNow && e.captainShare ? <p className="meta">♛ {t.captainShareNote}</p> : null}
               {e.kind !== "FUSION" && owed > 0 && (
                 <p className="notice">{t.yourDebt}: <strong>{owed} MKD</strong></p>

@@ -185,7 +185,7 @@ export async function deleteAccount(db: Db, userId: string, now = new Date()) {
   if (user.stripeSubscriptionId && user.memberUntil && user.memberUntil > now) throw new AppError("CANCEL_MEMBERSHIP_FIRST");
   const owner = await db.user.findFirst({ where: { isOwner: true, id: { not: userId } } });
   // Free her seats in coming events first, so the waiting list gets them as usual.
-  await db.event.updateMany({ where: { captainId: userId, startsAt: { gt: now } }, data: { captainId: null } });
+  await db.event.updateMany({ where: { captainId: userId, startsAt: { gt: now } }, data: { captainId: null, captainShare: null } });
   const coming = await db.reservation.findMany({ where: { userId, status: { not: "CANCELLED" }, event: { startsAt: { gt: now } } } });
   for (const r of coming) {
     try {
@@ -201,7 +201,7 @@ export async function deleteAccount(db: Db, userId: string, now = new Date()) {
       if (!owner) throw new AppError("NO_OWNER");
       await tx.event.updateMany({ where: { createdById: userId }, data: { createdById: owner.id } });
     }
-    await tx.event.updateMany({ where: { captainId: userId }, data: { captainId: null } });
+    await tx.event.updateMany({ where: { captainId: userId }, data: { captainId: null, captainShare: null } });
     await tx.debt.updateMany({ where: { collectedById: userId }, data: { collectedById: null } });
     await tx.loginToken.deleteMany({ where: { email: user.email } });
     await tx.emailLog.deleteMany({ where: { to: user.email } });

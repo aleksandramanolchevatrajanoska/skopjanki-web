@@ -236,7 +236,9 @@ export default async function EventPage({ params, searchParams }: Params) {
     finalPrices = pricesFor(e, came.filter((c) => !c.isMember).length + g.filter((x) => !x.isMember).length, came.filter((c) => c.isMember).length + g.filter((x) => x.isMember).length);
   }
   const owed = myDebts.reduce((s, d) => s + d.amount, 0);
-  const myPrice = e.range ? (mine?.isMember ?? member ? e.range.member : e.range.nonMember) : null;
+  // The captain of a term plays free.
+  const captainFreeNow = isCaptain && e.kind !== "FUSION";
+  const myPrice: [number, number] | null = e.range ? (captainFreeNow ? [0, 0] : mine?.isMember ?? member ? e.range.member : e.range.nonMember) : null;
   const placeText = [e.partner?.name ?? e.place, e.partner?.address].filter(Boolean).join(", ");
   const calUrl = googleCalendarUrl({ ...e, place: placeText }, appUrl(`/app/events/${e.id}`));
   const img = hasPoster
@@ -329,6 +331,8 @@ export default async function EventPage({ params, searchParams }: Params) {
                 {e.kind === "FUSION" ? "Stripe" : t.priceCash}
                 {!e.range.fixed && !e.lockedAt ? ` · ${t.priceRange}` : ""}
               </p>
+              {captainFreeNow && <p className="meta">♛ {t.captainPaysNothing}</p>}
+              {!captainFreeNow && e.captainShare ? <p className="meta">♛ {t.captainShareNote}</p> : null}
               {e.kind !== "FUSION" && owed > 0 && (
                 <p className="notice">{t.yourDebt}: <strong>{owed} MKD</strong></p>
               )}

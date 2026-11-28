@@ -173,6 +173,7 @@ model Event {
   publishedAt       DateTime?
   lockedAt          DateTime?
   lockedPriceNonMember Int?
+  captainShare         Int? // fixed-price term: the captain plays free, her price is shared by the others (MKD)
   lockedPriceMember    Int?
   minimumAlertSentAt   DateTime?
   captainAlertSentAt   DateTime?

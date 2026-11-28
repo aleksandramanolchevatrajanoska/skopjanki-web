@@ -1,6 +1,6 @@
 import type { Event, Prisma, PrismaClient, Reservation, User } from "@prisma/client";
 import { sendMail, type Mail } from "../email";
-import { hasCaptainSeat, pricesFor, splitPrices, type Prices } from "../pricing";
+import { captainShareFor, hasCaptainSeat, pricesFor, splitPrices, type Prices } from "../pricing";
 import { isMember } from "../membership";
 import { HOUR } from "../time";
 
@@ -58,6 +58,14 @@ export function payingCounts(e: Pick<Event, "captainId" | "kind">, rs: Pick<Rese
     else nonMembers++;
   }
   return { members, nonMembers };
+}
+
+/** Keeps the event's captain share in step with who the captain is and the prices. Call after either changes. */
+export async function syncCaptainShare(db: Tx | Db, eventId: string, now = new Date()) {
+  const e = await db.event.findUnique({ where: { id: eventId }, include: { captain: true } });
+  if (!e) return;
+  const share = captainShareFor(e, e.captain ? { isOwner: e.captain.isOwner, member: isMember(e.captain, now) } : null);
+  if (share !== e.captainShare) await db.event.update({ where: { id: eventId }, data: { captainShare: share } });
 }
 
 export function priceForGirl(p: Prices, member: boolean) {

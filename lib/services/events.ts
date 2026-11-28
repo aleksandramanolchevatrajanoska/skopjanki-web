@@ -4,7 +4,7 @@ import { appUrl } from "../email";
 import { cleanVideoLinks, toEmbed } from "../embeds";
 import { isMember } from "../membership";
 import { formatDateTime, weekKey } from "../time";
-import { AppError, flush, lockEventRow, ownerEmailsFromDb, type Db, type Outbox, type Tx } from "./common";
+import { AppError, flush, lockEventRow, ownerEmailsFromDb, syncCaptainShare, type Db, type Outbox, type Tx } from "./common";
 import { partnerListMail } from "./notifications";
 
 export const VIBES = ["ACTIVE", "SOCIAL", "BOTH"];
@@ -161,7 +161,7 @@ export async function updateEvent(db: Db, eventId: string, input1: EventInput) {
   const priceChanged =
     d.pricingMode !== e.pricingMode || d.totalCost !== e.totalCost || d.priceNonMember !== e.priceNonMember ||
     d.priceMember !== e.priceMember || d.memberDiscountPct !== e.memberDiscountPct || d.startsAt.getTime() !== e.startsAt.getTime();
-  return db.event.update({
+  await db.event.update({
     where: { id: eventId },
     data: {
       ...d,
@@ -169,6 +169,8 @@ export async function updateEvent(db: Db, eventId: string, input1: EventInput) {
       ...(toFusion ? { captainId: null } : {}),
     },
   });
+  await syncCaptainShare(db, eventId);
+  return db.event.findUniqueOrThrow({ where: { id: eventId } });
 }
 
 /** The organiser edits any event; a captain her term; a member the plan she proposed. */
@@ -230,6 +232,7 @@ export async function proposePlan(db: Db, userId: string, input0: Omit<EventInpu
       });
       if (existing) throw new AppError("ONE_PLAN_PER_WEEK");
       const e = await tx.event.create({ data: { ...data(full), status: "PENDING", createdById: userId, captainId: userId } });
+      await syncCaptainShare(tx, e.id);
       await tx.reservation.create({ data: { eventId: e.id, userId, status: "CONFIRMED", isMember: true } });
       out.push({
         to: await ownerEmailsFromDb(tx),
